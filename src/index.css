@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200;
+  }
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom radio button styling for primary color */
+input[type="radio"] {
+  accent-color: #764ba2;
+}
+
+/* Custom select styling for primary color */
+select {
+  accent-color: #764ba2;
+}
+
+/* Custom select/dropdown styling for primary color */
+select option {
+  background-color: white !important;
+  color: #111827 !important;
+}
+
+select option:hover,
+select option:focus,
+select option:checked,
+select option:active,
+select option::selection {
+  background-color: #764ba2 !important;
+  background: #764ba2 !important;
+  color: white !important;
+  box-shadow: 0 0 10px #764ba2 !important;
+}
+
+select option[selected] {
+  background-color: #764ba2 !important;
+  color: white !important;
+}
+
+/* WebKit specific styles */
+select option:hover:not([selected]) {
+  background: linear-gradient(#764ba2, #764ba2) !important;
+  color: white !important;
+}
+
+/* For dark mode */
+.dark select {
+  accent-color: #8b7ad6;
+}
+
+.dark select option {
+  background-color: #374151 !important;
+  color: white !important;
+}
+
+.dark select option:hover,
+.dark select option:focus,
+.dark select option:checked,
+.dark select option:active,
+.dark select option::selection {
+  background-color: #8b7ad6 !important;
+  background: #8b7ad6 !important;
+  color: white !important;
+  box-shadow: 0 0 10px #8b7ad6 !important;
+}
+
+.dark select option[selected] {
+  background-color: #8b7ad6 !important;
+  color: white !important;
+}
+
+.dark select option:hover:not([selected]) {
+  background: linear-gradient(#8b7ad6, #8b7ad6) !important;
+  color: white !important;
+}
+
+/* Remove number input arrows/spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* React DatePicker Custom Styles */
+.react-datepicker-wrapper {
+  width: 100%;
+}

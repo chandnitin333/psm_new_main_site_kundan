@@ -1,0 +1,31 @@
+export interface NodniFormData {
+  anuKramank: string;
+  malmattaNo: string;
+  wardNo: string;
+  plotNo: string;
+  khasaraNo: string;
+  surveyNo: string;
+  votarCardNo: string;
+  mobileNo: string;
+  aadharCardNo: string;
+  gharMalkacheNav: string;
+  patniMulacheNav: string;
+  bhogwatdharNav: string;
+  pattaNagarLayout: string;
+  kaymchaPatta: string;
+  purvesh: string;
+  paschimes: string;
+  uttares: string;
+  dakshines: string;
+  panyachiVyavasta: string;
+  souchalay: string;
+  vanijyaPrakar: string;
+  milkatPrakar: string;
+  imaratMokli: string;
+  dharmikEducation: string;
+  shauryaPadak: string;
+  lambi: string;
+  rundi: string;
+  shetrafalChorasFoot: string;
+  shetrafalChorasMeter: string;
+}
