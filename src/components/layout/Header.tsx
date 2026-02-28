@@ -5,6 +5,15 @@ import { useTheme } from '../../hooks/useTheme';
 import { useDropdownDelay } from '../../utils/dropdown';
 import type { MenuItem } from '../../interfaces';
 
+interface UserData {
+  id?: number;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  email?: string;
+  user_type?: string;
+}
+
 interface HeaderProps {
   isAuthenticated: boolean;
   menuItems: MenuItem[];
@@ -16,6 +25,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -24,8 +34,25 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
   // Use dropdown delay hook for user menu
   const userMenuDelay = useDropdownDelay(setIsUserMenuOpen);
 
-  // Mock user data - replace with actual user data from auth context
-  const userName = "Admin User";
+  // Get user data from localStorage
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setUserData(user);
+      } catch {
+        setUserData(null);
+      }
+    }
+  }, [isAuthenticated]);
+
+  // Get display name and email
+  const displayName = userData?.username || userData?.first_name || 'User';
+  const fullName = userData?.first_name && userData?.last_name
+    ? `${userData.first_name} ${userData.last_name}`
+    : userData?.username || 'User';
+  const userEmail = userData?.email || '';
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -173,14 +200,14 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
               >
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer">
                   <User className="w-5 h-5" />
-                  <span className="text-sm font-medium">{userName}</span>
+                  <span className="text-sm font-medium">{displayName}</span>
                 </div>
 
                 {isUserMenuOpen && (
                   <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 border border-gray-200 dark:border-gray-700 z-50">
                     <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{userName}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">admin@grampanchayat.in</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{fullName}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{userEmail}</p>
                     </div>
                     <Link
                       to="/dashboard"

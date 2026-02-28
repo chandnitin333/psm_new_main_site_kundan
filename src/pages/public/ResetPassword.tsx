@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Lock, ArrowLeft, Key } from 'lucide-react';
+import { Lock, ArrowLeft, Key, AlertTriangle } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
+import { authService, type ApiError } from '../../services';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -32,6 +33,12 @@ const ResetPassword = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Check if token exists
+    if (!token) {
+      toast.error('Invalid or missing reset token.');
+      return;
+    }
+
     // Validation
     if (formData.password !== formData.confirmPassword) {
       toast.error('Passwords do not match!');
@@ -45,14 +52,52 @@ const ResetPassword = () => {
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      toast.success('Password reset successfully! Redirecting to login...');
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
-    }, 1500);
+    try {
+      const response = await authService.resetPassword(
+        token,
+        formData.password
+      );
+
+      if (response.success) {
+        toast.success(response.message || 'Password reset successfully! Redirecting to login...');
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      } else {
+        toast.error(response.message || 'Failed to reset password. Please try again.');
+      }
+    } catch (error) {
+      const apiError = error as ApiError;
+      toast.error(apiError.message || 'Failed to reset password. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  // Show error if no token
+  if (!token) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900 p-4">
+        <div className="max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Invalid Reset Link
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            The password reset link is invalid or has expired. Please request a new one.
+          </p>
+          <Link
+            to="/forgot-password"
+            className="inline-flex items-center justify-center px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
+          >
+            Request New Link
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex bg-white dark:bg-gray-900">

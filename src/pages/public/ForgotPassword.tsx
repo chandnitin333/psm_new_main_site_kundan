@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, Key } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
+import { authService, type ApiError } from '../../services';
 
 const ForgotPassword = () => {
   const { toast, ToastContainer } = useToast();
@@ -20,14 +21,29 @@ const ForgotPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!email.trim()) {
+      toast.error('Please enter your email address.');
+      return;
+    }
+
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      toast.success('Password reset link has been sent to your email address!');
+    try {
+      const response = await authService.forgotPassword(email.trim());
+
+      if (response.success) {
+        toast.success(response.message || 'Password reset link has been sent to your email address!');
+        setEmail('');
+      } else {
+        toast.error(response.message || 'Failed to send reset link. Please try again.');
+      }
+    } catch (error) {
+      const apiError = error as ApiError;
+      toast.error(apiError.message || 'Failed to send reset link. Please try again.');
+    } finally {
       setIsSubmitting(false);
-      setEmail('');
-    }, 1500);
+    }
   };
 
   return (

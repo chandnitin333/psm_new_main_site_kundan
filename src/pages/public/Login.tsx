@@ -19,6 +19,7 @@ const Login = () => {
   });
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -56,9 +57,30 @@ const Login = () => {
         formData.loginAs
       );
 
-      if (response.success) {
-        toast.success(response.message || 'Credentials verified! OTP sent to your registered mobile number.');
-        setStep('otp');
+      if (response.success && response.data) {
+        // Check if OTP was sent (user/bdo login with OTP enabled)
+        if (response.data.otp_sent && response.data.user_id) {
+          setUserId(response.data.user_id);
+          toast.success(response.message || 'OTP sent to your registered email.');
+          setStep('otp');
+        } else if (response.data.access_token && response.data.user) {
+          // Direct login (admin or OTP disabled) - store auth data
+          localStorage.setItem('accessToken', response.data.access_token);
+          if (response.data.refresh_token) {
+            localStorage.setItem('refreshToken', response.data.refresh_token);
+          }
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+          localStorage.setItem('userRole', formData.loginAs);
+          localStorage.setItem('isAuthenticated', 'true');
+
+          // Set loader config
+          setLoaderConfig('ring', 'white-900');
+
+          toast.success(response.message || 'Login successful! Redirecting to dashboard...');
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 1000);
+        }
       } else {
         toast.error(response.message || 'Invalid credentials. Please try again.');
       }
@@ -100,11 +122,17 @@ const Login = () => {
       return;
     }
 
+    if (!userId) {
+      toast.error('Session expired. Please login again.');
+      setStep('login');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const response = await authService.verifyOtp(
-        formData.email,
+        userId,
         otpValue,
         formData.loginAs
       );
@@ -241,7 +269,7 @@ const Login = () => {
                     </div>
                     <input
                       id="email"
-                      type="email"
+                      type="text"
                       name="email"
                       value={formData.email}
                       onChange={handleChange}

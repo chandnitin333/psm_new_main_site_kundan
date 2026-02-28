@@ -8,6 +8,15 @@ import ManoryachTable from './ManoryachTable';
 import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
 import type { NodniFormData } from '../../../interfaces/dashboard/nodni-form/NodniForm.types';
+import { api } from '../../../services';
+import { authService } from '../../../services';
+
+interface TaxItem {
+  tax_id: number;
+  tax_name: string;
+  rate: string;
+  selected: boolean;
+}
 
 const NodniForm = () => {
   const { toast, ToastContainer } = useToast();
@@ -24,14 +33,9 @@ const NodniForm = () => {
   const [editingBandkamIndex, setEditingBandkamIndex] = useState<number | null>(null);
   const [editingManoryachIndex, setEditingManoryachIndex] = useState<number | null>(null);
 
-  // Other Tax Calculation State
-  const [otherTaxes, setOtherTaxes] = useState<Array<{ selected: boolean; name: string; rate: string }>>([
-    { selected: false, name: 'पाणी कर (Water Tax)', rate: '' },
-    { selected: false, name: 'गटार कर (Sewerage Tax)', rate: '' },
-    { selected: false, name: 'शिक्षण कर (Education Tax)', rate: '' },
-    { selected: false, name: 'सफाई कर (Sanitation Tax)', rate: '' },
-    { selected: false, name: 'इतर कर (Other Tax)', rate: '' },
-  ]);
+  // Other Tax Calculation State - dynamic from API
+  const [otherTaxes, setOtherTaxes] = useState<TaxItem[]>([]);
+  const [taxLoading, setTaxLoading] = useState(false);
 
   // Property Tax Calculation State
   const [propertyTax, setPropertyTax] = useState({
@@ -102,6 +106,49 @@ const NodniForm = () => {
     loadPage();
   }, []);
 
+  const taxFetchedRef = useRef(false);
+
+  // Fetch dynamic tax list from API
+  useEffect(() => {
+    if (taxFetchedRef.current) return;
+    taxFetchedRef.current = true;
+
+    const fetchTaxList = async () => {
+      const currentUser = authService.getCurrentUser();
+      if (
+        !currentUser?.district_id ||
+        !currentUser?.taluka_id ||
+        !currentUser?.gram_panchayat_id ||
+        !currentUser?.gat_gram_panchayat_id
+      ) return;
+
+      setTaxLoading(true);
+      try {
+        const response = await api.post<Array<{ tax_id: number; tax_name: string; rate: number }>>('/main/nodni/tax-list', {
+          district_id: currentUser.district_id,
+          taluka_id: currentUser.taluka_id,
+          gram_panchayat_id: currentUser.gram_panchayat_id,
+          gat_gram_panchayat_id: currentUser.gat_gram_panchayat_id,
+        });
+        if (response.success && response.data) {
+          setOtherTaxes(
+            response.data.map(item => ({
+              tax_id: item.tax_id,
+              tax_name: item.tax_name,
+              rate: item.rate?.toString() || '',
+              selected: false,
+            }))
+          );
+        }
+      } catch {
+        // keep list empty on error
+      } finally {
+        setTaxLoading(false);
+      }
+    };
+    fetchTaxList();
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -109,16 +156,12 @@ const NodniForm = () => {
 
   // Handle Other Tax checkbox change
   const handleOtherTaxCheckbox = (index: number) => {
-    const updatedTaxes = [...otherTaxes];
-    updatedTaxes[index].selected = !updatedTaxes[index].selected;
-    setOtherTaxes(updatedTaxes);
+    setOtherTaxes(prev => prev.map((t, i) => i === index ? { ...t, selected: !t.selected } : t));
   };
 
   // Handle Other Tax rate change
   const handleOtherTaxRate = (index: number, value: string) => {
-    const updatedTaxes = [...otherTaxes];
-    updatedTaxes[index].rate = value;
-    setOtherTaxes(updatedTaxes);
+    setOtherTaxes(prev => prev.map((t, i) => i === index ? { ...t, rate: value } : t));
   };
 
   // Calculate total for Other Taxes
@@ -298,14 +341,8 @@ const NodniForm = () => {
     setBandkamRecords([]);
     setManoryachRecords([]);
 
-    // Reset other taxes
-    setOtherTaxes([
-      { selected: false, name: 'पाणी कर (Water Tax)', rate: '' },
-      { selected: false, name: 'गटार कर (Sewerage Tax)', rate: '' },
-      { selected: false, name: 'शिक्षण कर (Education Tax)', rate: '' },
-      { selected: false, name: 'सफाई कर (Sanitation Tax)', rate: '' },
-      { selected: false, name: 'इतर कर (Other Tax)', rate: '' },
-    ]);
+    // Reset other taxes - only uncheck selections, keep API data
+    setOtherTaxes(prev => prev.map(t => ({ ...t, selected: false })));
 
     // Reset property tax
     setPropertyTax({
@@ -997,31 +1034,45 @@ const NodniForm = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {otherTaxes.map((tax, index) => (
-                        <tr key={index} className="border-b border-gray-200 dark:border-gray-700">
-                          <td className="px-3 py-2">
-                            <input
-                              type="checkbox"
-                              checked={tax.selected}
-                              onChange={() => handleOtherTaxCheckbox(index)}
-                              className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                            />
-                          </td>
-                          <td className="px-3 py-2 text-sm text-gray-900 dark:text-white">
-                            {tax.name}
-                          </td>
-                          <td className="px-3 py-2">
-                            <input
-                              type="text"
-                              value={tax.rate}
-                              onChange={(e) => handleOtherTaxRate(index, e.target.value)}
-                              disabled={!tax.selected}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
-                              placeholder="0.00"
-                            />
+                      {taxLoading ? (
+                        <tr>
+                          <td colSpan={3} className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                            लोड होत आहे... (Loading...)
                           </td>
                         </tr>
-                      ))}
+                      ) : otherTaxes.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                            कोणताही कर सापडला नाही (No tax found)
+                          </td>
+                        </tr>
+                      ) : (
+                        otherTaxes.map((tax, index) => (
+                          <tr key={tax.tax_id} className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="px-3 py-2">
+                              <input
+                                type="checkbox"
+                                checked={tax.selected}
+                                onChange={() => handleOtherTaxCheckbox(index)}
+                                className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                              />
+                            </td>
+                            <td className="px-3 py-2 text-sm text-gray-900 dark:text-white">
+                              {tax.tax_name}
+                            </td>
+                            <td className="px-3 py-2">
+                              <input
+                                type="text"
+                                value={tax.rate}
+                                onChange={(e) => handleOtherTaxRate(index, e.target.value)}
+                                disabled={!tax.selected}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
+                                placeholder="0.00"
+                              />
+                            </td>
+                          </tr>
+                        ))
+                      )}
                       <tr className="bg-gray-50 dark:bg-gray-700 font-semibold">
                         <td colSpan={2} className="px-3 py-2 text-right text-sm text-gray-900 dark:text-white">
                           एकूण (Total):

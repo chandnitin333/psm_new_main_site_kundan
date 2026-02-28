@@ -27,37 +27,66 @@ export interface LoginPayload {
   user_type: UserType;
 }
 
-export interface LoginResponse {
-  user: {
-    id: string;
-    email: string;
+// Full user data returned from API
+export interface ApiUser {
+  id: number;
+  email: string;
+  username: string;
+  first_name: string;
+  last_name: string;
+  user_type: UserType;
+  mobile_no?: string;
+  aadhar_card_no?: string;
+  pan_card_no?: string;
+  address?: string;
+  profile_image?: string | null;
+  district_id?: number;
+  taluka_id?: number;
+  gram_panchayat_id?: number;
+  gat_gram_panchayat_id?: number;
+  designation_id?: number;
+  district?: string;
+  taluka?: string;
+  gram_panchayat?: string;
+  gat_gram_panchayat?: string;
+  designation?: string;
+  permissions?: Array<{
+    id: number;
     name: string;
-    user_type: UserType;
-    mobile?: string;
-  };
-  access_token: string;
+    url: string;
+    description?: string;
+    icon?: string;
+    sequence_order?: number;
+    is_in_header?: number;
+    access_flag?: string;
+  }>;
+}
+
+export interface LoginResponse {
+  // When OTP is enabled - returns user_id for OTP verification
+  user_id?: number;
+  email?: string;
+  otp_sent?: boolean;
+  otp_enabled?: boolean;
+  // When OTP is disabled or for admin - returns full user data and tokens
+  user?: ApiUser;
+  access_token?: string;
   refresh_token?: string;
-  loader_config?: {
-    type: string;
-    color: string;
-  };
+  token_type?: string;
+  expires_in?: number;
 }
 
 export interface OtpVerifyPayload {
-  email: string;
+  user_id: number;
   otp: string;
-  user_type: UserType;
 }
 
 export interface OtpVerifyResponse {
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    user_type: UserType;
-  };
+  user: ApiUser;
   access_token: string;
   refresh_token?: string;
+  token_type: string;
+  expires_in: number;
   loader_config?: {
     type: string;
     color: string;

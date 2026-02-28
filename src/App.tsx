@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { ThemeProvider } from './hooks/useTheme';
 import { LoadingProvider } from './contexts/LoadingContext';
@@ -5,12 +6,11 @@ import { createRouter } from './routes';
 
 function App() {
   const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('user');
+    localStorage.clear();
     window.location.href = '/login';
   };
 
-  const router = createRouter(handleLogout);
+  const router = useMemo(() => createRouter(handleLogout), []);
 
   return (
     <ThemeProvider>

@@ -1,22 +1,43 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Home, Building2, Factory, Briefcase, Award, TrendingUp, MapPin } from 'lucide-react';
+import { Users, Home, Building2, Factory, Award, TrendingUp, MapPin } from 'lucide-react';
 import { useLoading } from '../../contexts/LoadingContext';
 import type { CategoryCard } from '../../interfaces/dashboard/Dashboard.types';
+
+interface UserData {
+  district?: string;
+  taluka?: string;
+  gram_panchayat?: string;
+  gat_gram_panchayat?: string;
+}
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { showLoader, hideLoader } = useLoading();
+  const [locationInfo, setLocationInfo] = useState({
+    district: '',
+    taluka: '',
+    gramPanchayat: '',
+    gatGramPanchayat: '',
+  });
 
-  // Location information
-  const locationInfo = {
-    district: 'गोंदिया',
-    districtEn: 'Gondia',
-    taluka: 'तिरोरा',
-    talukaEn: 'Tirora',
-    gramPanchayat: 'मुंडीकोटा',
-    gramPanchayatEn: 'Mundikota',
-  };
+  // Load location info from localStorage
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user: UserData = JSON.parse(userStr);
+        setLocationInfo({
+          district: user.district || '',
+          taluka: user.taluka || '',
+          gramPanchayat: user.gram_panchayat || '',
+          gatGramPanchayat: user.gat_gram_panchayat || '',
+        });
+      } catch {
+        console.error('Error parsing user data');
+      }
+    }
+  }, []);
 
   // Page load effect with loader
   useEffect(() => {
@@ -160,16 +181,13 @@ const Dashboard = () => {
         </h2>
 
         {/* Location Details */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
             <div className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-1">
               District / जिल्हा
             </div>
             <div className="text-xl font-bold text-blue-900 dark:text-blue-100">
-              {locationInfo.district}
-            </div>
-            <div className="text-sm text-blue-700 dark:text-blue-300">
-              {locationInfo.districtEn}
+              {locationInfo.district || '-'}
             </div>
           </div>
 
@@ -178,10 +196,7 @@ const Dashboard = () => {
               Taluka / तालुका
             </div>
             <div className="text-xl font-bold text-purple-900 dark:text-purple-100">
-              {locationInfo.taluka}
-            </div>
-            <div className="text-sm text-purple-700 dark:text-purple-300">
-              {locationInfo.talukaEn}
+              {locationInfo.taluka || '-'}
             </div>
           </div>
 
@@ -190,34 +205,44 @@ const Dashboard = () => {
               Gram Panchayat / ग्रामपंचायत
             </div>
             <div className="text-xl font-bold text-green-900 dark:text-green-100">
-              {locationInfo.gramPanchayat}
+              {locationInfo.gramPanchayat || '-'}
             </div>
-            <div className="text-sm text-green-700 dark:text-green-300">
-              {locationInfo.gramPanchayatEn}
+          </div>
+
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg p-4 border border-orange-200 dark:border-orange-700">
+            <div className="text-sm text-orange-600 dark:text-orange-400 font-medium mb-1">
+              Gat Gram Panchayat / गट ग्रामपंचायत
+            </div>
+            <div className="text-xl font-bold text-orange-900 dark:text-orange-100">
+              {locationInfo.gatGramPanchayat || '-'}
             </div>
           </div>
         </div>
 
         {/* Map Section */}
-        <div className="bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
-          <iframe
-            src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(
-              `${locationInfo.gramPanchayatEn}, ${locationInfo.talukaEn}, ${locationInfo.districtEn}, Maharashtra, India`
-            )}&zoom=14&maptype=roadmap`}
-            width="100%"
-            height="450"
-            style={{ border: 0 }}
-            allowFullScreen
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            title={`Map of ${locationInfo.gramPanchayatEn}`}
-            className="w-full"
-          ></iframe>
-        </div>
+        {locationInfo.gramPanchayat && (
+          <>
+            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+              <iframe
+                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(
+                  `${locationInfo.gramPanchayat}, ${locationInfo.taluka}, ${locationInfo.district}, Maharashtra, India`
+                )}&zoom=14&maptype=roadmap`}
+                width="100%"
+                height="450"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title={`Map of ${locationInfo.gramPanchayat}`}
+                className="w-full"
+              ></iframe>
+            </div>
 
-        <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 text-center">
-          Map showing {locationInfo.gramPanchayat} ({locationInfo.gramPanchayatEn}), {locationInfo.taluka} ({locationInfo.talukaEn}), {locationInfo.district} ({locationInfo.districtEn})
-        </div>
+            <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 text-center">
+              Map showing {locationInfo.gramPanchayat}, {locationInfo.taluka}, {locationInfo.district}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

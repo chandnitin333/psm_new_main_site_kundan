@@ -73,14 +73,13 @@ export const authService = {
    * Verify OTP after login
    */
   verifyOtp: async (
-    email: string,
+    userId: number,
     otp: string,
     role: 'grampanchayat' | 'bdo'
   ): Promise<ApiResponse<OtpVerifyResponse>> => {
     const payload: OtpVerifyPayload = {
-      email,
+      user_id: userId,
       otp,
-      user_type: mapRoleToUserType(role),
     };
 
     try {
@@ -101,11 +100,13 @@ export const authService = {
    * Store authentication data in localStorage
    */
   setAuthData: (data: OtpVerifyResponse | LoginResponse, role: 'grampanchayat' | 'bdo'): void => {
-    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token);
+    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token as string);
     if (data.refresh_token) {
       localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
     }
-    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(data.user));
+    if (data.user) {
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(data.user));
+    }
     localStorage.setItem(STORAGE_KEYS.USER_ROLE, role);
     localStorage.setItem(STORAGE_KEYS.IS_AUTHENTICATED, 'true');
   },
@@ -179,14 +180,12 @@ export const authService = {
    */
   resetPassword: async (
     token: string,
-    password: string,
-    confirmPassword: string
+    newPassword: string
   ): Promise<ApiResponse> => {
     try {
       return await api.post(AUTH_ENDPOINTS.RESET_PASSWORD, {
         token,
-        password,
-        confirm_password: confirmPassword,
+        new_password: newPassword,
       });
     } catch (error) {
       throw error as ApiError;
