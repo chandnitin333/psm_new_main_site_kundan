@@ -67,19 +67,19 @@ const KhulaBhukhandTable = ({ records, onEdit, onDelete }: KhulaBhukhandTablePro
             {records.map((record, index) => (
               <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                  {record.malmattechePrakar}
+                  {record.malmattechePrakarName || record.malmattechePrakar}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                  {record.malmattecheVarnan}
+                  {record.malmattecheVarnanName || record.malmattecheVarnan}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
                   {record.vaparPrakar}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                  {record.gavacheNav}
+                  {record.gavacheNavName || record.gavacheNav}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                  {record.gavthanBaher}
+                  {record.gavthanBaherName || record.gavthanBaher}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
                   {record.shetrafalPurabPachimMeter}
@@ -88,13 +88,11 @@ const KhulaBhukhandTable = ({ records, onEdit, onDelete }: KhulaBhukhandTablePro
                   {record.shetrafalUttarDakshinFoot}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                  {record.shetrafalPurabPachimMeter && record.shetrafalUttarDakshinFoot
-                    ? (Number(record.shetrafalPurabPachimMeter) * Number(record.shetrafalUttarDakshinFoot)).toFixed(2)
-                    : '-'}
+                  {record.ekunShetrafalChorasFoot || '-'}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                  {record.shetrafalPurabPachimMeter2 && record.shetrafalUttarDakshinMeter
-                    ? (Number(record.shetrafalPurabPachimMeter2) * Number(record.shetrafalUttarDakshinMeter)).toFixed(2)
+                  {record.ekunShetrafalChorasFoot
+                    ? (Number(record.ekunShetrafalChorasFoot) * 0.092903).toFixed(2)
                     : '-'}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
@@ -104,13 +102,13 @@ const KhulaBhukhandTable = ({ records, onEdit, onDelete }: KhulaBhukhandTablePro
                   {record.aakraniDar}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                  {record.shetrafalPurabPachimMeter2 && record.shetrafalUttarDakshinMeter && record.jaminicheVarshikMulya
-                    ? (Number(record.shetrafalPurabPachimMeter2) * Number(record.shetrafalUttarDakshinMeter) * Number(record.jaminicheVarshikMulya)).toFixed(2)
+                  {record.ekunShetrafalChorasFoot && record.jaminicheVarshikMulya
+                    ? (Number(record.ekunShetrafalChorasFoot) * 0.092903 * Number(record.jaminicheVarshikMulya)).toFixed(2)
                     : '-'}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                  {record.shetrafalPurabPachimMeter2 && record.shetrafalUttarDakshinMeter && record.jaminicheVarshikMulya && record.aakraniDar
-                    ? ((Number(record.shetrafalPurabPachimMeter2) * Number(record.shetrafalUttarDakshinMeter) * Number(record.jaminicheVarshikMulya) * Number(record.aakraniDar)) / 1000).toFixed(2)
+                  {record.ekunShetrafalChorasFoot && record.jaminicheVarshikMulya && record.aakraniDar
+                    ? ((Number(record.ekunShetrafalChorasFoot) * 0.092903 * Number(record.jaminicheVarshikMulya) * Number(record.aakraniDar)) / 1000).toFixed(2)
                     : '-'}
                 </td>
                 <td className="px-4 py-3 text-sm">
@@ -152,15 +150,13 @@ const KhulaBhukhandTable = ({ records, onEdit, onDelete }: KhulaBhukhandTablePro
               </td>
               <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
                 {records.reduce((sum, record) =>
-                  sum + (record.shetrafalPurabPachimMeter && record.shetrafalUttarDakshinFoot
-                    ? Number(record.shetrafalPurabPachimMeter) * Number(record.shetrafalUttarDakshinFoot)
-                    : 0), 0
+                  sum + (Number(record.ekunShetrafalChorasFoot) || 0), 0
                 ).toFixed(2)}
               </td>
               <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
                 {records.reduce((sum, record) =>
-                  sum + (record.shetrafalPurabPachimMeter2 && record.shetrafalUttarDakshinMeter
-                    ? Number(record.shetrafalPurabPachimMeter2) * Number(record.shetrafalUttarDakshinMeter)
+                  sum + (record.ekunShetrafalChorasFoot
+                    ? Number(record.ekunShetrafalChorasFoot) * 0.092903
                     : 0), 0
                 ).toFixed(2)}
               </td>
@@ -172,15 +168,15 @@ const KhulaBhukhandTable = ({ records, onEdit, onDelete }: KhulaBhukhandTablePro
               </td>
               <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
                 {records.reduce((sum, record) =>
-                  sum + (record.shetrafalPurabPachimMeter2 && record.shetrafalUttarDakshinMeter && record.jaminicheVarshikMulya
-                    ? Number(record.shetrafalPurabPachimMeter2) * Number(record.shetrafalUttarDakshinMeter) * Number(record.jaminicheVarshikMulya)
+                  sum + (record.ekunShetrafalChorasFoot && record.jaminicheVarshikMulya
+                    ? Number(record.ekunShetrafalChorasFoot) * 0.092903 * Number(record.jaminicheVarshikMulya)
                     : 0), 0
                 ).toFixed(2)}
               </td>
               <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
                 {records.reduce((sum, record) =>
-                  sum + (record.shetrafalPurabPachimMeter2 && record.shetrafalUttarDakshinMeter && record.jaminicheVarshikMulya && record.aakraniDar
-                    ? (Number(record.shetrafalPurabPachimMeter2) * Number(record.shetrafalUttarDakshinMeter) * Number(record.jaminicheVarshikMulya) * Number(record.aakraniDar)) / 1000
+                  sum + (record.ekunShetrafalChorasFoot && record.jaminicheVarshikMulya && record.aakraniDar
+                    ? (Number(record.ekunShetrafalChorasFoot) * 0.092903 * Number(record.jaminicheVarshikMulya) * Number(record.aakraniDar)) / 1000
                     : 0), 0
                 ).toFixed(2)}
               </td>

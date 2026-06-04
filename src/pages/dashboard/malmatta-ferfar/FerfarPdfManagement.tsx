@@ -1,55 +1,63 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Upload, Download } from 'lucide-react';
 import { useToast } from '../../../hooks/useToast';
-import type { FerfarPdfFormData, FerfarPdfRecord } from '../../../interfaces/dashboard/malmatta-ferfar/FerfarPdfManagement.types';
+import { useLoading } from '../../../contexts/LoadingContext';
+import { ferfarService } from '../../../services';
+import { config } from '../../../config';
+
+interface PdfRecord {
+  id: number;
+  customer_ferfar_yadi_id: number;
+  file_path: string;
+  file_name: string;
+  user_id: number;
+  created_at: string;
+}
 
 const FerfarPdfManagement = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const firstInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast, ToastContainer } = useToast();
+  const { showLoader, hideLoader } = useLoading();
 
-  const [formData, setFormData] = useState<FerfarPdfFormData>({
-    fileName: '',
-    pdfFile: null,
-  });
+  const ferfarId: number | null = location.state?.ferfarId || null;
 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [formData, setFormData] = useState({ fileName: '', pdfFile: null as File | null });
+  const [records, setRecords] = useState<PdfRecord[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [recordsPerPage] = useState(10);
 
-  // Sample data - replace with actual data
-  const [records, setRecords] = useState<FerfarPdfRecord[]>([
-    {
-      jilha: 'पुणे',
-      taluka: 'हवेली',
-      gramPanchayat: 'ग्रामपंचायत 1',
-      fileName: 'फेरफार_2024_001.pdf',
-      pdfUrl: '#',
-    },
-    // Add more sample records as needed
-  ]);
+  const fetchRecords = async (page: number) => {
+    if (!ferfarId) return;
+    showLoader('लोड होत आहे...');
+    try {
+      const response = await ferfarService.listPdfs({ ferfar_id: ferfarId, page, per_page: recordsPerPage });
+      if (response.success && response.data) {
+        const data = response.data as any;
+        setRecords(data.records || []);
+        setTotalRecords(data.total || 0);
+        setTotalPages(data.pages || 1);
+        setCurrentPage(data.page || page);
+      } else {
+        setRecords([]);
+        setTotalRecords(0);
+        setTotalPages(1);
+      }
+    } catch {
+      toast.error('डेटा लोड करताना त्रुटी आली');
+    } finally {
+      hideLoader();
+    }
+  };
 
-  // Filter records based on search term
-  const filteredRecords = records.filter(record =>
-    record.jilha.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.taluka.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.gramPanchayat.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.fileName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Pagination logic
-  const indexOfLastRecord = currentPage * recordsPerPage;
-  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-  const currentRecords = filteredRecords.slice(indexOfFirstRecord, indexOfLastRecord);
-  const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
-
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-
-  // Auto-focus on first input when component loads
   useEffect(() => {
     document.title = 'PDF Management - PDF व्यवस्थापन';
+    fetchRecords(1);
     if (firstInputRef.current) {
       firstInputRef.current.focus();
     }
@@ -63,15 +71,11 @@ const FerfarPdfManagement = () => {
   const handlePdfSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
       if (file.type !== 'application/pdf') {
-        alert('कृपया फक्त PDF फाइल निवडा (Please select only PDF files)');
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
+        toast.error('कृपया फक्त PDF फाइल निवडा (Please select only PDF files)');
+        if (fileInputRef.current) fileInputRef.current.value = '';
         return;
       }
-
       setFormData(prev => ({
         ...prev,
         pdfFile: file,
@@ -80,36 +84,56 @@ const FerfarPdfManagement = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!ferfarId) {
+      toast.error('Ferfar ID सापडला नाही (Ferfar ID not found)');
+      return;
+    }
+    if (!formData.fileName.trim()) {
+      toast.error('कृपया फाइल नाव भरा (Please enter file name)');
+      return;
+    }
     if (!formData.pdfFile) {
       toast.error('कृपया PDF फाइल निवडा (Please select a PDF file)');
       return;
     }
-    console.log('PDF Upload Data:', formData);
-    // TODO: Implement upload logic (e.g., API call)
 
-    toast.success('PDF यशस्वीरित्या अपलोड केले (PDF uploaded successfully)');
-
-    // Reset form
-    setFormData({
-      fileName: '',
-      pdfFile: null,
-    });
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    showLoader('PDF अपलोड होत आहे...');
+    try {
+      const response = await ferfarService.uploadPdf(ferfarId, formData.pdfFile, formData.fileName.trim());
+      hideLoader();
+      if (response.success) {
+        toast.success('PDF यशस्वीरित्या अपलोड केले (PDF uploaded successfully)');
+        setFormData({ fileName: '', pdfFile: null });
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        await fetchRecords(1);
+      } else {
+        toast.error((response as any).message || 'PDF अपलोड अयशस्वी');
+      }
+    } catch {
+      hideLoader();
+      toast.error('PDF अपलोड अयशस्वी (Upload failed)');
     }
   };
 
-  const handleDownload = (record: FerfarPdfRecord) => {
-    console.log('Download PDF:', record);
-    // TODO: Implement download logic
-    window.open(record.pdfUrl, '_blank');
+  const handleDownload = (record: PdfRecord) => {
+    const backendBase = config.api.baseUrl.replace(/\/api$/, '');
+    const url = `${backendBase}/${record.file_path}`;
+    window.open(url, '_blank');
+  };
+
+  const paginate = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      fetchRecords(page);
+    }
   };
 
   const handleBack = () => {
     navigate('/malmatta-ferfar');
   };
+
+  const indexOfFirstRecord = (currentPage - 1) * recordsPerPage;
 
   return (
     <>
@@ -132,7 +156,6 @@ const FerfarPdfManagement = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Form Fields Row - All in one row */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
@@ -195,16 +218,6 @@ const FerfarPdfManagement = () => {
 
       {/* Table Section */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        <div className="mb-4">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="शोधा... (Search...)"
-            className="w-full sm:w-64 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-          />
-        </div>
-
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
             <thead className="bg-gray-50 dark:bg-gray-700">
@@ -213,16 +226,10 @@ const FerfarPdfManagement = () => {
                   Sr.No.
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                  Jilha
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                  Taluka
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                  Gram Panchayat
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
                   File Name
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
+                  Uploaded At
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
                   Kriya
@@ -230,45 +237,56 @@ const FerfarPdfManagement = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {currentRecords.map((record, index) => (
-                <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                    {indexOfFirstRecord + index + 1}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                    {record.jilha}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                    {record.taluka}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                    {record.gramPanchayat}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                    {record.fileName}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    <button
-                      type="button"
-                      onClick={() => handleDownload(record)}
-                      className="flex items-center gap-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors"
-                      title="PDF डाउनलोड करा (Download PDF)"
-                    >
-                      <Download className="w-5 h-5" />
-                      डाउनलोड (Download)
-                    </button>
+              {records.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                    कोणतेही PDF सापडले नाहीत (No PDFs found)
                   </td>
                 </tr>
-              ))}
+              ) : (
+                records.map((record, index) => (
+                  <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                      {indexOfFirstRecord + index + 1}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                      {record.file_name}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                      {record.created_at
+                        ? new Date(record.created_at).toLocaleString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true,
+                          })
+                        : '-'}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(record)}
+                        className="flex items-center gap-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors"
+                        title="PDF डाउनलोड करा (Download PDF)"
+                      >
+                        <Download className="w-5 h-5" />
+                        डाउनलोड (Download)
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
 
         {/* Pagination */}
-        {filteredRecords.length > 0 && (
+        {totalRecords > 0 && (
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="text-sm text-gray-700 dark:text-gray-300">
-              Showing {indexOfFirstRecord + 1} to {Math.min(indexOfLastRecord, filteredRecords.length)} of {filteredRecords.length} entries
+              Showing {indexOfFirstRecord + 1} to {indexOfFirstRecord + records.length} of {totalRecords} entries
             </div>
             <div className="flex gap-2">
               <button

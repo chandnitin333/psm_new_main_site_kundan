@@ -3,4 +3,5 @@ export interface ImageUploadModalProps {
   onClose: () => void;
   onSave: (data: { khatedharkacheNav: string; imageFile: File | null; imagePreview: string | null }) => void;
   khatedharkacheNav: string;
+  existingImageUrl?: string | null;
 }

@@ -3,7 +3,7 @@ import Modal from '../../../components/common/Modal';
 import { Upload, X } from 'lucide-react';
 import type { ImageUploadModalProps } from '../../../interfaces/dashboard/malmatta-nodni/ImageUploadModal.types';
 
-const ImageUploadModal = ({ isOpen, onClose, onSave, khatedharkacheNav }: ImageUploadModalProps) => {
+const ImageUploadModal = ({ isOpen, onClose, onSave, khatedharkacheNav, existingImageUrl }: ImageUploadModalProps) => {
   const firstInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,8 +70,11 @@ const ImageUploadModal = ({ isOpen, onClose, onSave, khatedharkacheNav }: ImageU
   };
 
   const handleSave = () => {
+    if (!formData.imageFile) {
+      alert('कृपया इमेज निवडा (Please select an image)');
+      return;
+    }
     onSave(formData);
-    handleCancel();
   };
 
   const handleCancel = () => {
@@ -129,6 +132,22 @@ const ImageUploadModal = ({ isOpen, onClose, onSave, khatedharkacheNav }: ImageU
             placeholder="खातेदाराचे नाव"
           />
         </div>
+
+        {/* Current Image (if exists) */}
+        {existingImageUrl && !formData.imagePreview && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              सध्याची इमेज (Current Image)
+            </label>
+            <div className="border-2 border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+              <img
+                src={existingImageUrl}
+                alt="Current"
+                className="w-full h-auto object-contain"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Image Upload Field */}
         <div>

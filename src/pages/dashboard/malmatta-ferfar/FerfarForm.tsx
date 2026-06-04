@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import YearPicker from '../../../components/common/YearPicker';
@@ -6,6 +6,10 @@ import DatePicker from '../../../components/common/DatePicker';
 import { Select2, type Select2Option } from '../../../components/common';
 import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
+import { commonDdlService } from '../../../services/commonDdlService';
+import { authService } from '../../../services/authService';
+import { nodniService } from '../../../services/nodniService';
+import { ferfarService } from '../../../services/ferfarService';
 import type { FerfarFormData } from '../../../interfaces/dashboard/malmatta-ferfar/FerfarForm.types';
 
 const FerfarForm = () => {
@@ -18,6 +22,13 @@ const FerfarForm = () => {
   const isEdit = location.state?.isEdit || false;
   const editRecord = location.state?.record;
 
+  const [ferfarYadiOptions, setFerfarYadiOptions] = useState<Select2Option[]>([]);
+  const [nodniId, setNodniId] = useState<number | null>(editRecord?.nodni_id || null);
+  const currentUser = authService.getCurrentUser();
+  const gramPanchayatOptions: Select2Option[] = currentUser?.gram_panchayat_id
+    ? [{ value: String(currentUser.gram_panchayat_id), label: currentUser.gram_panchayat || '' }]
+    : [];
+
   // Helper function to get today's date in YYYY-MM-DD format
   const getTodayDate = () => {
     const today = new Date();
@@ -29,7 +40,7 @@ const FerfarForm = () => {
 
   const [formData, setFormData] = useState<FerfarFormData>({
     ferfarNaumaYad: '',
-    gramPanchayat: '',
+    gramPanchayat: currentUser?.gram_panchayat_id ? String(currentUser.gram_panchayat_id) : '',
     year: new Date().getFullYear().toString(),
     toYear: (new Date().getFullYear() + 1).toString(),
     anuKramank: '',
@@ -52,33 +63,38 @@ const FerfarForm = () => {
   // Pre-populate form if editing
   useEffect(() => {
     if (isEdit && editRecord) {
-      const yearMatch = editRecord.year.match(/(\d{4})-(\d{4})/);
-      const year = yearMatch ? yearMatch[1] : new Date().getFullYear().toString();
-      const toYear = yearMatch ? yearMatch[2] : (new Date().getFullYear() + 1).toString();
-
+      setNodniId(editRecord.nodni_id || null);
       setFormData({
-        ferfarNaumaYad: editRecord.ferfarNaumaYad || '',
-        gramPanchayat: editRecord.gramPanchayat || '',
-        year: year,
-        toYear: toYear,
-        anuKramank: editRecord.anuKramank || '',
-        malmattaKramank: editRecord.milkatKramank || '',
-        wardNo: editRecord.wardNo || '',
-        plotNo: editRecord.plotNo || '',
-        khasaraKramank: editRecord.khasaraKramank || '',
-        surveyKramank: editRecord.surveyKramank || '',
-        masikSabhaKramank: editRecord.masikSabhaKramank || '',
-        tharavKramank: editRecord.tharavKramank || '',
-        dinak: editRecord.dinak || '',
-        gharmalkachiNavLihunDenar: editRecord.khatedharkacheNav || '',
-        navLihunGhenara: editRecord.bhogwatdaracheNav || '',
-        sachiv: editRecord.sachiv || '',
+        ferfarNaumaYad: editRecord.ferfar_namuna_yadi_id ? String(editRecord.ferfar_namuna_yadi_id) : '',
+        gramPanchayat: editRecord.gram_panchayat_id ? String(editRecord.gram_panchayat_id) : (currentUser?.gram_panchayat_id ? String(currentUser.gram_panchayat_id) : ''),
+        year: editRecord.year || new Date().getFullYear().toString(),
+        toYear: editRecord.to_year || (new Date().getFullYear() + 1).toString(),
+        anuKramank: editRecord.anu_kramank ? String(editRecord.anu_kramank) : '',
+        malmattaKramank: editRecord.malmatta_number ? String(editRecord.malmatta_number) : '',
+        wardNo: editRecord.ward_kramnak ? String(editRecord.ward_kramnak) : '',
+        plotNo: editRecord.plot_number ? String(editRecord.plot_number) : '',
+        khasaraKramank: editRecord.khasara_number ? String(editRecord.khasara_number) : '',
+        surveyKramank: editRecord.survey_number ? String(editRecord.survey_number) : '',
+        masikSabhaKramank: editRecord.masik_sabha_kramank || '',
+        tharavKramank: editRecord.tharav_kramnak || '',
+        dinak: editRecord.dinank_date || getTodayDate(),
+        gharmalkachiNavLihunDenar: editRecord.ghar_malkache_nav_lihun_denar || '',
+        navLihunGhenara: editRecord.nav_lihun_ghenara || '',
+        sachiv: editRecord.sachive || '',
         sarpanch: editRecord.sarpanch || '',
         upsarpanch: editRecord.upsarpanch || '',
-        sheraTip: editRecord.sheraTip || '',
+        sheraTip: editRecord.shera_tip || '',
       });
     }
   }, [isEdit, editRecord]);
+
+  // Fetch ferfar yadi dropdown options
+  useEffect(() => {
+    commonDdlService.getFerfarYadi().then(res => {
+      const data = (res.data as any[]) || [];
+      setFerfarYadiOptions(data.map(item => ({ value: String(item.id), label: item.name })));
+    }).catch(() => {});
+  }, []);
 
   // Auto-focus on first input when component loads
   useEffect(() => {
@@ -87,6 +103,53 @@ const FerfarForm = () => {
       firstInputRef.current.focus();
     }
   }, []);
+
+  // Auto-fill nodni fields when anuKramank and wardNo are both entered
+  useEffect(() => {
+    const anu = (formData.anuKramank || '').trim();
+    const ward = (formData.wardNo || '').trim();
+
+    // Always create the timer so cleanup always cancels the previous one
+    const timer = setTimeout(async () => {
+      if (!anu || !ward) {
+        setNodniId(null);
+        setFormData(prev => ({
+          ...prev,
+          malmattaKramank: '',
+          plotNo: '',
+          khasaraKramank: '',
+          surveyKramank: '',
+        }));
+        return;
+      }
+
+      try {
+        const response = await nodniService.searchNodniForFerfar(anu, ward);
+        if (response.success && response.data) {
+          const r = response.data as any;
+          setNodniId(r.id || null);
+          setFormData(prev => ({
+            ...prev,
+            malmattaKramank: r.malmatta_number || '',
+            plotNo: r.plot_number || '',
+            khasaraKramank: r.khasara_number || '',
+            surveyKramank: r.survey_number || '',
+          }));
+        }
+      } catch {
+        setNodniId(null);
+        setFormData(prev => ({
+          ...prev,
+          malmattaKramank: '',
+          plotNo: '',
+          khasaraKramank: '',
+          surveyKramank: '',
+        }));
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [formData.anuKramank, formData.wardNo]);
 
   // Auto-fill "To Year" when "Year" changes
   useEffect(() => {
@@ -110,19 +173,6 @@ const FerfarForm = () => {
     setFormData(prev => ({ ...prev, year }));
   };
 
-  // Select2 options
-  const ferfarNaumaYadOptions: Select2Option[] = useMemo(() => [
-    { value: 'type1', label: 'प्रकार 1' },
-    { value: 'type2', label: 'प्रकार 2' },
-    { value: 'type3', label: 'प्रकार 3' },
-  ], []);
-
-  const gramPanchayatOptions: Select2Option[] = useMemo(() => [
-    { value: 'gp1', label: 'ग्रामपंचायत 1' },
-    { value: 'gp2', label: 'ग्रामपंचायत 2' },
-    { value: 'gp3', label: 'ग्रामपंचायत 3' },
-  ], []);
-
   const handleFerfarNaumaYadChange = (value: string | number | (string | number)[]) => {
     setFormData(prev => ({ ...prev, ferfarNaumaYad: value as string }));
   };
@@ -134,84 +184,55 @@ const FerfarForm = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    showLoader('फेरफार जतन करत आहे...');
+    if (!nodniId) {
+      toast.error('कृपया अनु क्रमांक आणि वॉर्ड क्र. भरा जेणेकरून मालमत्ता रेकॉर्ड मिळेल (Please enter Anu Kramank and Ward No to find the property record)');
+      return;
+    }
 
-    // Simulate async operation (API call)
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const payload: Record<string, unknown> = {
+      nodni_id: nodniId,
+      ferfar_namuna_yadi_id: Number(formData.ferfarNaumaYad) || null,
+      gram_panchayat_id: Number(formData.gramPanchayat) || null,
+      year: formData.year,
+      to_year: formData.toYear,
+      masik_sabha_kramank: formData.masikSabhaKramank,
+      tharav_kramnak: formData.tharavKramank,
+      dinank_date: formData.dinak,
+      ghar_malkache_nav_lihun_denar: formData.gharmalkachiNavLihunDenar,
+      nav_lihun_ghenara: formData.navLihunGhenara,
+      sachive: formData.sachiv,
+      sarpanch: formData.sarpanch,
+      upsarpanch: formData.upsarpanch,
+      shera_tip: formData.sheraTip,
+    };
 
-    if (isEdit) {
-      console.log('Update Ferfar Data:', formData);
-      // TODO: Implement update logic (e.g., API call)
-      // Navigate back with updated record - keep original anuKramank for matching
-      const updatedRecord = {
-        anuKramank: editRecord?.anuKramank || formData.anuKramank,
-        milkatKramank: formData.malmattaKramank,
-        wardNo: formData.wardNo,
-        khasaraKramank: formData.khasaraKramank,
-        khatedharkacheNav: formData.gharmalkachiNavLihunDenar,
-        bhogwatdaracheNav: formData.navLihunGhenara,
-        year: `${formData.year}-${formData.toYear}`,
-        // Include all form fields
-        ferfarNaumaYad: formData.ferfarNaumaYad,
-        gramPanchayat: formData.gramPanchayat,
-        plotNo: formData.plotNo,
-        surveyKramank: formData.surveyKramank,
-        masikSabhaKramank: formData.masikSabhaKramank,
-        tharavKramank: formData.tharavKramank,
-        dinak: formData.dinak,
-        sachiv: formData.sachiv,
-        sarpanch: formData.sarpanch,
-        upsarpanch: formData.upsarpanch,
-        sheraTip: formData.sheraTip,
-      };
+    try {
+      showLoader('फेरफार जतन करत आहे...');
 
-      hideLoader();
+      if (isEdit && editRecord?.id) {
+        await ferfarService.update(editRecord.id, payload);
+        hideLoader();
+        toast.success('फेरफार यशस्वीरित्या अद्यतनित केले (Ferfar updated successfully)');
+      } else {
+        await ferfarService.create(payload);
+        hideLoader();
+        toast.success('फेरफार यशस्वीरित्या जतन केले (Ferfar saved successfully)');
+      }
 
-      toast.success('फेरफार यशस्वीरित्या अद्यतनित केले (Ferfar updated successfully)');
-      // Delay navigation to allow toast to be visible
       setTimeout(() => {
-        navigate('/malmatta-ferfar', { state: { updatedRecord, isEdit: true, originalRecord: editRecord } });
+        navigate('/malmatta-ferfar');
       }, 1500);
-    } else {
-      console.log('Save Ferfar Data:', formData);
-      // TODO: Implement save logic (e.g., API call)
-      // Create new record from form data with ALL fields
-      const newRecord = {
-        anuKramank: formData.anuKramank,
-        milkatKramank: formData.malmattaKramank,
-        wardNo: formData.wardNo,
-        khasaraKramank: formData.khasaraKramank,
-        khatedharkacheNav: formData.gharmalkachiNavLihunDenar,
-        bhogwatdaracheNav: formData.navLihunGhenara,
-        year: `${formData.year}-${formData.toYear}`,
-        // Include all form fields
-        ferfarNaumaYad: formData.ferfarNaumaYad,
-        gramPanchayat: formData.gramPanchayat,
-        plotNo: formData.plotNo,
-        surveyKramank: formData.surveyKramank,
-        masikSabhaKramank: formData.masikSabhaKramank,
-        tharavKramank: formData.tharavKramank,
-        dinak: formData.dinak,
-        sachiv: formData.sachiv,
-        sarpanch: formData.sarpanch,
-        upsarpanch: formData.upsarpanch,
-        sheraTip: formData.sheraTip,
-      };
-
+    } catch (error: any) {
       hideLoader();
-
-      toast.success('फेरफार यशस्वीरित्या जतन केले (Ferfar saved successfully)');
-      // Delay navigation to allow toast to be visible
-      setTimeout(() => {
-        navigate('/malmatta-ferfar', { state: { newRecord } });
-      }, 1500);
+      toast.error(error?.message || 'फेरफार जतन अयशस्वी (Save failed)');
     }
   };
 
   const handleReset = () => {
+    setNodniId(null);
     setFormData({
       ferfarNaumaYad: '',
-      gramPanchayat: '',
+      gramPanchayat: currentUser?.gram_panchayat_id ? String(currentUser.gram_panchayat_id) : '',
       year: new Date().getFullYear().toString(),
       toYear: (new Date().getFullYear() + 1).toString(),
       anuKramank: '',
@@ -243,7 +264,7 @@ const FerfarForm = () => {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
         <div className="flex items-center justify-between mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {isEdit ? 'फेरफार संपादित करा (Edit Ferfar)' : 'फेरफार जोडा (Add Ferfar)'}
+            {isEdit ? 'फेरफार बदल करा (Update Ferfar)' : 'फेरफार जोडा (Add Ferfar)'}
           </h1>
           <button
             type="button"
@@ -260,7 +281,7 @@ const FerfarForm = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             <div>
               <Select2
-                options={ferfarNaumaYadOptions}
+                options={ferfarYadiOptions}
                 value={formData.ferfarNaumaYad}
                 onChange={handleFerfarNaumaYadChange}
                 placeholder="निवडा"
@@ -278,8 +299,9 @@ const FerfarForm = () => {
                 onChange={handleGramPanchayatChange}
                 placeholder="निवडा"
                 label="ग्रामपंचायत *"
-                searchable={true}
+                searchable={false}
                 clearable={false}
+                disabled={true}
                 required
               />
             </div>
@@ -326,15 +348,15 @@ const FerfarForm = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                मालमत्ता क्रमांक
+              वॉर्ड क्र.
               </label>
               <input
                 type="text"
-                name="malmattaKramank"
-                value={formData.malmattaKramank}
+                name="wardNo"
+                value={formData.wardNo}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                placeholder="मालमत्ता क्रमांक"
+                placeholder="वॉर्ड क्र."
               />
             </div>
           </div>
@@ -343,15 +365,15 @@ const FerfarForm = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                प्रभाग क्र.
+                मालमत्ता क्रमांक
               </label>
               <input
                 type="text"
-                name="wardNo"
-                value={formData.wardNo}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                placeholder="प्रभाग क्र."
+                name="malmattaKramank"
+                value={formData.malmattaKramank}
+                readOnly
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
+                placeholder="मालमत्ता क्रमांक"
               />
             </div>
 
@@ -363,8 +385,8 @@ const FerfarForm = () => {
                 type="text"
                 name="plotNo"
                 value={formData.plotNo}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                readOnly
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
                 placeholder="प्लॉट नं"
               />
             </div>
@@ -377,8 +399,8 @@ const FerfarForm = () => {
                 type="text"
                 name="khasaraKramank"
                 value={formData.khasaraKramank}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                readOnly
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
                 placeholder="खसरा क्रमांक"
               />
             </div>
@@ -391,8 +413,8 @@ const FerfarForm = () => {
                 type="text"
                 name="surveyKramank"
                 value={formData.surveyKramank}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                readOnly
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
                 placeholder="सर्वे क्रमांक"
               />
             </div>
@@ -437,7 +459,6 @@ const FerfarForm = () => {
                 value={formData.dinak}
                 onChange={(value) => setFormData(prev => ({ ...prev, dinak: value }))}
                 format="DD/MM/YYYY"
-                max={new Date().toISOString().split('T')[0]}
                 placeholder="दिनांक निवडा"
               />
             </div>
@@ -534,7 +555,7 @@ const FerfarForm = () => {
               type="submit"
               className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors font-medium"
             >
-              {isEdit ? 'अद्यतन करा (Update)' : 'जतन करा (Save)'}
+              {isEdit ? 'बदल करा (Update)' : 'जतन करा (Save)'}
             </button>
             <button
               type="button"

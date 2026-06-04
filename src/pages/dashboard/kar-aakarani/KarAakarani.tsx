@@ -189,7 +189,7 @@ const KarAakarani = () => {
                   value={formData.wardNo}
                   onChange={handleWardNoChange}
                   placeholder="निवडा (Select)"
-                  label="प्रभाग क्र. (Ward No) *"
+                  label="वॉर्ड क्र. (Ward No) *"
                   searchable={true}
                   clearable={false}
                   required

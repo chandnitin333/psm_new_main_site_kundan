@@ -127,7 +127,7 @@ const PrintModal = ({ isOpen, onClose, record }: PrintModalProps) => {
               <span class="value">${data?.milkatNo || '-'}</span>
             </div>
             <div class="row">
-              <span class="label">प्रभाग क्र.:</span>
+              <span class="label">वॉर्ड क्र.:</span>
               <span class="value">${data?.wardNo || '-'}</span>
             </div>
             <div class="row">

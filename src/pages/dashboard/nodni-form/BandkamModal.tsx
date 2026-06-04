@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Modal from '../../../components/common/Modal';
 import { Select2, type Select2Option } from '../../../components/common';
 import type { BandkamData, BandkamModalProps } from '../../../interfaces/dashboard/nodni-form/BandkamModal.types';
+import { authService, commonDdlService } from '../../../services';
 
 const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProps) => {
   const [formData, setFormData] = useState<BandkamData>({
@@ -11,6 +12,7 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
     bandkamMajla: '',
     shetrafalPurvPachimFoot: '',
     shetrafalUttarDakshinFoot: '',
+    ekunShetrafalChorasFoot: '',
     shetrafalPurvPachimMeter: '',
     shetrafalUttarDakshinMeter: '',
     vayoman: '',
@@ -21,6 +23,81 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
     aakraniDar: '',
   });
 
+  // Dynamic dropdown options from API
+  const [malmattechePrakarOptions, setMalmattechePrakarOptions] = useState<Select2Option[]>([]);
+  const [malmattecheVarnanOptions, setMalmattecheVarnanOptions] = useState<Select2Option[]>([]);
+  const [bandkamMajlaOptions, setBandkamMajlaOptions] = useState<Select2Option[]>([]);
+  const ddlFetchedRef = useRef(false);
+
+  // Fetch malmatteche prakar from API - filter for निवासी, अनिवासी, औधोगिक
+  useEffect(() => {
+    if (ddlFetchedRef.current) return;
+    ddlFetchedRef.current = true;
+
+    const fetchDropdowns = async () => {
+      try {
+        // Fetch malmatteche prakar - filter for निवासी, अनिवासी, औधोगिक
+        const prakarRes = await commonDdlService.getMalmattechePrakar() as {
+          success: boolean;
+          data?: Array<{ id: number; malmatta_prakar_name: string }>;
+        };
+
+        if (prakarRes.success && prakarRes.data) {
+          const filtered = prakarRes.data.filter(
+            item => item.malmatta_prakar_name?.includes('निवासी') ||
+                    item.malmatta_prakar_name?.includes('अनिवासी') ||
+                    item.malmatta_prakar_name?.includes('औधोगिक')
+          );
+
+          setMalmattechePrakarOptions(
+            filtered.map(item => ({
+              value: String(item.id),
+              label: item.malmatta_prakar_name,
+            }))
+          );
+        }
+
+        // Fetch malmatta - exclude खुला भूखंड
+        const malmattaRes = await commonDdlService.getMalmatta() as {
+          success: boolean;
+          data?: Array<{ id: number; malmatta_name: string; milkat_varnan: string }>;
+        };
+
+        if (malmattaRes.success && malmattaRes.data) {
+          const filtered = malmattaRes.data.filter(
+            item => !item.malmatta_name?.includes('खुला भूखंड')
+          );
+
+          setMalmattecheVarnanOptions(
+            filtered.map(item => ({
+              value: String(item.id),
+              label: item.malmatta_name,
+            }))
+          );
+        }
+
+        // Fetch floors
+        const floorRes = await commonDdlService.getFloors() as {
+          success: boolean;
+          data?: Array<{ id: number; floor_name: string }>;
+        };
+
+        if (floorRes.success && floorRes.data) {
+          setBandkamMajlaOptions(
+            floorRes.data.map(item => ({
+              value: String(item.id),
+              label: item.floor_name,
+            }))
+          );
+        }
+      } catch {
+        // keep defaults empty on error
+      }
+    };
+
+    fetchDropdowns();
+  }, []);
+
   // Update form data when initialData changes
   useEffect(() => {
     if (initialData) {
@@ -28,37 +105,106 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
     }
   }, [initialData]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const updated = { ...formData, [name]: value };
+
+    // Auto-calculate when EW/NS feet change
+    if (name === 'shetrafalPurvPachimFoot' || name === 'shetrafalUttarDakshinFoot') {
+      const ewFoot = parseFloat(name === 'shetrafalPurvPachimFoot' ? value : formData.shetrafalPurvPachimFoot) || 0;
+      const nsFoot = parseFloat(name === 'shetrafalUttarDakshinFoot' ? value : formData.shetrafalUttarDakshinFoot) || 0;
+
+      // Convert feet to meter (1 sq ft = 0.092903 sq meter)
+      updated.shetrafalPurvPachimMeter = ewFoot ? (ewFoot * 0.092903).toFixed(2) : '';
+      updated.shetrafalUttarDakshinMeter = nsFoot ? (nsFoot * 0.092903).toFixed(2) : '';
+
+      // Auto-calculate Total Sq Feet
+      const totalSqFt = ewFoot * nsFoot;
+      updated.ekunShetrafalChorasFoot = totalSqFt ? totalSqFt.toFixed(2) : '';
+    }
+
+    // Auto-calculate Building Construction Year = Current Year - Age
+    if (name === 'vayoman') {
+      const age = parseFloat(value) || 0;
+      updated.imaraticheBandkamVarsh = age ? String(new Date().getFullYear() - age) : '';
+    }
+
+    setFormData(updated);
+
+    // Fetch ghasara dar when Age changes
+    if (name === 'vayoman' && value && formData.malmattecheVarnan) {
+      try {
+        const res = await commonDdlService.getGhasaraDar(Number(value), Number(formData.malmattecheVarnan)) as {
+          success: boolean;
+          data?: { percentage: number | null };
+        };
+        if (res.success && res.data) {
+          setFormData(prev => ({
+            ...prev,
+            ghasaraDar: res.data!.percentage ? String(res.data!.percentage) : '',
+          }));
+        }
+      } catch {
+        // keep field as-is on error
+      }
+    }
   };
 
-  // Select2 options
-  const malmattechePrakarOptions: Select2Option[] = useMemo(() => [
-    { value: 'residential', label: 'निवासी (Residential)' },
-    { value: 'commercial', label: 'व्यावसायिक (Commercial)' },
-    { value: 'industrial', label: 'औद्योगिक (Industrial)' },
-  ], []);
+  const handleMalmattechePrakarChange = async (value: string | number | (string | number)[]) => {
+    const selectedId = value as string;
+    setFormData(prev => ({ ...prev, malmattechePrakar: selectedId, bharank: '' }));
 
-  const malmattecheVarnanOptions: Select2Option[] = useMemo(() => [
-    { value: 'building', label: 'इमारत (Building)' },
-    { value: 'flat', label: 'फ्लॅट (Flat)' },
-    { value: 'house', label: 'घर (House)' },
-  ], []);
+    if (!selectedId) return;
 
-  const bandkamMajlaOptions: Select2Option[] = useMemo(() => [
-    { value: 'ground', label: 'भूतल (Ground Floor)' },
-    { value: 'first', label: 'पहिला मजला (First Floor)' },
-    { value: 'second', label: 'दुसरा मजला (Second Floor)' },
-    { value: 'third', label: 'तिसरा मजला (Third Floor)' },
-  ], []);
+    try {
+      const res = await commonDdlService.getBandkamRates(Number(selectedId)) as {
+        success: boolean;
+        data?: { bharank: number | null };
+      };
 
-  const handleMalmattechePrakarChange = (value: string | number | (string | number)[]) => {
-    setFormData(prev => ({ ...prev, malmattechePrakar: value as string }));
+      if (res.success && res.data) {
+        setFormData(prev => ({
+          ...prev,
+          bharank: res.data!.bharank ? String(res.data!.bharank) : '',
+        }));
+      }
+    } catch {
+      // keep field empty on error
+    }
   };
 
-  const handleMalmattecheVarnanChange = (value: string | number | (string | number)[]) => {
-    setFormData(prev => ({ ...prev, malmattecheVarnan: value as string }));
+  const handleMalmattecheVarnanChange = async (value: string | number | (string | number)[]) => {
+    const selectedId = value as string;
+    setFormData(prev => ({ ...prev, malmattecheVarnan: selectedId, imaraticheVarshikMulya: '', aakraniDar: '' }));
+
+    if (!selectedId || !formData.malmattechePrakar) return;
+
+    try {
+      const currentUser = authService.getCurrentUser();
+      if (!currentUser) return;
+
+      const res = await commonDdlService.getAnnualTaxRates({
+        district_id: currentUser.district_id,
+        taluka_id: currentUser.taluka_id,
+        gram_panchayat_id: currentUser.gram_panchayat_id,
+        gat_gram_panchayat_id: currentUser.gat_gram_panchayat_id,
+        malmatteche_prakar_id: Number(formData.malmattechePrakar),
+        malmatta_id: Number(selectedId),
+      }) as {
+        success: boolean;
+        data?: { varshik_mulya_dar: number | null; aakarani_dar: number | null };
+      };
+
+      if (res.success && res.data) {
+        setFormData(prev => ({
+          ...prev,
+          imaraticheVarshikMulya: res.data!.varshik_mulya_dar ? String(res.data!.varshik_mulya_dar) : '',
+          aakraniDar: res.data!.aakarani_dar ? String(res.data!.aakarani_dar) : '',
+        }));
+      }
+    } catch {
+      // keep fields empty on error
+    }
   };
 
   const handleBandkamMajlaChange = (value: string | number | (string | number)[]) => {
@@ -66,7 +212,13 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
   };
 
   const handleSave = () => {
-    onSave(formData);
+    const dataWithNames = {
+      ...formData,
+      malmattechePrakarName: malmattechePrakarOptions.find(o => o.value === formData.malmattechePrakar)?.label || '',
+      malmattecheVarnanName: malmattecheVarnanOptions.find(o => o.value === formData.malmattecheVarnan)?.label || '',
+      bandkamMajlaName: bandkamMajlaOptions.find(o => o.value === formData.bandkamMajla)?.label || '',
+    };
+    onSave(dataWithNames);
     setFormData({
       malmattechePrakar: '',
       malmattecheVarnan: '',
@@ -74,6 +226,7 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
       bandkamMajla: '',
       shetrafalPurvPachimFoot: '',
       shetrafalUttarDakshinFoot: '',
+      ekunShetrafalChorasFoot: '',
       shetrafalPurvPachimMeter: '',
       shetrafalUttarDakshinMeter: '',
       vayoman: '',
@@ -94,6 +247,7 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
       bandkamMajla: '',
       shetrafalPurvPachimFoot: '',
       shetrafalUttarDakshinFoot: '',
+      ekunShetrafalChorasFoot: '',
       shetrafalPurvPachimMeter: '',
       shetrafalUttarDakshinMeter: '',
       vayoman: '',
@@ -220,15 +374,12 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
               एकूण क्षेत्रफळ (चौरस फूट) (Total Area in Sq. Feet)
             </label>
             <input
-              type="text"
-              value={
-                formData.shetrafalPurvPachimFoot && formData.shetrafalUttarDakshinFoot
-                  ? (Number(formData.shetrafalPurvPachimFoot) * Number(formData.shetrafalUttarDakshinFoot)).toFixed(2)
-                  : ''
-              }
-              readOnly
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
-              placeholder="Auto-calculated"
+              type="number" min="0" step="any"
+              name="ekunShetrafalChorasFoot"
+              value={formData.ekunShetrafalChorasFoot}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="Enter or Auto-calculated"
             />
           </div>
 
@@ -237,12 +388,12 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
               क्षेत्रफळ पूर्व पश्चिम (चौरस मीटर) (Area East-West in Sq. Meter)
             </label>
             <input
-              type="number" min="0" step="any"
+              type="text"
               name="shetrafalPurvPachimMeter"
               value={formData.shetrafalPurvPachimMeter}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="Enter Area"
+              readOnly
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
+              placeholder="Auto-calculated"
             />
           </div>
         </div>
@@ -254,12 +405,12 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
               क्षेत्रफळ उत्तर दक्षिण (चौरस मीटर) (Area North-South in Sq. Meter)
             </label>
             <input
-              type="number" min="0" step="any"
+              type="text"
               name="shetrafalUttarDakshinMeter"
               value={formData.shetrafalUttarDakshinMeter}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="Enter Area"
+              readOnly
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
+              placeholder="Auto-calculated"
             />
           </div>
 
@@ -270,8 +421,8 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
             <input
               type="text"
               value={
-                formData.shetrafalPurvPachimMeter && formData.shetrafalUttarDakshinMeter
-                  ? (Number(formData.shetrafalPurvPachimMeter) * Number(formData.shetrafalUttarDakshinMeter)).toFixed(2)
+                formData.ekunShetrafalChorasFoot
+                  ? (Number(formData.ekunShetrafalChorasFoot) * 0.092903).toFixed(2)
                   : ''
               }
               readOnly
@@ -372,21 +523,18 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              इमारतीचे भांडवली मूल्य (Building Capital Value) = क्षेत्रफळ × वार्षिक मूल्य × घसारा दर × भारांक
+              इमारतीचे भांडवली मूल्य (Building Capital Value) = क्षेत्रफळ (चौ.मी.) × वार्षिक मूल्य × भारांक
             </label>
             <input
               type="text"
               value={
-                formData.shetrafalPurvPachimMeter &&
-                formData.shetrafalUttarDakshinMeter &&
+                formData.ekunShetrafalChorasFoot &&
                 formData.imaraticheVarshikMulya &&
-                formData.ghasaraDar &&
                 formData.bharank
                   ? (
-                      Number(formData.shetrafalPurvPachimMeter) *
-                      Number(formData.shetrafalUttarDakshinMeter) *
+                      Number(formData.ekunShetrafalChorasFoot) *
+                      0.092903 *
                       Number(formData.imaraticheVarshikMulya) *
-                      Number(formData.ghasaraDar) *
                       Number(formData.bharank)
                     ).toFixed(2)
                   : ''
@@ -399,22 +547,19 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              कर आकारणी (Tax Assessment) = भांडवली मूल्य × आकारणी दर / 1000
+              कर आकारणी (Tax Assessment) = (भांडवली मूल्य × आकारणी दर) / 1000
             </label>
             <input
               type="text"
               value={
-                formData.shetrafalPurvPachimMeter &&
-                formData.shetrafalUttarDakshinMeter &&
+                formData.ekunShetrafalChorasFoot &&
                 formData.imaraticheVarshikMulya &&
-                formData.ghasaraDar &&
                 formData.bharank &&
                 formData.aakraniDar
                   ? (
-                      (Number(formData.shetrafalPurvPachimMeter) *
-                      Number(formData.shetrafalUttarDakshinMeter) *
+                      (Number(formData.ekunShetrafalChorasFoot) *
+                      0.092903 *
                       Number(formData.imaraticheVarshikMulya) *
-                      Number(formData.ghasaraDar) *
                       Number(formData.bharank) *
                       Number(formData.aakraniDar)) / 1000
                     ).toFixed(2)

@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Modal from '../../../components/common/Modal';
 import { Select2, type Select2Option } from '../../../components/common';
 import type { KhulaBhukhandData, KhulaBhukhandModalProps } from '../../../interfaces/dashboard/nodni-form/KhulaBhukhandModal.types';
+import { authService, commonDdlService } from '../../../services';
 
 const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukhandModalProps) => {
   const [formData, setFormData] = useState<KhulaBhukhandData>({
@@ -12,11 +13,98 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
     gavthanBaher: '',
     shetrafalPurabPachimMeter: '',
     shetrafalUttarDakshinFoot: '',
+    ekunShetrafalChorasFoot: '',
     shetrafalPurabPachimMeter2: '',
     shetrafalUttarDakshinMeter: '',
     jaminicheVarshikMulya: '',
     aakraniDar: '',
   });
+
+  // Dynamic dropdown options from API
+  const [malmattechePrakarOptions, setMalmattechePrakarOptions] = useState<Select2Option[]>([]);
+  const [malmattecheVarnanOptions, setMalmattecheVarnanOptions] = useState<Select2Option[]>([]);
+  const [gavacheNavOptions, setGavacheNavOptions] = useState<Select2Option[]>([]);
+  const [gavthanBaherOptions, setGavthanBaherOptions] = useState<Select2Option[]>([]);
+  const ddlFetchedRef = useRef(false);
+
+  // Fetch dropdown data from API
+  useEffect(() => {
+    if (ddlFetchedRef.current) return;
+    ddlFetchedRef.current = true;
+
+    const fetchDropdowns = async () => {
+      try {
+        // Fetch malmatteche prakar - filter for खुला भूखंड → both dropdowns
+        const prakarRes = await commonDdlService.getMalmattechePrakar() as {
+          success: boolean;
+          data?: Array<{ id: number; malmatta_prakar_name: string }>;
+        };
+
+        if (prakarRes.success && prakarRes.data) {
+          const khulaBhukhandRecords = prakarRes.data.filter(
+            item => item.malmatta_prakar_name?.includes('खुला भूखंड')
+          );
+
+          setMalmattechePrakarOptions(
+            khulaBhukhandRecords.map(item => ({
+              value: String(item.id),
+              label: item.malmatta_prakar_name,
+            }))
+          );
+
+          setMalmattecheVarnanOptions(
+            khulaBhukhandRecords.map(item => ({
+              value: String(item.id),
+              label: item.malmatta_prakar_name,
+            }))
+          );
+        }
+
+        // Village Name → gat gram panchayat name from current user
+        const currentUser = authService.getCurrentUser();
+        if (currentUser?.gat_gram_panchayat_id && currentUser?.gat_gram_panchayat) {
+          setGavacheNavOptions([{
+            value: String(currentUser.gat_gram_panchayat_id),
+            label: currentUser.gat_gram_panchayat,
+          }]);
+        }
+      } catch {
+        // keep defaults empty on error
+      }
+    };
+
+    fetchDropdowns();
+  }, []);
+
+  // When village is selected, fetch gavthan/gavthan baherche options
+  useEffect(() => {
+    if (!formData.gavacheNav) {
+      setGavthanBaherOptions([]);
+      return;
+    }
+
+    const fetchGavthanBaherche = async () => {
+      try {
+        const res = await commonDdlService.getGavthanBaherche(Number(formData.gavacheNav)) as {
+          success: boolean;
+          data?: Array<{ id: number; prakar_name: string }>;
+        };
+
+        if (res.success && res.data) {
+          setGavthanBaherOptions(
+            res.data.map(item => ({
+              value: String(item.id),
+              label: item.prakar_name,
+            }))
+          );
+        }
+      } catch {
+        setGavthanBaherOptions([]);
+      }
+    };
+
+    fetchGavthanBaherche();
+  }, [formData.gavacheNav]);
 
   // Update form data when initialData changes
   useEffect(() => {
@@ -27,30 +115,25 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const updated = { ...formData, [name]: value };
+
+    // Auto-calculate when EW/NS feet change
+    if (name === 'shetrafalPurabPachimMeter' || name === 'shetrafalUttarDakshinFoot') {
+      const ewFoot = parseFloat(name === 'shetrafalPurabPachimMeter' ? value : formData.shetrafalPurabPachimMeter) || 0;
+      const nsFoot = parseFloat(name === 'shetrafalUttarDakshinFoot' ? value : formData.shetrafalUttarDakshinFoot) || 0;
+
+      // Convert feet to meter (1 sq ft = 0.092903 sq meter)
+      updated.shetrafalPurabPachimMeter2 = ewFoot ? (ewFoot * 0.092903).toFixed(2) : '';
+      updated.shetrafalUttarDakshinMeter = nsFoot ? (nsFoot * 0.092903).toFixed(2) : '';
+
+      // Auto-calculate Total Sq Feet
+      const totalSqFt = ewFoot * nsFoot;
+      updated.ekunShetrafalChorasFoot = totalSqFt ? totalSqFt.toFixed(2) : '';
+    }
+
+    setFormData(updated);
   };
 
-  // Select2 options
-  const malmattechePrakarOptions: Select2Option[] = useMemo(() => [
-    { value: 'residential', label: 'निवासी (Residential)' },
-    { value: 'commercial', label: 'व्यावसायिक (Commercial)' },
-    { value: 'agricultural', label: 'शेती (Agricultural)' },
-  ], []);
-
-  const malmattecheVarnanOptions: Select2Option[] = useMemo(() => [
-    { value: 'plot', label: 'प्लॉट (Plot)' },
-    { value: 'land', label: 'जमीन (Land)' },
-  ], []);
-
-  const gavacheNavOptions: Select2Option[] = useMemo(() => [
-    { value: 'village1', label: 'गाव १ (Village 1)' },
-    { value: 'village2', label: 'गाव २ (Village 2)' },
-  ], []);
-
-  const gavthanBaherOptions: Select2Option[] = useMemo(() => [
-    { value: 'gavthan', label: 'गावठाण (Within Village)' },
-    { value: 'baher', label: 'गावठाण बाहेर (Outside Village)' },
-  ], []);
 
   const handleMalmattechePrakarChange = (value: string | number | (string | number)[]) => {
     setFormData(prev => ({ ...prev, malmattechePrakar: value as string }));
@@ -61,15 +144,42 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
   };
 
   const handleGavacheNavChange = (value: string | number | (string | number)[]) => {
-    setFormData(prev => ({ ...prev, gavacheNav: value as string }));
+    setFormData(prev => ({ ...prev, gavacheNav: value as string, gavthanBaher: '' }));
   };
 
-  const handleGavthanBaherChange = (value: string | number | (string | number)[]) => {
-    setFormData(prev => ({ ...prev, gavthanBaher: value as string }));
+  const handleGavthanBaherChange = async (value: string | number | (string | number)[]) => {
+    const selectedId = value as string;
+    setFormData(prev => ({ ...prev, gavthanBaher: selectedId, jaminicheVarshikMulya: '', aakraniDar: '' }));
+
+    if (!selectedId) return;
+
+    try {
+      const res = await commonDdlService.getOpenPlotRatesById(Number(selectedId)) as {
+        success: boolean;
+        data?: { id: number; varshik_dar: number; aakarani_dar: number };
+      };
+
+      if (res.success && res.data) {
+        setFormData(prev => ({
+          ...prev,
+          jaminicheVarshikMulya: res.data!.varshik_dar ? String(res.data!.varshik_dar) : '',
+          aakraniDar: res.data!.aakarani_dar ? String(res.data!.aakarani_dar) : '',
+        }));
+      }
+    } catch {
+      // keep fields empty on error
+    }
   };
 
   const handleSave = () => {
-    onSave(formData);
+    const dataWithNames = {
+      ...formData,
+      malmattechePrakarName: malmattechePrakarOptions.find(o => o.value === formData.malmattechePrakar)?.label || '',
+      malmattecheVarnanName: malmattecheVarnanOptions.find(o => o.value === formData.malmattecheVarnan)?.label || '',
+      gavacheNavName: gavacheNavOptions.find(o => o.value === formData.gavacheNav)?.label || '',
+      gavthanBaherName: gavthanBaherOptions.find(o => o.value === formData.gavthanBaher)?.label || '',
+    };
+    onSave(dataWithNames);
     setFormData({
       malmattechePrakar: '',
       malmattecheVarnan: '',
@@ -78,6 +188,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
       gavthanBaher: '',
       shetrafalPurabPachimMeter: '',
       shetrafalUttarDakshinFoot: '',
+      ekunShetrafalChorasFoot: '',
       shetrafalPurabPachimMeter2: '',
       shetrafalUttarDakshinMeter: '',
       jaminicheVarshikMulya: '',
@@ -95,6 +206,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
       gavthanBaher: '',
       shetrafalPurabPachimMeter: '',
       shetrafalUttarDakshinFoot: '',
+      ekunShetrafalChorasFoot: '',
       shetrafalPurabPachimMeter2: '',
       shetrafalUttarDakshinMeter: '',
       jaminicheVarshikMulya: '',
@@ -229,15 +341,12 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
               एकूण क्षेत्रफळ (चौरस फूट) (Total Area in Sq. Feet)
             </label>
             <input
-              type="text"
-              value={
-                formData.shetrafalPurabPachimMeter && formData.shetrafalUttarDakshinFoot
-                  ? (Number(formData.shetrafalPurabPachimMeter) * Number(formData.shetrafalUttarDakshinFoot)).toFixed(2)
-                  : ''
-              }
-              readOnly
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
-              placeholder="Auto-calculated"
+              type="number" min="0" step="any"
+              name="ekunShetrafalChorasFoot"
+              value={formData.ekunShetrafalChorasFoot}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="Enter or Auto-calculated"
             />
           </div>
         </div>
@@ -249,12 +358,12 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
               क्षेत्रफळ पूर्व पश्चिम (मीटर) (Area East-West in Meter)
             </label>
             <input
-              type="number" min="0" step="any"
+              type="text"
               name="shetrafalPurabPachimMeter2"
               value={formData.shetrafalPurabPachimMeter2}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="Enter Area"
+              readOnly
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
+              placeholder="Auto-calculated"
             />
           </div>
 
@@ -263,12 +372,12 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
               क्षेत्रफळ उत्तर दक्षिण (मीटर) (Area North-South in Meter)
             </label>
             <input
-              type="number" min="0" step="any"
+              type="text"
               name="shetrafalUttarDakshinMeter"
               value={formData.shetrafalUttarDakshinMeter}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="Enter Area"
+              readOnly
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
+              placeholder="Auto-calculated"
             />
           </div>
 
@@ -279,8 +388,8 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
             <input
               type="text"
               value={
-                formData.shetrafalPurabPachimMeter2 && formData.shetrafalUttarDakshinMeter
-                  ? (Number(formData.shetrafalPurabPachimMeter2) * Number(formData.shetrafalUttarDakshinMeter)).toFixed(2)
+                formData.ekunShetrafalChorasFoot
+                  ? (Number(formData.ekunShetrafalChorasFoot) * 0.092903).toFixed(2)
                   : ''
               }
               readOnly
@@ -299,7 +408,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
               value={formData.jaminicheVarshikMulya}
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="Enter Annual Value"
+              placeholder="Enter or Auto-filled"
             />
           </div>
 
@@ -313,7 +422,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
               value={formData.aakraniDar}
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="Enter Rate"
+              placeholder="Enter or Auto-filled"
             />
           </div>
         </div>
@@ -327,12 +436,11 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
             <input
               type="text"
               value={
-                formData.shetrafalPurabPachimMeter2 &&
-                formData.shetrafalUttarDakshinMeter &&
+                formData.ekunShetrafalChorasFoot &&
                 formData.jaminicheVarshikMulya
                   ? (
-                      Number(formData.shetrafalPurabPachimMeter2) *
-                      Number(formData.shetrafalUttarDakshinMeter) *
+                      Number(formData.ekunShetrafalChorasFoot) *
+                      0.092903 *
                       Number(formData.jaminicheVarshikMulya)
                     ).toFixed(2)
                   : ''
@@ -350,13 +458,12 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
             <input
               type="text"
               value={
-                formData.shetrafalPurabPachimMeter2 &&
-                formData.shetrafalUttarDakshinMeter &&
+                formData.ekunShetrafalChorasFoot &&
                 formData.jaminicheVarshikMulya &&
                 formData.aakraniDar
                   ? (
-                      (Number(formData.shetrafalPurabPachimMeter2) *
-                      Number(formData.shetrafalUttarDakshinMeter) *
+                      (Number(formData.ekunShetrafalChorasFoot) *
+                      0.092903 *
                       Number(formData.jaminicheVarshikMulya) *
                       Number(formData.aakraniDar)) / 1000
                     ).toFixed(2)

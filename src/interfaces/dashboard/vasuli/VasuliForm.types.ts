@@ -10,6 +10,8 @@ export interface VasuliFormData {
   khatedharkacheNav: string;
   bhogwatdaracheNav: string;
   patta: string;
+  billBookNumber: string;
+  pavtiNumber: string;
 
   // Tax rows
   gruhkarMagil: string;
@@ -55,4 +57,21 @@ export interface VasuliFormData {
   etarFeeChalu: string;
   etarFeeJama: string;
   etarFeeShillak: string;
+
+  // Payment method
+  paymentType: string;
+  cashAmount: string;
+  chequeNumber: string;
+  chequeAmount: string;
+  chequeDate: string;
+  chequeBankName: string;
+  ddNumber: string;
+  ddAmount: string;
+  ddDate: string;
+  ddBankName: string;
+  onlineProvider: string;
+  onlineAmount: string;
+  onlineTransactionId: string;
+  paymentImage: File | null;
+  paymentImagePreview: string;
 }

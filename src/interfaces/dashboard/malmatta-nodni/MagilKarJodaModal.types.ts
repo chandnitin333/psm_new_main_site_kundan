@@ -43,6 +43,7 @@ export interface MagilKarJodaModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: MagilKarJodaData) => void;
+  nodniId: number | null;
   khatedharkacheNav: string;
   bhogwatdaracheNav: string;
 }

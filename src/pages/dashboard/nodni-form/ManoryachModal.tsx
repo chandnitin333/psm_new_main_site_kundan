@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Modal from '../../../components/common/Modal';
 import { Select2, type Select2Option } from '../../../components/common';
 import type { ManoryachData, ManoryachModalProps } from '../../../interfaces/dashboard/nodni-form/ManoryachModal.types';
+import { commonDdlService } from '../../../services';
 
 const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModalProps) => {
   const [formData, setFormData] = useState<ManoryachData>({
@@ -11,10 +12,80 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
     manorycheBhag: '',
     shetrafalPurvPachimFoot: '',
     shetrafalUttarDakshinFoot: '',
+    ekunShetrafalChorasFoot: '',
     shetrafalPurvPachimMeter: '',
     shetrafalUttarDakshinMeter: '',
     aakraniDar: '',
   });
+
+  // Dynamic dropdown options from API
+  const [malmattechePrakarOptions, setMalmattechePrakarOptions] = useState<Select2Option[]>([]);
+  const [malmattecheVarnanOptions, setMalmattecheVarnanOptions] = useState<Select2Option[]>([]);
+  const [manorycheBhagOptions, setManorycheBhagOptions] = useState<Select2Option[]>([]);
+  const ddlFetchedRef = useRef(false);
+
+  // Fetch dropdown data from API
+  useEffect(() => {
+    if (ddlFetchedRef.current) return;
+    ddlFetchedRef.current = true;
+
+    const fetchDropdowns = async () => {
+      try {
+        // Fetch malmatteche prakar - filter for मनोरा only
+        const prakarRes = await commonDdlService.getMalmattechePrakar() as {
+          success: boolean;
+          data?: Array<{ id: number; malmatta_prakar_name: string }>;
+        };
+        if (prakarRes.success && prakarRes.data) {
+          const filtered = prakarRes.data.filter(
+            item => item.malmatta_prakar_name?.includes('मनोरा')
+          );
+          setMalmattechePrakarOptions(
+            filtered.map(item => ({
+              value: String(item.id),
+              label: item.malmatta_prakar_name,
+            }))
+          );
+        }
+
+        // Fetch malmatta - filter for आर सी सी, खुला भूखंड, माती
+        const malmattaRes = await commonDdlService.getMalmatta() as {
+          success: boolean;
+          data?: Array<{ id: number; malmatta_name: string }>;
+        };
+        if (malmattaRes.success && malmattaRes.data) {
+          const filtered = malmattaRes.data.filter(
+            item => item.malmatta_name?.includes('आर सी सी') ||
+                    item.malmatta_name?.includes('खुला भूखंड') ||
+                    item.malmatta_name?.includes('माती')
+          );
+          setMalmattecheVarnanOptions(
+            filtered.map(item => ({
+              value: String(item.id),
+              label: item.malmatta_name,
+            }))
+          );
+        }
+
+        // Fetch towers for Entertainment Section dropdown
+        const towerRes = await commonDdlService.getTowers() as {
+          success: boolean;
+          data?: Array<{ id: number; tower_name: string }>;
+        };
+        if (towerRes.success && towerRes.data) {
+          setManorycheBhagOptions(
+            towerRes.data.map(item => ({
+              value: String(item.id),
+              label: item.tower_name,
+            }))
+          );
+        }
+      } catch {
+        // keep defaults empty on error
+      }
+    };
+    fetchDropdowns();
+  }, []);
 
   // Update form data when initialData changes
   useEffect(() => {
@@ -25,27 +96,24 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const updated = { ...formData, [name]: value };
+
+    // Auto-calculate when EW/NS feet change
+    if (name === 'shetrafalPurvPachimFoot' || name === 'shetrafalUttarDakshinFoot') {
+      const ewFoot = parseFloat(name === 'shetrafalPurvPachimFoot' ? value : formData.shetrafalPurvPachimFoot) || 0;
+      const nsFoot = parseFloat(name === 'shetrafalUttarDakshinFoot' ? value : formData.shetrafalUttarDakshinFoot) || 0;
+
+      // Convert feet to meter (1 sq ft = 0.092903 sq meter)
+      updated.shetrafalPurvPachimMeter = ewFoot ? (ewFoot * 0.092903).toFixed(2) : '';
+      updated.shetrafalUttarDakshinMeter = nsFoot ? (nsFoot * 0.092903).toFixed(2) : '';
+
+      // Auto-calculate Total Sq Feet
+      const totalSqFt = ewFoot * nsFoot;
+      updated.ekunShetrafalChorasFoot = totalSqFt ? totalSqFt.toFixed(2) : '';
+    }
+
+    setFormData(updated);
   };
-
-  // Select2 options
-  const malmattechePrakarOptions: Select2Option[] = useMemo(() => [
-    { value: 'commercial', label: 'व्यावसायिक (Commercial)' },
-    { value: 'entertainment', label: 'मनोरंजन (Entertainment)' },
-    { value: 'multiplex', label: 'मल्टिप्लेक्स (Multiplex)' },
-  ], []);
-
-  const malmattecheVarnanOptions: Select2Option[] = useMemo(() => [
-    { value: 'theater', label: 'थिएटर (Theater)' },
-    { value: 'cinema', label: 'सिनेमा (Cinema)' },
-    { value: 'hall', label: 'हॉल (Hall)' },
-  ], []);
-
-  const manorycheBhagOptions: Select2Option[] = useMemo(() => [
-    { value: 'screen1', label: 'स्क्रीन १ (Screen 1)' },
-    { value: 'screen2', label: 'स्क्रीन २ (Screen 2)' },
-    { value: 'main_hall', label: 'मुख्य हॉल (Main Hall)' },
-  ], []);
 
   const handleMalmattechePrakarChange = (value: string | number | (string | number)[]) => {
     setFormData(prev => ({ ...prev, malmattechePrakar: value as string }));
@@ -60,7 +128,13 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
   };
 
   const handleSave = () => {
-    onSave(formData);
+    const dataWithNames = {
+      ...formData,
+      malmattechePrakarName: malmattechePrakarOptions.find(o => o.value === formData.malmattechePrakar)?.label || '',
+      malmattecheVarnanName: malmattecheVarnanOptions.find(o => o.value === formData.malmattecheVarnan)?.label || '',
+      manorycheBhagName: manorycheBhagOptions.find(o => o.value === formData.manorycheBhag)?.label || '',
+    };
+    onSave(dataWithNames);
     setFormData({
       malmattechePrakar: '',
       malmattecheVarnan: '',
@@ -68,9 +142,11 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
       manorycheBhag: '',
       shetrafalPurvPachimFoot: '',
       shetrafalUttarDakshinFoot: '',
+      ekunShetrafalChorasFoot: '',
       shetrafalPurvPachimMeter: '',
       shetrafalUttarDakshinMeter: '',
       aakraniDar: '',
+      majla: '',
     });
     // Don't close modal - keep it open for continuous entry
   };
@@ -83,9 +159,11 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
       manorycheBhag: '',
       shetrafalPurvPachimFoot: '',
       shetrafalUttarDakshinFoot: '',
+      ekunShetrafalChorasFoot: '',
       shetrafalPurvPachimMeter: '',
       shetrafalUttarDakshinMeter: '',
       aakraniDar: '',
+      majla: '',
     });
     onClose();
   };
@@ -204,15 +282,12 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
               एकूण क्षेत्रफळ (चौरस फूट) (Total Area in Sq. Feet)
             </label>
             <input
-              type="text"
-              value={
-                formData.shetrafalPurvPachimFoot && formData.shetrafalUttarDakshinFoot
-                  ? (Number(formData.shetrafalPurvPachimFoot) * Number(formData.shetrafalUttarDakshinFoot)).toFixed(2)
-                  : ''
-              }
-              readOnly
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
-              placeholder="Auto-calculated"
+              type="number" min="0" step="any"
+              name="ekunShetrafalChorasFoot"
+              value={formData.ekunShetrafalChorasFoot}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="Enter or Auto-calculated"
             />
           </div>
         </div>
@@ -224,12 +299,12 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
               क्षेत्रफळ पूर्व पश्चिम (चौरस मीटर) (Area East-West in Sq. Meter)
             </label>
             <input
-              type="number" min="0" step="any"
+              type="text"
               name="shetrafalPurvPachimMeter"
               value={formData.shetrafalPurvPachimMeter}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="Enter Area"
+              readOnly
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
+              placeholder="Auto-calculated"
             />
           </div>
 
@@ -238,12 +313,12 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
               क्षेत्रफळ उत्तर दक्षिण (चौरस मीटर) (Area North-South in Sq. Meter)
             </label>
             <input
-              type="number" min="0" step="any"
+              type="text"
               name="shetrafalUttarDakshinMeter"
               value={formData.shetrafalUttarDakshinMeter}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="Enter Area"
+              readOnly
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
+              placeholder="Auto-calculated"
             />
           </div>
 
@@ -254,8 +329,8 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
             <input
               type="text"
               value={
-                formData.shetrafalPurvPachimMeter && formData.shetrafalUttarDakshinMeter
-                  ? (Number(formData.shetrafalPurvPachimMeter) * Number(formData.shetrafalUttarDakshinMeter)).toFixed(2)
+                formData.ekunShetrafalChorasFoot
+                  ? (Number(formData.ekunShetrafalChorasFoot) * 0.092903).toFixed(2)
                   : ''
               }
               readOnly
@@ -266,8 +341,8 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
 
         </div>
 
-        {/* Row 4 - 2 Fields */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Row 4 - 3 Fields */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               आकारणी दर (Assessment Rate)
@@ -284,18 +359,31 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              कर आकारणी (Tax Assessment) = क्षेत्रफळ × आकारणी दर / 1000
+              मजला (Floor)
+            </label>
+            <input
+              type="number" min="0" step="any"
+              name="majla"
+              value={formData.majla}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="Enter Floor"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              कर आकारणी (Tax Assessment) = एकूण क्षेत्रफळ (चौ.फू.) × आकारणी दर × मजला
             </label>
             <input
               type="text"
               value={
-                formData.shetrafalPurvPachimMeter &&
-                formData.shetrafalUttarDakshinMeter &&
+                formData.ekunShetrafalChorasFoot &&
                 formData.aakraniDar
                   ? (
-                      (Number(formData.shetrafalPurvPachimMeter) *
-                      Number(formData.shetrafalUttarDakshinMeter) *
-                      Number(formData.aakraniDar)) / 1000
+                      Number(formData.ekunShetrafalChorasFoot) *
+                      Number(formData.aakraniDar) *
+                      (Number(formData.majla) || 1)
                     ).toFixed(2)
                   : ''
               }

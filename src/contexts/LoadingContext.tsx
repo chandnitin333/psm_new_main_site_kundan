@@ -86,7 +86,7 @@ export const LoadingProvider = ({ children }: LoadingProviderProps) => {
     >
       {children}
       {isLoading && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center">
           <Loader type={loaderType} text={loadingText} size="large" color={loaderColor} />
         </div>
       )}

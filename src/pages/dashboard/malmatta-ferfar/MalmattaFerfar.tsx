@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Edit2, Trash2, File } from 'lucide-react';
 import YearPicker from '../../../components/common/YearPicker';
 import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '../../../utils/deleteConfirmation';
+import { ferfarService } from '../../../services';
 import type { MalmattaFerfarFormData, MalmattaFerfarRecord } from '../../../interfaces/dashboard/malmatta-ferfar/MalmattaFerfar.types';
 
 const MalmattaFerfar = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const firstInputRef = useRef<HTMLInputElement>(null);
   const { toast, ToastContainer } = useToast();
   const { deleteConfirmation, handleDeleteClick, cancelDelete, resetDeleteConfirmation } = useDeleteConfirmation();
@@ -28,67 +28,54 @@ const MalmattaFerfar = () => {
     bhogwatdaracheNav: '',
   });
 
+  const [records, setRecords] = useState<MalmattaFerfarRecord[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [recordsPerPage] = useState(10);
 
-  // Sample data - replace with actual data
-  const [records, setRecords] = useState<MalmattaFerfarRecord[]>([
-    {
-      anuKramank: '001',
-      milkatKramank: 'MK-001',
-      wardNo: 'W-01',
-      khasaraKramank: 'KK-001',
-      khatedharkacheNav: 'राम शर्मा',
-      bhogwatdaracheNav: 'श्याम पाटील',
-      year: '2024-2025'
-    },
-    // Add more sample records as needed
-  ]);
 
-  // Handle new record from form submission
-  useEffect(() => {
-    if (location.state?.newRecord) {
-      setRecords(prev => {
-        // Check if record already exists to avoid duplicates
-        const exists = prev.some(r => r.anuKramank === location.state.newRecord.anuKramank);
-        if (exists) return prev;
-        return [location.state.newRecord, ...prev];
-      });
-      // Clear the location state immediately
-      window.history.replaceState({}, document.title);
-    } else if (location.state?.updatedRecord && location.state?.isEdit) {
-      // Update existing record
-      const updatedRecord = location.state.updatedRecord;
-      setRecords(prev =>
-        prev.map(record =>
-          record.anuKramank === updatedRecord.anuKramank ? updatedRecord : record
-        )
-      );
-      // Clear the location state immediately
-      window.history.replaceState({}, document.title);
+  const fetchRecords = async (page: number, filters?: MalmattaFerfarFormData) => {
+    const f = filters || formData;
+    showLoader('लोड होत आहे...');
+    try {
+      const payload: Record<string, unknown> = { page, per_page: recordsPerPage };
+      if (f.year) payload.year = f.year;
+      if (f.anuKramank) payload.anu_kramank = f.anuKramank;
+      if (f.malmattaKramank) payload.malmatta_number = f.malmattaKramank;
+      if (f.wardKramank) payload.ward_kramnak = f.wardKramank;
+      if (f.plotKramank) payload.plot_number = f.plotKramank;
+      if (f.khasaraKramank) payload.khasara_number = f.khasaraKramank;
+      if (f.surveyKramank) payload.survey_number = f.surveyKramank;
+      if (f.khatedaracheNav) payload.ghar_malkache_nav_lihun_denar = f.khatedaracheNav;
+      if (f.bhogwatdaracheNav) payload.nav_lihun_ghenara = f.bhogwatdaracheNav;
+
+      const response = await ferfarService.list(payload);
+      if (response.success && response.data) {
+        const data = response.data as any;
+        setRecords(data.records || []);
+        setTotalRecords(data.total || 0);
+        setTotalPages(data.pages || 1);
+        setCurrentPage(data.page || page);
+      } else {
+        setRecords([]);
+        setTotalRecords(0);
+        setTotalPages(1);
+      }
+    } catch {
+      toast.error('डेटा लोड करताना त्रुटी आली');
+    } finally {
+      hideLoader();
     }
-  }, [location.state]);
+  };
 
-  // Pagination logic
-  const indexOfLastRecord = currentPage * recordsPerPage;
-  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-  const currentRecords = records.slice(indexOfFirstRecord, indexOfLastRecord);
-  const totalPages = Math.ceil(records.length / recordsPerPage);
-
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-
-  // Auto-focus on first input (year) when component loads with loader
+  // On mount: load records and focus first input
   useEffect(() => {
     document.title = 'Malmatta Ferfar - मालमत्ता फेरफार';
-    const loadPage = async () => {
-      showLoader('पृष्ठ लोड होत आहे... (Loading page...)');
-      await new Promise(resolve => setTimeout(resolve, 800));
-      hideLoader();
-      if (firstInputRef.current) {
-        firstInputRef.current.focus();
-      }
-    };
-    loadPage();
+    fetchRecords(1);
+    if (firstInputRef.current) {
+      firstInputRef.current.focus();
+    }
   }, []);
 
   // Auto-fill "To Year" when "Year" changes
@@ -96,10 +83,7 @@ const MalmattaFerfar = () => {
     if (formData.year) {
       const yearNum = parseInt(formData.year);
       if (!isNaN(yearNum)) {
-        setFormData(prev => ({
-          ...prev,
-          toYear: (yearNum + 1).toString()
-        }));
+        setFormData(prev => ({ ...prev, toYear: (yearNum + 1).toString() }));
       }
     }
   }, [formData.year]);
@@ -115,15 +99,11 @@ const MalmattaFerfar = () => {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    showLoader('शोधत आहे... (Searching...)');
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log('Search Data:', formData);
-    // TODO: Implement search logic
-    hideLoader();
+    await fetchRecords(1);
   };
 
   const handleReset = () => {
-    setFormData({
+    const resetData: MalmattaFerfarFormData = {
       year: new Date().getFullYear().toString(),
       toYear: (new Date().getFullYear() + 1).toString(),
       anuKramank: '',
@@ -134,7 +114,15 @@ const MalmattaFerfar = () => {
       surveyKramank: '',
       khatedaracheNav: '',
       bhogwatdaracheNav: '',
-    });
+    };
+    setFormData(resetData);
+    fetchRecords(1, resetData);
+  };
+
+  const paginate = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      fetchRecords(page);
+    }
   };
 
   const handleAddFerfar = () => {
@@ -142,31 +130,46 @@ const MalmattaFerfar = () => {
   };
 
   const handleEdit = async (record: MalmattaFerfarRecord) => {
-    showLoader('संपादित करत आहे... (Editing...)');
-    await new Promise(resolve => setTimeout(resolve, 500));
-    hideLoader();
-    // Navigate to form with record data for editing
-    navigate('/malmatta-ferfar/ferfar-form', { state: { record, isEdit: true } });
+    showLoader('लोड होत आहे... (Loading...)');
+    try {
+      const response = await ferfarService.getById(record.id);
+      hideLoader();
+      if (response.success && response.data) {
+        navigate('/malmatta-ferfar/ferfar-form', { state: { record: response.data, isEdit: true } });
+      } else {
+        toast.error('रेकॉर्ड लोड अयशस्वी (Failed to load record)');
+      }
+    } catch {
+      hideLoader();
+      toast.error('रेकॉर्ड लोड अयशस्वी (Failed to load record)');
+    }
   };
 
   const confirmDelete = async () => {
     if (deleteConfirmation.index !== null) {
       showLoader('हटवत आहे... (Deleting...)');
-      await new Promise(resolve => setTimeout(resolve, 800));
-      const updatedRecords = records.filter((_, i) => i !== deleteConfirmation.index);
-      setRecords(updatedRecords);
-      resetDeleteConfirmation();
-      hideLoader();
-      toast.success('रेकॉर्ड यशस्वीरित्या हटविला (Record deleted successfully)');
+      try {
+        const response = await ferfarService.delete(deleteConfirmation.index);
+        if (response.success) {
+          await fetchRecords(currentPage);
+          toast.success('रेकॉर्ड यशस्वीरित्या हटविला (Record deleted successfully)');
+        } else {
+          toast.error((response as any).message || 'हटवताना त्रुटी आली');
+        }
+      } catch {
+        toast.error('हटवताना त्रुटी आली');
+      } finally {
+        resetDeleteConfirmation();
+        hideLoader();
+      }
     }
   };
 
-  const handlePDF = async (record: MalmattaFerfarRecord) => {
-    showLoader('PDF उघडत आहे... (Opening PDF...)');
-    await new Promise(resolve => setTimeout(resolve, 500));
-    hideLoader();
-    navigate('/malmatta-ferfar/pdf-management');
+  const handlePDF = (record: MalmattaFerfarRecord) => {
+    navigate('/malmatta-ferfar/pdf-management', { state: { ferfarId: record.id } });
   };
+
+  const indexOfFirstRecord = (currentPage - 1) * recordsPerPage;
 
   return (
     <>
@@ -388,71 +391,79 @@ const MalmattaFerfar = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {currentRecords.map((record, index) => (
-                <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                    {indexOfFirstRecord + index + 1}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                    {record.anuKramank}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                    {record.milkatKramank}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                    {record.wardNo}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                    {record.khasaraKramank}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                    {record.khatedharkacheNav}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                    {record.bhogwatdaracheNav}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                    {record.year}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(record)}
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-                        title="संपादित करा (Edit)"
-                      >
-                        <Edit2 className="w-5 h-5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteClick(indexOfFirstRecord + index)}
-                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-                        title="हटवा (Delete)"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handlePDF(record)}
-                        className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors"
-                        title="PDF जोडा/डाउनलोड करा (Add PDF/Download PDF)"
-                      >
-                        <File className="w-5 h-5" />
-                      </button>
-                    </div>
+              {records.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                    कोणतेही रेकॉर्ड सापडले नाहीत (No records found)
                   </td>
                 </tr>
-              ))}
+              ) : (
+                records.map((record, index) => (
+                  <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                      {indexOfFirstRecord + index + 1}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                      {record.anu_kramank}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                      {record.malmatta_number}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                      {record.ward_kramnak}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                      {record.khasara_number}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                      {record.ghar_malkache_nav_lihun_denar}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                      {record.nav_lihun_ghenara}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                      {record.year}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(record)}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                          title="संपादित करा (Edit)"
+                        >
+                          <Edit2 className="w-5 h-5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClick(record.id)}
+                          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                          title="हटवा (Delete)"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handlePDF(record)}
+                          className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors"
+                          title="PDF जोडा/डाउनलोड करा (Add PDF/Download PDF)"
+                        >
+                          <File className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
 
         {/* Pagination */}
-        {records.length > 0 && (
+        {totalRecords > 0 && (
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="text-sm text-gray-700 dark:text-gray-300">
-              Showing {indexOfFirstRecord + 1} to {Math.min(indexOfLastRecord, records.length)} of {records.length} entries
+              Showing {indexOfFirstRecord + 1} to {indexOfFirstRecord + records.length} of {totalRecords} entries
             </div>
             <div className="flex gap-2">
               <button
@@ -495,6 +506,7 @@ const MalmattaFerfar = () => {
         onConfirm={confirmDelete}
         onCancel={cancelDelete}
       />
+
     </div>
     </>
   );

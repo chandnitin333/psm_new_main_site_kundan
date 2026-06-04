@@ -36,13 +36,13 @@ export const DASHBOARD_MENU_ITEMS: MenuItem[] = [
     icon: 'Home',
     subMenus: []
   },
-  {
-    id: 'loaders',
-    label: 'Loaders',
-    path: '/loaders',
-    icon: 'Loader2',
-    subMenus: []
-  },
+  // {
+  //   id: 'loaders',
+  //   label: 'Loaders',
+  //   path: '/loaders',
+  //   icon: 'Loader2',
+  //   subMenus: []
+  // },
   {
     id: 'nodni-form',
     label: 'Nodni Form',

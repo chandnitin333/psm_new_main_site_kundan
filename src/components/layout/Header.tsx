@@ -48,7 +48,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
   }, [isAuthenticated]);
 
   // Get display name and email
-  const displayName = userData?.username || userData?.first_name || 'User';
+  const displayName = userData?.first_name || userData?.username || 'User';
   const fullName = userData?.first_name && userData?.last_name
     ? `${userData.first_name} ${userData.last_name}`
     : userData?.username || 'User';
@@ -74,7 +74,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
   const isActive = (path: string) => location.pathname === path;
 
   const handleMouseEnter = (menuId: string) => {
-    if (window.innerWidth >= 768) {
+    if (window.innerWidth >= 1280) {
       // Clear any pending close timeout
       if (closeTimeoutRef.current) {
         clearTimeout(closeTimeoutRef.current);
@@ -85,7 +85,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
   };
 
   const handleMouseLeave = () => {
-    if (window.innerWidth >= 768) {
+    if (window.innerWidth >= 1280) {
       // Add a delay before closing the dropdown (300ms delay)
       closeTimeoutRef.current = window.setTimeout(() => {
         setActiveDropdown(null);
@@ -115,17 +115,23 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
           {/* Logo */}
           <Link to={isAuthenticated ? "/dashboard" : "/"} className="flex items-center space-x-2">
             <img
-              src="/logo.svg"
+              src="/psm_logo1.png"
               alt="Gram Panchayat Logo"
               className="w-10 h-10"
             />
-            <span className="text-xl font-bold text-gray-900 dark:text-white hidden sm:block">
-              Gram Vikas
+            <span className="flex flex-col leading-tight relative">
+              <span className="text-[19px] font-black italic tracking-tight text-gray-900 dark:text-white" style={{ fontFamily: 'Georgia, serif' }}>
+                G<span className="text-primary-600 dark:text-primary-400">ram</span> V<span className="text-primary-600 dark:text-primary-400">ikas</span>
+              </span>
+              <span className="h-[2px] w-full bg-gradient-to-r from-primary-600 via-amber-500 to-primary-600 rounded-full"></span>
+              <span className="text-[10px] font-bold tracking-[0.15em] text-gray-600 dark:text-gray-300 text-center mt-[2px]">
+                ग्राम पंचायत सेवा
+              </span>
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-1">
+          <nav className="hidden xl:flex items-center space-x-1">
             {menuItems.map((item) => (
               <div
                 key={item.id}
@@ -193,7 +199,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
             {/* User Menu (Dashboard only) */}
             {isAuthenticated && (
               <div
-                className="relative hidden md:block"
+                className="relative hidden xl:block"
                 ref={userMenuRef}
                 onMouseEnter={userMenuDelay.handleMouseEnter}
                 onMouseLeave={userMenuDelay.handleMouseLeave}
@@ -270,7 +276,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
             {isAuthenticated && onToggleSidebar && (
               <button
                 onClick={onToggleSidebar}
-                className="hidden lg:block p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="hidden xl:block p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 title="Toggle Sidebar"
               >
                 <Menu className="w-5 h-5" />
@@ -280,7 +286,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="xl:hidden p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
             >
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -289,7 +295,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-700 max-h-[calc(100vh-4rem)] overflow-y-auto">
+          <div className="xl:hidden py-4 border-t border-gray-200 dark:border-gray-700 max-h-[calc(100vh-4rem)] overflow-y-auto">
             {menuItems.map((item) => (
               <div key={item.id}>
                 {item.subMenus && item.subMenus.length > 0 ? (

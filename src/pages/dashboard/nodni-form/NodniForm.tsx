@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import KhulaBhukhandModal from './KhulaBhukhandModal';
 import BandkamModal from './BandkamModal';
 import ManoryachModal from './ManoryachModal';
@@ -8,8 +9,7 @@ import ManoryachTable from './ManoryachTable';
 import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
 import type { NodniFormData } from '../../../interfaces/dashboard/nodni-form/NodniForm.types';
-import { api } from '../../../services';
-import { authService } from '../../../services';
+import { authService, nodniService } from '../../../services';
 
 interface TaxItem {
   tax_id: number;
@@ -19,8 +19,12 @@ interface TaxItem {
 }
 
 const NodniForm = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { toast, ToastContainer } = useToast();
   const { showLoader, hideLoader } = useLoading();
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const editApiDataRef = useRef<Record<string, any> | null>(null);
   const [isKhulaBhukhandModalOpen, setIsKhulaBhukhandModalOpen] = useState(false);
   const [isBandkamModalOpen, setIsBandkamModalOpen] = useState(false);
   const [isManoryachModalOpen, setIsManoryachModalOpen] = useState(false);
@@ -106,6 +110,16 @@ const NodniForm = () => {
     loadPage();
   }, []);
 
+  // Populate form when edit data is passed via navigation state
+  useEffect(() => {
+    const editData = (location.state as any)?.editData;
+    if (editData?.id) {
+      setEditingId(editData.id);
+      editApiDataRef.current = editData;
+      populateFormFromEditData(editData);
+    }
+  }, [location.state]);
+
   const taxFetchedRef = useRef(false);
 
   // Fetch dynamic tax list from API
@@ -124,20 +138,26 @@ const NodniForm = () => {
 
       setTaxLoading(true);
       try {
-        const response = await api.post<Array<{ tax_id: number; tax_name: string; rate: number }>>('/main/nodni/tax-list', {
-          district_id: currentUser.district_id,
-          taluka_id: currentUser.taluka_id,
-          gram_panchayat_id: currentUser.gram_panchayat_id,
-          gat_gram_panchayat_id: currentUser.gat_gram_panchayat_id,
-        });
+        const response = await nodniService.getTaxList({
+          district_id: currentUser.district_id as number,
+          taluka_id: currentUser.taluka_id as number,
+          gram_panchayat_id: currentUser.gram_panchayat_id as number,
+          gat_gram_panchayat_id: currentUser.gat_gram_panchayat_id as number,
+        }) as { success: boolean; data?: Array<{ tax_id: number; tax_name: string; rate: number }> };
         if (response.success && response.data) {
+          const savedTaxes: Array<{ tax_id: number; tax_rate: number }> =
+            editApiDataRef.current?.other_tax_calculation ?? [];
+
           setOtherTaxes(
-            response.data.map(item => ({
-              tax_id: item.tax_id,
-              tax_name: item.tax_name,
-              rate: item.rate?.toString() || '',
-              selected: false,
-            }))
+            response.data.map(item => {
+              const match = savedTaxes.find(s => s.tax_id === item.tax_id);
+              return {
+                tax_id: item.tax_id,
+                tax_name: item.tax_name,
+                rate: match ? String(match.tax_rate) : (item.rate?.toString() || ''),
+                selected: !!match,
+              };
+            })
           );
         }
       } catch {
@@ -151,7 +171,24 @@ const NodniForm = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const updated = { ...formData, [name]: value };
+
+    // Auto-calculate ekun jagechi shetrafal
+    if (name === 'lambi' || name === 'rundi') {
+      const lambi = parseFloat(name === 'lambi' ? value : formData.lambi) || 0;
+      const rundi = parseFloat(name === 'rundi' ? value : formData.rundi) || 0;
+      const chorasFoot = lambi * rundi;
+      updated.shetrafalChorasFoot = chorasFoot ? chorasFoot.toFixed(2) : '';
+      updated.shetrafalChorasMeter = chorasFoot ? (chorasFoot * 0.092903).toFixed(2) : '';
+    }
+
+    // Auto-calculate choras meter when choras foot is manually changed
+    if (name === 'shetrafalChorasFoot') {
+      const chorasFoot = parseFloat(value) || 0;
+      updated.shetrafalChorasMeter = chorasFoot ? (chorasFoot * 0.092903).toFixed(2) : '';
+    }
+
+    setFormData(updated);
   };
 
   // Handle Other Tax checkbox change
@@ -206,6 +243,124 @@ const NodniForm = () => {
 
     setTaxPayable(updatedTaxPayable);
   };
+
+  // Auto-fill Property Tax & Tax Payable when khulaBhukhandRecords change
+  useEffect(() => {
+    if (khulaBhukhandRecords.length === 0) return;
+
+    // Sum values from all khula bhukhand records
+    const totalSqFeet = khulaBhukhandRecords.reduce(
+      (sum, r) => sum + (Number(r.ekunShetrafalChorasFoot) || 0), 0
+    );
+    const totalCapitalValue = khulaBhukhandRecords.reduce(
+      (sum, r) => sum + (r.ekunShetrafalChorasFoot && r.jaminicheVarshikMulya
+        ? Number(r.ekunShetrafalChorasFoot) * 0.092903 * Number(r.jaminicheVarshikMulya)
+        : 0), 0
+    );
+    const totalTaxAssessment = khulaBhukhandRecords.reduce(
+      (sum, r) => sum + (r.ekunShetrafalChorasFoot && r.jaminicheVarshikMulya && r.aakraniDar
+        ? (Number(r.ekunShetrafalChorasFoot) * 0.092903 * Number(r.jaminicheVarshikMulya) * Number(r.aakraniDar)) / 1000
+        : 0), 0
+    );
+
+    setPropertyTax(prev => {
+      const ekunBhandavliMulya = totalCapitalValue + (parseFloat(prev.imaraticheBhandavliMulya) || 0);
+      const gruhkarVBhumikar = totalTaxAssessment + (parseFloat(prev.imaraticheKarAakarani) || 0);
+
+      // Also update Tax Payable
+      setTaxPayable(prevTax => {
+        const totalOtherTax = otherTaxes
+          .filter(t => t.selected)
+          .reduce((sum, t) => sum + (parseFloat(t.rate) || 0), 0);
+        const chaluKar = gruhkarVBhumikar + totalOtherTax;
+        return {
+          ...prevTax,
+          gruhkarVBhumikarPayable: gruhkarVBhumikar.toFixed(2),
+          chaluKar: chaluKar.toFixed(2),
+          ekunKarBharna: chaluKar.toFixed(2),
+        };
+      });
+
+      return {
+        ...prev,
+        urvaritKhaliJaga: totalSqFeet.toFixed(2),
+        jaminicheBhandavliMulya: totalCapitalValue.toFixed(2),
+        khulaBhukhandAakarani: totalTaxAssessment.toFixed(2),
+        ekunBhandavliMulya: ekunBhandavliMulya.toFixed(2),
+        gruhkarVBhumikar: gruhkarVBhumikar.toFixed(2),
+      };
+    });
+  }, [khulaBhukhandRecords]);
+
+  // Auto-fill Property Tax & Tax Payable when bandkamRecords or manoryachRecords change
+  useEffect(() => {
+    if (bandkamRecords.length === 0 && manoryachRecords.length === 0) return;
+
+    // Sum Building Capital Value from all bandkam records
+    const totalBuildingCapitalValue = bandkamRecords.reduce(
+      (sum, r) => sum + (r.ekunShetrafalChorasFoot && r.imaraticheVarshikMulya && r.bharank
+        ? Number(r.ekunShetrafalChorasFoot) * 0.092903 * Number(r.imaraticheVarshikMulya) * Number(r.bharank)
+        : 0), 0
+    );
+    // Sum Tax Assessment from all bandkam records
+    const totalBuildingTaxAssessment = bandkamRecords.reduce(
+      (sum, r) => sum + (r.ekunShetrafalChorasFoot && r.imaraticheVarshikMulya && r.bharank && r.aakraniDar
+        ? (Number(r.ekunShetrafalChorasFoot) * 0.092903 * Number(r.imaraticheVarshikMulya) * Number(r.bharank) * Number(r.aakraniDar)) / 1000
+        : 0), 0
+    );
+    // Sum Tax Assessment from all manoryach records
+    const totalManoryachTaxAssessment = manoryachRecords.reduce(
+      (sum, r) => sum + (r.ekunShetrafalChorasFoot && r.aakraniDar
+        ? Number(r.ekunShetrafalChorasFoot) * Number(r.aakraniDar) * (Number(r.majla) || 1)
+        : 0), 0
+    );
+
+    const totalKarAakarani = totalBuildingTaxAssessment + totalManoryachTaxAssessment;
+
+    setPropertyTax(prev => {
+      const ekunBhandavliMulya = (parseFloat(prev.jaminicheBhandavliMulya) || 0) + totalBuildingCapitalValue;
+      const gruhkarVBhumikar = (parseFloat(prev.khulaBhukhandAakarani) || 0) + totalKarAakarani;
+
+      // Also update Tax Payable
+      setTaxPayable(prevTax => {
+        const totalOtherTax = otherTaxes
+          .filter(t => t.selected)
+          .reduce((sum, t) => sum + (parseFloat(t.rate) || 0), 0);
+        const chaluKar = gruhkarVBhumikar + totalOtherTax;
+        return {
+          ...prevTax,
+          gruhkarVBhumikarPayable: gruhkarVBhumikar.toFixed(2),
+          chaluKar: chaluKar.toFixed(2),
+          ekunKarBharna: chaluKar.toFixed(2),
+        };
+      });
+
+      return {
+        ...prev,
+        imaraticheBhandavliMulya: totalBuildingCapitalValue.toFixed(2),
+        imaraticheKarAakarani: totalKarAakarani.toFixed(2),
+        ekunBhandavliMulya: ekunBhandavliMulya.toFixed(2),
+        gruhkarVBhumikar: gruhkarVBhumikar.toFixed(2),
+      };
+    });
+  }, [bandkamRecords, manoryachRecords]);
+
+  // Auto-update Tax Payable when Other Taxes checkbox selection changes
+  useEffect(() => {
+    const totalOtherTax = otherTaxes
+      .filter(tax => tax.selected)
+      .reduce((sum, tax) => sum + (parseFloat(tax.rate) || 0), 0);
+
+    setTaxPayable(prev => {
+      const gruhkar = parseFloat(prev.gruhkarVBhumikarPayable) || 0;
+      const chaluKar = gruhkar + totalOtherTax;
+      return {
+        ...prev,
+        chaluKar: chaluKar.toFixed(2),
+        ekunKarBharna: chaluKar.toFixed(2),
+      };
+    });
+  }, [otherTaxes]);
 
   const handleKhulaBhukhandSave = (data: any) => {
     if (editingKhulaBhukhandIndex !== null) {
@@ -282,25 +437,353 @@ const NodniForm = () => {
     setManoryachRecords(updatedRecords);
   };
 
+  // Build the API payload from all form states
+  const buildApiPayload = () => {
+    // Selected taxes only
+    const selectedTaxes = otherTaxes
+      .filter(t => t.selected)
+      .map(t => ({ tax_id: t.tax_id, tax_rate: parseFloat(t.rate) || 0 }));
+
+    return {
+      // Basic info
+      anu_kramank: formData.anuKramank,
+      malmatta_number: formData.malmattaNo,
+      ward_kramnak: formData.wardNo,
+      plot_number: formData.plotNo,
+      khasara_number: formData.khasaraNo,
+      survey_number: formData.surveyNo,
+      matdar_card_number: formData.votarCardNo,
+      mobile_number: formData.mobileNo,
+      aadahar_card_number: formData.aadharCardNo,
+      ghar_malkache_nav: formData.gharMalkacheNav,
+      patni_mulache_nav: formData.patniMulacheNav,
+      bhogavat_darache_nav: formData.bhogwatdharNav,
+      patta_nagar_layout_society: formData.pattaNagarLayout,
+      kayamcha_patta: formData.kaymchaPatta,
+      // Boundaries
+      purv: formData.purvesh,
+      paschim: formData.paschimes,
+      uttar: formData.uttares,
+      dakshin: formData.dakshines,
+      // Facilities
+      pinyacha_panyachi_vyavastha: formData.panyachiVyavasta,
+      ghari_souychalaya: formData.souchalay,
+      vanijya_prakar: formData.vanijyaPrakar,
+      milkat_prakar: formData.milkatPrakar,
+      imarat_kiva_mokdi_jaga: formData.imaratMokli,
+      imarat_jamin_keval_dharmik_shekshink: formData.dharmikEducation,
+      bhogvatdar_sarkarsasan_dalatil: formData.shauryaPadak,
+      // Area
+      lambi: formData.lambi,
+      rundi: formData.rundi,
+      shetrafal_choras_foot: formData.shetrafalChorasFoot,
+      shetrafal_choras_meter: formData.shetrafalChorasMeter,
+      // Property Tax
+      urvarit_khali_jaga_choras_foot: propertyTax.urvaritKhaliJaga,
+      jaminiche_bhandvali_mulya: propertyTax.jaminicheBhandavliMulya,
+      imaratiche_bhandvali_mulya: propertyTax.imaraticheBhandavliMulya,
+      ekun_bhandvali_mulya: propertyTax.ekunBhandavliMulya,
+      khula_bhukhand_aakarani: propertyTax.khulaBhukhandAakarani,
+      imaratiche_kar_aakarani: propertyTax.imaraticheKarAakarani,
+      gruhkar_v_bhumikar: propertyTax.gruhkarVBhumikar,
+      // Tax Payable
+      kar_gruhkar_v_bhumikar: taxPayable.gruhkarVBhumikarPayable,
+      chalu_kar: taxPayable.chaluKar,
+      magil_baki: taxPayable.magilBaki,
+      ekun_kar_bharne: taxPayable.ekunKarBharna,
+      magahun_ghat_kiva_badal: taxPayable.magahunGhatBadal,
+      // Other Tax Calculation (dynamic)
+      taxes: selectedTaxes,
+      // Child records — used for sync on update (ignored by create endpoint)
+      khula_bhukhand_records: khulaBhukhandRecords.map(r => buildKhulaBhukhandPayload(r, 0)),
+      bandkam_records: bandkamRecords.map(r => buildBandkamPayload(r, 0)),
+      manoryach_records: manoryachRecords.map(r => buildManoryachePayload(r, 0)),
+    };
+  };
+
+  // Map Khula Bhukhand frontend record to backend payload
+  const buildKhulaBhukhandPayload = (record: any, nodniId: number) => {
+    const purvPachimFoot = Number(record.shetrafalPurabPachimMeter) || 0;
+    const uttarDakshinFoot = Number(record.shetrafalUttarDakshinFoot) || 0;
+    const purvPachimMeter = Number(record.shetrafalPurabPachimMeter2) || 0;
+    const uttarDakshinMeter = Number(record.shetrafalUttarDakshinMeter) || 0;
+    const varshikMulya = Number(record.jaminicheVarshikMulya) || 0;
+    const aakraniDar = Number(record.aakraniDar) || 0;
+
+    const ekunChorasFoot = purvPachimFoot * uttarDakshinFoot;
+    const ekunChorasMeter = purvPachimMeter * uttarDakshinMeter;
+    const bhandvaliMulya = ekunChorasMeter * varshikMulya;
+    const karAakarani = (bhandvaliMulya * aakraniDar) / 1000;
+
+    return {
+      nodni_id: nodniId,
+      malmatteche_prakar: record.malmattechePrakar,
+      malmatteche_varnan: record.malmattecheVarnan,
+      vapar_prakar: record.vaparPrakar,
+      gavache_nav: record.gavacheNav,
+      gavthan_baher: record.gavthanBaher,
+      shetrafal_purv_paschim_foot: purvPachimFoot,
+      shetrafal_uttar_dakshin_foot: uttarDakshinFoot,
+      ekun_shetrafal_choras_foot: ekunChorasFoot,
+      shetrafal_purv_paschim_meter: purvPachimMeter,
+      shetrafal_uttar_dakshin_meter: uttarDakshinMeter,
+      ekun_shetrafal_choras_meter: ekunChorasMeter,
+      jaminiche_varshik_mulya: varshikMulya,
+      aakarani_dar: aakraniDar,
+      jamniche_bhandvali_mulya: bhandvaliMulya,
+      kar_aakarani: karAakarani,
+    };
+  };
+
+  // Map Bandkam frontend record to backend payload
+  const buildBandkamPayload = (record: any, nodniId: number) => {
+    const purvPachimFoot = Number(record.shetrafalPurvPachimFoot) || 0;
+    const uttarDakshinFoot = Number(record.shetrafalUttarDakshinFoot) || 0;
+    const purvPachimMeter = Number(record.shetrafalPurvPachimMeter) || 0;
+    const uttarDakshinMeter = Number(record.shetrafalUttarDakshinMeter) || 0;
+    const varshikMulya = Number(record.imaraticheVarshikMulya) || 0;
+    const aakraniDar = Number(record.aakraniDar) || 0;
+    const ghasaraDar = Number(record.ghasaraDar) || 0;
+    const bharank = Number(record.bharank) || 0;
+
+    const ekunChorasFoot = purvPachimFoot * uttarDakshinFoot;
+    const ekunChorasMeter = purvPachimMeter * uttarDakshinMeter;
+    const bhandvaliMulya = ekunChorasMeter * varshikMulya;
+    const karAakarani = (ekunChorasMeter * varshikMulya * ghasaraDar * bharank * aakraniDar) / 1000;
+
+    return {
+      nodni_id: nodniId,
+      malmatteche_prakar: record.malmattechePrakar,
+      malmatteche_varnan: record.malmattecheVarnan,
+      vapar_prakar: record.vaparPrakar,
+      bandkam_majla: record.bandkamMajla,
+      shetrafal_purv_paschim_foot: purvPachimFoot,
+      shetrafal_uttar_dakshin_foot: uttarDakshinFoot,
+      ekun_shetrafal_choras_foot: ekunChorasFoot,
+      shetrafal_purv_paschim_meter: purvPachimMeter,
+      shetrafal_uttar_dakshin_meter: uttarDakshinMeter,
+      ekun_shetrafal_choras_meter: ekunChorasMeter,
+      vayoman: Number(record.vayoman) || 0,
+      imaratiche_bankam_varsh: Number(record.imaraticheBandkamVarsh) || 0,
+      ghasara_dar: ghasaraDar,
+      bharank: bharank,
+      imaratiche_varshik_mulya: varshikMulya,
+      aakarani_dar: aakraniDar,
+      imaratiche_bhandvali_mulya: bhandvaliMulya,
+      kar_aakarani: karAakarani,
+    };
+  };
+
+  // Map Manoryache frontend record to backend payload
+  const buildManoryachePayload = (record: any, nodniId: number) => {
+    const purvPachimFoot = Number(record.shetrafalPurvPachimFoot) || 0;
+    const uttarDakshinFoot = Number(record.shetrafalUttarDakshinFoot) || 0;
+    const purvPachimMeter = Number(record.shetrafalPurvPachimMeter) || 0;
+    const uttarDakshinMeter = Number(record.shetrafalUttarDakshinMeter) || 0;
+    const aakraniDar = Number(record.aakraniDar) || 0;
+
+    const ekunChorasFoot = purvPachimFoot * uttarDakshinFoot;
+    const ekunChorasMeter = purvPachimMeter * uttarDakshinMeter;
+    const karAakarani = (ekunChorasMeter * aakraniDar) / 1000;
+
+    return {
+      nodni_id: nodniId,
+      malmatteche_prakar: record.malmattechePrakar,
+      malmatteche_varnan: record.malmattecheVarnan,
+      vapar_prakar: record.vaparPrakar,
+      manoryache_bhag: record.manorycheBhag,
+      shetrafal_purv_paschim_foot: purvPachimFoot,
+      shetrafal_uttar_dakshin_foot: uttarDakshinFoot,
+      ekun_shetrafal_choras_foot: ekunChorasFoot,
+      shetrafal_purv_paschim_meter: purvPachimMeter,
+      shetrafal_uttar_dakshin_meter: uttarDakshinMeter,
+      ekun_shetrafal_choras_meter: ekunChorasMeter,
+      aakarani_dar: aakraniDar,
+      majla: Number(record.majla) || 1,
+      kar_aakarani: karAakarani,
+    };
+  };
+
+  const populateFormFromEditData = (data: Record<string, any>) => {
+    const str = (v: any) => (v !== null && v !== undefined ? String(v) : '');
+
+    setFormData({
+      anuKramank: str(data.anu_kramank),
+      malmattaNo: str(data.malmatta_number),
+      wardNo: str(data.ward_kramnak),
+      plotNo: str(data.plot_number),
+      khasaraNo: str(data.khasara_number),
+      surveyNo: str(data.survey_number),
+      votarCardNo: str(data.matdar_card_number),
+      mobileNo: str(data.mobile_number),
+      aadharCardNo: str(data.aadahar_card_number),
+      gharMalkacheNav: str(data.ghar_malkache_nav),
+      patniMulacheNav: str(data.patni_mulache_nav),
+      bhogwatdharNav: str(data.bhogavat_darache_nav),
+      pattaNagarLayout: str(data.patta_nagar_layout_society),
+      kaymchaPatta: str(data.kayamcha_patta),
+      purvesh: str(data.purv),
+      paschimes: str(data.paschim),
+      uttares: str(data.uttar),
+      dakshines: str(data.dakshin),
+      panyachiVyavasta: str(data.pinyacha_panyachi_vyavastha),
+      souchalay: str(data.ghari_souychalaya),
+      vanijyaPrakar: str(data.vanijya_prakar),
+      milkatPrakar: str(data.milkat_prakar),
+      imaratMokli: str(data.imarat_kiva_mokdi_jaga),
+      dharmikEducation: str(data.imarat_jamin_keval_dharmik_shekshink),
+      shauryaPadak: str(data.bhogvatdar_sarkarsasan_dalatil),
+      lambi: str(data.lambi),
+      rundi: str(data.rundi),
+      shetrafalChorasFoot: str(data.shetrafal_choras_foot),
+      shetrafalChorasMeter: str(data.shetrafal_choras_meter),
+    });
+
+    setPropertyTax({
+      urvaritKhaliJaga: str(data.urvarit_khali_jaga_choras_foot),
+      jaminicheBhandavliMulya: str(data.jaminiche_bhandvali_mulya),
+      imaraticheBhandavliMulya: str(data.imaratiche_bhandvali_mulya),
+      ekunBhandavliMulya: str(data.ekun_bhandvali_mulya),
+      khulaBhukhandAakarani: str(data.khula_bhukhand_aakarani),
+      imaraticheKarAakarani: str(data.imaratiche_kar_aakarani),
+      gruhkarVBhumikar: str(data.gruhkar_v_bhumikar),
+    });
+
+    setTaxPayable({
+      gruhkarVBhumikarPayable: str(data.kar_gruhkar_v_bhumikar),
+      chaluKar: str(data.chalu_kar),
+      magilBaki: str(data.magil_baki),
+      ekunKarBharna: str(data.ekun_kar_bharne),
+      magahunGhatBadal: str(data.magahun_ghat_kiva_badal),
+    });
+
+    if (Array.isArray(data.khula_bhukhand_kar_aakarani) && data.khula_bhukhand_kar_aakarani.length > 0) {
+      setKhulaBhukhandRecords(data.khula_bhukhand_kar_aakarani.map((r: any) => ({
+        malmattechePrakar: str(r.malmatteche_prakar),
+        malmattechePrakarName: str(r.malmatteche_prakar_name),
+        malmattecheVarnan: str(r.malmatteche_varnan),
+        malmattecheVarnanName: str(r.malmatteche_varnan_name),
+        vaparPrakar: str(r.vapar_prakar),
+        gavacheNav: str(r.gavache_nav),
+        gavacheNavName: str(r.gavache_nav_name),
+        gavthanBaher: str(r.gavthan_baher),
+        gavthanBaherName: str(r.gavthan_baher_name),
+        shetrafalPurabPachimMeter: str(r.shetrafal_purv_paschim_foot),
+        shetrafalUttarDakshinFoot: str(r.shetrafal_uttar_dakshin_foot),
+        ekunShetrafalChorasFoot: str(r.ekun_shetrafal_choras_foot),
+        shetrafalPurabPachimMeter2: str(r.shetrafal_purv_paschim_meter),
+        shetrafalUttarDakshinMeter: str(r.shetrafal_uttar_dakshin_meter),
+        jaminicheVarshikMulya: str(r.jaminiche_varshik_mulya),
+        aakraniDar: str(r.aakarani_dar),
+      })));
+    }
+
+    if (Array.isArray(data.bandkamachi_kar_aakarani) && data.bandkamachi_kar_aakarani.length > 0) {
+      setBandkamRecords(data.bandkamachi_kar_aakarani.map((r: any) => ({
+        malmattechePrakar: str(r.malmatteche_prakar),
+        malmattechePrakarName: str(r.malmatteche_prakar_name),
+        malmattecheVarnan: str(r.malmatteche_varnan),
+        malmattecheVarnanName: str(r.malmatteche_varnan_name),
+        vaparPrakar: str(r.vapar_prakar),
+        bandkamMajla: str(r.bandkam_majla),
+        bandkamMajlaName: str(r.bandkam_majla_name),
+        shetrafalPurvPachimFoot: str(r.shetrafal_purv_paschim_foot),
+        shetrafalUttarDakshinFoot: str(r.shetrafal_uttar_dakshin_foot),
+        ekunShetrafalChorasFoot: str(r.ekun_shetrafal_choras_foot),
+        shetrafalPurvPachimMeter: str(r.shetrafal_purv_paschim_meter),
+        shetrafalUttarDakshinMeter: str(r.shetrafal_uttar_dakshin_meter),
+        vayoman: str(r.vayoman),
+        imaraticheBandkamVarsh: str(r.imaratiche_bankam_varsh),
+        ghasaraDar: str(r.ghasara_dar),
+        bharank: str(r.bharank),
+        imaraticheVarshikMulya: str(r.imaratiche_varshik_mulya),
+        aakraniDar: str(r.aakarani_dar),
+      })));
+    }
+
+    if (Array.isArray(data.manoryache_kar_aakarani) && data.manoryache_kar_aakarani.length > 0) {
+      setManoryachRecords(data.manoryache_kar_aakarani.map((r: any) => ({
+        malmattechePrakar: str(r.malmatteche_prakar),
+        malmattechePrakarName: str(r.malmatteche_prakar_name),
+        malmattecheVarnan: str(r.malmatteche_varnan),
+        malmattecheVarnanName: str(r.malmatteche_varnan_name),
+        vaparPrakar: str(r.vapar_prakar),
+        manorycheBhag: str(r.manoryache_bhag),
+        manorycheBhagName: str(r.manoryache_bhag_name),
+        shetrafalPurvPachimFoot: str(r.shetrafal_purv_paschim_foot),
+        shetrafalUttarDakshinFoot: str(r.shetrafal_uttar_dakshin_foot),
+        ekunShetrafalChorasFoot: str(r.ekun_shetrafal_choras_foot),
+        shetrafalPurvPachimMeter: str(r.shetrafal_purv_paschim_meter),
+        shetrafalUttarDakshinMeter: str(r.shetrafal_uttar_dakshin_meter),
+        aakraniDar: str(r.aakarani_dar),
+        majla: str(r.majla || 1),
+      })));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    showLoader('नोंदणी जतन करत आहे...');
+    if (!formData.gharMalkacheNav.trim()) {
+      toast.error('घर मालकाचे नाव आवश्यक आहे (House owner name is required)');
+      return;
+    }
 
-    // Simulate async operation (API call)
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    showLoader(editingId ? 'अद्यतन करत आहे... (Updating...)' : 'नोंदणी जतन करत आहे... (Saving...)');
 
-    console.log('Form Data:', formData);
-    // TODO: Implement save logic (e.g., API call)
+    try {
+      const payload = buildApiPayload();
+      let nodniId: number;
 
-    hideLoader();
+      if (editingId) {
+        // Update existing record
+        const response = await nodniService.update(editingId, payload) as { success: boolean; message?: string; data?: { id: number } };
+        if (!response.success) {
+          hideLoader();
+          toast.error(response.message || 'अद्यतन अयशस्वी (Update failed)');
+          return;
+        }
+        nodniId = editingId;
+        hideLoader();
+        toast.success('नोंदणी यशस्वीरित्या अद्यतन केली (Nodni updated successfully)');
+        setTimeout(() => {
+          navigate('/malmatta-nodni');
+        }, 1500);
+        return;
+      } else {
+        // Create new record
+        const response = await nodniService.create(payload) as { success: boolean; message?: string; data?: { id: number } };
 
-    toast.success('नोंदणी यशस्वीरित्या जतन केली (Nodni saved successfully)');
+        if (!response.success || !response.data?.id) {
+          hideLoader();
+          toast.error(response.message || 'जतन अयशस्वी (Save failed)');
+          return;
+        }
 
-    // Reset form after successful submission
-    setTimeout(() => {
-      handleReset();
-    }, 1500);
+        nodniId = response.data.id;
+
+        // Save child records only on create
+        for (const record of khulaBhukhandRecords) {
+          await nodniService.createKhulaBhukhand(buildKhulaBhukhandPayload(record, nodniId));
+        }
+        for (const record of bandkamRecords) {
+          await nodniService.createBandkam(buildBandkamPayload(record, nodniId));
+        }
+        for (const record of manoryachRecords) {
+          await nodniService.createManoryache(buildManoryachePayload(record, nodniId));
+        }
+
+        hideLoader();
+        toast.success('नोंदणी यशस्वीरित्या जतन केली (Nodni saved successfully)');
+      }
+
+      setTimeout(() => {
+        handleReset();
+      }, 1500);
+    } catch (error: any) {
+      hideLoader();
+      toast.error(error?.message || 'काहीतरी चूक झाली (Something went wrong)');
+    }
   };
 
   const handleReset = () => {
@@ -343,6 +826,8 @@ const NodniForm = () => {
 
     // Reset other taxes - only uncheck selections, keep API data
     setOtherTaxes(prev => prev.map(t => ({ ...t, selected: false })));
+    setEditingId(null);
+    editApiDataRef.current = null;
 
     // Reset property tax
     setPropertyTax({
@@ -412,7 +897,7 @@ const NodniForm = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  प्रभाग क्र.
+                वॉर्ड क्र.
                 </label>
                 <input
                   type="text"
@@ -420,7 +905,7 @@ const NodniForm = () => {
                   value={formData.wardNo}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="प्रभाग क्र."
+                  placeholder="वॉर्ड क्र."
                 />
               </div>
 
@@ -674,7 +1159,7 @@ const NodniForm = () => {
                   पिण्याच्या पाण्याची व्यवस्था (Water Supply)
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                  {['hatpump', 'vihir', 'sarvjnik_nal', 'ghari_nal', 'nahi'].map((option) => (
+                  {['hatpump', 'vihir', 'sarvjnik_nal', 'ghari_nal', 'No'].map((option) => (
                     <label key={option} className="flex items-center space-x-2 cursor-pointer">
                       <input
                         type="radio"
@@ -689,7 +1174,7 @@ const NodniForm = () => {
                         {option === 'vihir' && 'विहीर'}
                         {option === 'sarvjnik_nal' && 'सार्वजनिक नळ'}
                         {option === 'ghari_nal' && 'घरी नळ'}
-                        {option === 'nahi' && 'नाही'}
+                        {option === 'No' && 'नाही'}
                       </span>
                     </label>
                   ))}
@@ -706,8 +1191,8 @@ const NodniForm = () => {
                     <input
                       type="radio"
                       name="souchalay"
-                      value="hoy"
-                      checked={formData.souchalay === 'hoy'}
+                      value="Yes"
+                      checked={formData.souchalay === 'Yes'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
@@ -717,8 +1202,8 @@ const NodniForm = () => {
                     <input
                       type="radio"
                       name="souchalay"
-                      value="nahi"
-                      checked={formData.souchalay === 'nahi'}
+                      value="No"
+                      checked={formData.souchalay === 'No'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
@@ -795,8 +1280,8 @@ const NodniForm = () => {
                     <input
                       type="radio"
                       name="imaratMokli"
-                      value="hoy"
-                      checked={formData.imaratMokli === 'hoy'}
+                      value="Yes"
+                      checked={formData.imaratMokli === 'Yes'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
@@ -806,8 +1291,8 @@ const NodniForm = () => {
                     <input
                       type="radio"
                       name="imaratMokli"
-                      value="nahi"
-                      checked={formData.imaratMokli === 'nahi'}
+                      value="No"
+                      checked={formData.imaratMokli === 'No'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
@@ -826,8 +1311,8 @@ const NodniForm = () => {
                     <input
                       type="radio"
                       name="dharmikEducation"
-                      value="hoy"
-                      checked={formData.dharmikEducation === 'hoy'}
+                      value="Yes"
+                      checked={formData.dharmikEducation === 'Yes'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
@@ -837,8 +1322,8 @@ const NodniForm = () => {
                     <input
                       type="radio"
                       name="dharmikEducation"
-                      value="nahi"
-                      checked={formData.dharmikEducation === 'nahi'}
+                      value="No"
+                      checked={formData.dharmikEducation === 'No'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
@@ -858,8 +1343,8 @@ const NodniForm = () => {
                     <input
                       type="radio"
                       name="shauryaPadak"
-                      value="hoy"
-                      checked={formData.shauryaPadak === 'hoy'}
+                      value="Yes"
+                      checked={formData.shauryaPadak === 'Yes'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
@@ -869,8 +1354,8 @@ const NodniForm = () => {
                     <input
                       type="radio"
                       name="shauryaPadak"
-                      value="nahi"
-                      checked={formData.shauryaPadak === 'nahi'}
+                      value="No"
+                      checked={formData.shauryaPadak === 'No'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
@@ -945,11 +1430,10 @@ const NodniForm = () => {
                   </label>
                   <input
                     type="text"
-                    name="shetrafalChorasMeter"
                     value={formData.shetrafalChorasMeter}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    placeholder="Enter in Square Meters"
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
+                    placeholder="Auto-calculated"
                   />
                 </div>
               </div>
@@ -1284,7 +1768,7 @@ const NodniForm = () => {
                 type="submit"
                 className="px-8 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors font-medium"
               >
-                जतन करा (Save)
+                {editingId ? 'बदल करा (Update)' : 'जतन करा (Save)'}
               </button>
               <button
                 type="button"

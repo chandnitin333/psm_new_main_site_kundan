@@ -29,6 +29,8 @@ const VasuliForm = () => {
     khatedharkacheNav: '',
     bhogwatdaracheNav: '',
     patta: '',
+    billBookNumber: '',
+    pavtiNumber: '',
     gruhkarMagil: '',
     gruhkarChalu: '',
     gruhkarJama: '',
@@ -63,6 +65,22 @@ const VasuliForm = () => {
     etarFeeChalu: '',
     etarFeeJama: '',
     etarFeeShillak: '',
+    // Payment method
+    paymentType: '',
+    cashAmount: '',
+    chequeNumber: '',
+    chequeAmount: '',
+    chequeDate: '',
+    chequeBankName: '',
+    ddNumber: '',
+    ddAmount: '',
+    ddDate: '',
+    ddBankName: '',
+    onlineProvider: '',
+    onlineAmount: '',
+    onlineTransactionId: '',
+    paymentImage: null,
+    paymentImagePreview: '',
   });
 
   // Auto-focus on first input when component loads
@@ -106,6 +124,8 @@ const VasuliForm = () => {
         khatedharkacheNav: existingRecord.khatedharkacheNav || '',
         bhogwatdaracheNav: existingRecord.bhogwatdaracheNav || '',
         patta: existingRecord.patta || '',
+        billBookNumber: existingRecord.billBookNumber || '',
+        pavtiNumber: existingRecord.pavtiNumber || '',
         // Tax fields
         gruhkarMagil: existingRecord.gruhkarMagil || '',
         gruhkarChalu: existingRecord.gruhkarChalu || '',
@@ -141,6 +161,22 @@ const VasuliForm = () => {
         etarFeeChalu: existingRecord.etarFeeChalu || '',
         etarFeeJama: existingRecord.etarFeeJama || '',
         etarFeeShillak: existingRecord.etarFeeShillak || '',
+        // Payment method
+        paymentType: existingRecord.paymentType || '',
+        cashAmount: existingRecord.cashAmount || '',
+        chequeNumber: existingRecord.chequeNumber || '',
+        chequeAmount: existingRecord.chequeAmount || '',
+        chequeDate: existingRecord.chequeDate || '',
+        chequeBankName: existingRecord.chequeBankName || '',
+        ddNumber: existingRecord.ddNumber || '',
+        ddAmount: existingRecord.ddAmount || '',
+        ddDate: existingRecord.ddDate || '',
+        ddBankName: existingRecord.ddBankName || '',
+        onlineProvider: existingRecord.onlineProvider || '',
+        onlineAmount: existingRecord.onlineAmount || '',
+        onlineTransactionId: existingRecord.onlineTransactionId || '',
+        paymentImage: null,
+        paymentImagePreview: '',
       });
     }
   }, []);
@@ -189,6 +225,28 @@ const VasuliForm = () => {
 
   const handleDateChange = (name: string) => (value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handlePaymentImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({
+          ...prev,
+          paymentImage: file,
+          paymentImagePreview: reader.result as string,
+        }));
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setFormData(prev => ({ ...prev, paymentImage: null, paymentImagePreview: '' }));
+    }
   };
 
   // Calculate totals
@@ -269,6 +327,8 @@ const VasuliForm = () => {
       plotNo: formData.plotKramank,
       surveyKramank: formData.surveyKramank,
       patta: formData.patta,
+      billBookNumber: formData.billBookNumber,
+      pavtiNumber: formData.pavtiNumber,
       // Include all tax fields
       gruhkarMagil: formData.gruhkarMagil,
       gruhkarChalu: formData.gruhkarChalu,
@@ -304,6 +364,20 @@ const VasuliForm = () => {
       etarFeeChalu: formData.etarFeeChalu,
       etarFeeJama: formData.etarFeeJama,
       etarFeeShillak: formData.etarFeeShillak,
+      // Payment method
+      paymentType: formData.paymentType,
+      cashAmount: formData.cashAmount,
+      chequeNumber: formData.chequeNumber,
+      chequeAmount: formData.chequeAmount,
+      chequeDate: formData.chequeDate,
+      chequeBankName: formData.chequeBankName,
+      ddNumber: formData.ddNumber,
+      ddAmount: formData.ddAmount,
+      ddDate: formData.ddDate,
+      ddBankName: formData.ddBankName,
+      onlineProvider: formData.onlineProvider,
+      onlineAmount: formData.onlineAmount,
+      onlineTransactionId: formData.onlineTransactionId,
     };
 
     hideLoader();
@@ -336,6 +410,8 @@ const VasuliForm = () => {
       khatedharkacheNav: '',
       bhogwatdaracheNav: '',
       patta: '',
+      billBookNumber: '',
+      pavtiNumber: '',
       gruhkarMagil: '',
       gruhkarChalu: '',
       gruhkarJama: '',
@@ -370,6 +446,22 @@ const VasuliForm = () => {
       etarFeeChalu: '',
       etarFeeJama: '',
       etarFeeShillak: '',
+      // Payment method
+      paymentType: '',
+      cashAmount: '',
+      chequeNumber: '',
+      chequeAmount: '',
+      chequeDate: '',
+      chequeBankName: '',
+      ddNumber: '',
+      ddAmount: '',
+      ddDate: '',
+      ddBankName: '',
+      onlineProvider: '',
+      onlineAmount: '',
+      onlineTransactionId: '',
+      paymentImage: null,
+      paymentImagePreview: '',
     });
   };
 
@@ -541,6 +633,32 @@ const VasuliForm = () => {
                   type="text"
                   name="patta"
                   value={formData.patta}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  बिल बुक नंबर
+                </label>
+                <input
+                  type="text"
+                  name="billBookNumber"
+                  value={formData.billBookNumber}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  पावती नंबर
+                </label>
+                <input
+                  type="text"
+                  name="pavtiNumber"
+                  value={formData.pavtiNumber}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
@@ -1036,6 +1154,265 @@ const VasuliForm = () => {
                   </tr>
                 </tbody>
               </table>
+            </div>
+
+            {/* Payment Method Block */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+                पेमेंट पद्धत (Payment Method)
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    पेमेंट प्रकार (Payment Type)
+                  </label>
+                  <select
+                    name="paymentType"
+                    value={formData.paymentType}
+                    onChange={handleSelectChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="">-- निवडा --</option>
+                    <option value="cash">रोख (Cash)</option>
+                    <option value="cheque">चेक (Cheque)</option>
+                    <option value="dd">डीडी (DD)</option>
+                    <option value="online">ऑनलाइन (Online)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Cash Fields */}
+              {formData.paymentType === 'cash' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      रोख रक्कम (Cash Amount)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      name="cashAmount"
+                      value={formData.cashAmount}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="₹ रक्कम टाका"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Cheque Fields */}
+              {formData.paymentType === 'cheque' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      चेक क्रमांक (Cheque Number)
+                    </label>
+                    <input
+                      type="text"
+                      name="chequeNumber"
+                      value={formData.chequeNumber}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="चेक क्रमांक"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      रक्कम (Amount)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      name="chequeAmount"
+                      value={formData.chequeAmount}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="₹ रक्कम टाका"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      चेक दिनांक (Cheque Date)
+                    </label>
+                    <DatePicker
+                      name="chequeDate"
+                      value={formData.chequeDate}
+                      onChange={handleDateChange('chequeDate')}
+                      format="DD/MM/YYYY"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      बँकेचे नाव (Bank Name)
+                    </label>
+                    <input
+                      type="text"
+                      name="chequeBankName"
+                      value={formData.chequeBankName}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="बँकेचे नाव"
+                    />
+                  </div>
+                  <div className="sm:col-span-2 lg:col-span-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      चेक इमेज (Cheque Image)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePaymentImageChange}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-primary-600 file:text-white hover:file:bg-primary-700"
+                    />
+                    {formData.paymentImagePreview && (
+                      <img src={formData.paymentImagePreview} alt="Cheque" className="mt-2 h-32 rounded-lg border border-gray-300 dark:border-gray-600 object-contain" />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* DD Fields */}
+              {formData.paymentType === 'dd' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      डीडी क्रमांक (DD Number)
+                    </label>
+                    <input
+                      type="text"
+                      name="ddNumber"
+                      value={formData.ddNumber}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="डीडी क्रमांक"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      रक्कम (Amount)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      name="ddAmount"
+                      value={formData.ddAmount}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="₹ रक्कम टाका"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      डीडी दिनांक (DD Date)
+                    </label>
+                    <DatePicker
+                      name="ddDate"
+                      value={formData.ddDate}
+                      onChange={handleDateChange('ddDate')}
+                      format="DD/MM/YYYY"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      बँकेचे नाव (Bank Name)
+                    </label>
+                    <input
+                      type="text"
+                      name="ddBankName"
+                      value={formData.ddBankName}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="बँकेचे नाव"
+                    />
+                  </div>
+                  <div className="sm:col-span-2 lg:col-span-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      डीडी इमेज (DD Image)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePaymentImageChange}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-primary-600 file:text-white hover:file:bg-primary-700"
+                    />
+                    {formData.paymentImagePreview && (
+                      <img src={formData.paymentImagePreview} alt="DD" className="mt-2 h-32 rounded-lg border border-gray-300 dark:border-gray-600 object-contain" />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Online Fields */}
+              {formData.paymentType === 'online' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      ऑनलाइन प्रदाता (Provider)
+                    </label>
+                    <select
+                      name="onlineProvider"
+                      value={formData.onlineProvider}
+                      onChange={handleSelectChange}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="">-- निवडा --</option>
+                      <option value="phonepe">PhonePe</option>
+                      <option value="paytm">Paytm</option>
+                      <option value="gpay">Google Pay</option>
+                      <option value="upi">UPI</option>
+                      <option value="netbanking">Net Banking</option>
+                      <option value="other">इतर (Other)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      रक्कम (Amount)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      name="onlineAmount"
+                      value={formData.onlineAmount}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="₹ रक्कम टाका"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      व्यवहार क्रमांक (Transaction ID)
+                    </label>
+                    <input
+                      type="text"
+                      name="onlineTransactionId"
+                      value={formData.onlineTransactionId}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="Transaction ID"
+                    />
+                  </div>
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      पेमेंट स्क्रीनशॉट (Payment Screenshot)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePaymentImageChange}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-primary-600 file:text-white hover:file:bg-primary-700"
+                    />
+                    {formData.paymentImagePreview && (
+                      <img src={formData.paymentImagePreview} alt="Payment" className="mt-2 h-32 rounded-lg border border-gray-300 dark:border-gray-600 object-contain" />
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Buttons - Centered */}

@@ -7,11 +7,12 @@ export interface LoaderProps {
   color?: string;
 }
 
+const LOADER_COLOR = '#F59C0C';
+
 const Loader = ({
   text = 'Loading...',
   type = 'spinner',
   size = 'medium',
-  color = 'primary-600'
 }: LoaderProps) => {
   const [dots, setDots] = useState('');
 
@@ -22,11 +23,8 @@ const Loader = ({
     return () => clearInterval(interval);
   }, []);
 
-  const sizeClasses = {
-    small: 'w-8 h-8',
-    medium: 'w-12 h-12',
-    large: 'w-16 h-16'
-  };
+  const sizeMap = { small: 32, medium: 48, large: 64 };
+  const px = sizeMap[size];
 
   const textSizeClasses = {
     small: 'text-sm',
@@ -34,57 +32,68 @@ const Loader = ({
     large: 'text-lg'
   };
 
-  const colorClass = `text-${color}`;
-
   const renderLoader = () => {
-    const baseSize = sizeClasses[size];
-
     switch (type) {
       case 'spinner':
         return (
-          <div className={`${baseSize} border-4 border-gray-200 dark:border-gray-700 border-t-4 border-t-${color} rounded-full animate-spin`}></div>
+          <div
+            className="rounded-full animate-spin"
+            style={{ width: px, height: px, border: '4px solid #e5e7eb', borderTopColor: LOADER_COLOR }}
+          />
         );
 
       case 'dots':
         return (
           <div className="flex space-x-2">
-            <div className={`w-3 h-3 bg-${color} rounded-full animate-bounce`} style={{ animationDelay: '0ms' }}></div>
-            <div className={`w-3 h-3 bg-${color} rounded-full animate-bounce`} style={{ animationDelay: '150ms' }}></div>
-            <div className={`w-3 h-3 bg-${color} rounded-full animate-bounce`} style={{ animationDelay: '300ms' }}></div>
+            {[0, 150, 300].map((delay) => (
+              <div
+                key={delay}
+                className="w-3 h-3 rounded-full animate-bounce"
+                style={{ backgroundColor: LOADER_COLOR, animationDelay: `${delay}ms` }}
+              />
+            ))}
           </div>
         );
 
       case 'pulse':
         return (
-          <div className={`${baseSize} bg-${color} rounded-full animate-pulse`}></div>
+          <div
+            className="rounded-full animate-pulse"
+            style={{ width: px, height: px, backgroundColor: LOADER_COLOR }}
+          />
         );
 
       case 'bars':
         return (
           <div className="flex items-end space-x-1 h-12">
-            <div className={`w-2 bg-${color} rounded animate-pulse`} style={{ height: '60%', animationDelay: '0ms' }}></div>
-            <div className={`w-2 bg-${color} rounded animate-pulse`} style={{ height: '80%', animationDelay: '150ms' }}></div>
-            <div className={`w-2 bg-${color} rounded animate-pulse`} style={{ height: '100%', animationDelay: '300ms' }}></div>
-            <div className={`w-2 bg-${color} rounded animate-pulse`} style={{ height: '80%', animationDelay: '450ms' }}></div>
-            <div className={`w-2 bg-${color} rounded animate-pulse`} style={{ height: '60%', animationDelay: '600ms' }}></div>
+            {[60, 80, 100, 80, 60].map((h, i) => (
+              <div
+                key={i}
+                className="w-2 rounded animate-pulse"
+                style={{ height: `${h}%`, backgroundColor: LOADER_COLOR, animationDelay: `${i * 150}ms` }}
+              />
+            ))}
           </div>
         );
 
       case 'circle':
         return (
-          <div className={`${baseSize} relative`}>
-            <div className={`absolute inset-0 border-4 border-${color} opacity-25 rounded-full`}></div>
-            <div className={`absolute inset-0 border-4 border-transparent border-t-${color} rounded-full animate-spin`}></div>
+          <div className="relative" style={{ width: px, height: px }}>
+            <div className="absolute inset-0 rounded-full opacity-25" style={{ border: `4px solid ${LOADER_COLOR}` }} />
+            <div className="absolute inset-0 rounded-full animate-spin" style={{ border: '4px solid transparent', borderTopColor: LOADER_COLOR }} />
           </div>
         );
 
       case 'squares':
         return (
           <div className="grid grid-cols-2 gap-2">
-            <div className={`w-6 h-6 bg-${color} animate-pulse`} style={{ animationDelay: '0ms' }}></div>
-            <div className={`w-6 h-6 bg-${color} animate-pulse`} style={{ animationDelay: '150ms' }}></div>
-            <div className={`w-6 h-6 bg-${color} animate-pulse`} style={{ animationDelay: '300ms' }}></div>
-            <div className={`w-6 h-6 bg-${color} animate-pulse`} style={{ animationDelay: '450ms' }}></div>
+            {[0, 150, 300, 450].map((delay) => (
+              <div
+                key={delay}
+                className="w-6 h-6 animate-pulse"
+                style={{ backgroundColor: LOADER_COLOR, animationDelay: `${delay}ms` }}
+              />
+            ))}
           </div>
         );
 
@@ -94,12 +103,9 @@ const Loader = ({
             {[0, 1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className={`w-2 h-8 bg-${color} rounded-full animate-pulse`}
-                style={{
-                  animationDelay: `${i * 100}ms`,
-                  animationDuration: '1s'
-                }}
-              ></div>
+                className="w-2 h-8 rounded-full animate-pulse"
+                style={{ backgroundColor: LOADER_COLOR, animationDelay: `${i * 100}ms`, animationDuration: '1s' }}
+              />
             ))}
           </div>
         );
@@ -107,32 +113,38 @@ const Loader = ({
       case 'bounce':
         return (
           <div className="flex space-x-2">
-            <div className={`w-4 h-4 bg-${color} rounded-full animate-bounce`} style={{ animationDelay: '0ms' }}></div>
-            <div className={`w-4 h-4 bg-${color} rounded-full animate-bounce`} style={{ animationDelay: '100ms' }}></div>
-            <div className={`w-4 h-4 bg-${color} rounded-full animate-bounce`} style={{ animationDelay: '200ms' }}></div>
-            <div className={`w-4 h-4 bg-${color} rounded-full animate-bounce`} style={{ animationDelay: '300ms' }}></div>
+            {[0, 100, 200, 300].map((delay) => (
+              <div
+                key={delay}
+                className="w-4 h-4 rounded-full animate-bounce"
+                style={{ backgroundColor: LOADER_COLOR, animationDelay: `${delay}ms` }}
+              />
+            ))}
           </div>
         );
 
       case 'ring':
         return (
-          <div className={`${baseSize} relative`}>
-            <div className={`absolute inset-0 border-4 border-${color} rounded-full animate-ping opacity-75`}></div>
-            <div className={`absolute inset-0 border-4 border-${color} rounded-full`}></div>
+          <div className="relative" style={{ width: px, height: px }}>
+            <div className="absolute inset-0 rounded-full animate-ping opacity-75" style={{ border: `4px solid ${LOADER_COLOR}` }} />
+            <div className="absolute inset-0 rounded-full" style={{ border: `4px solid ${LOADER_COLOR}` }} />
           </div>
         );
 
       case 'dual-ring':
         return (
-          <div className={`${baseSize} relative`}>
-            <div className={`absolute inset-0 border-4 border-gray-200 dark:border-gray-700 rounded-full`}></div>
-            <div className={`absolute inset-0 border-4 border-transparent border-t-${color} border-l-${color} rounded-full animate-spin`}></div>
+          <div className="relative" style={{ width: px, height: px }}>
+            <div className="absolute inset-0 rounded-full" style={{ border: '4px solid #e5e7eb' }} />
+            <div className="absolute inset-0 rounded-full animate-spin" style={{ border: '4px solid transparent', borderTopColor: LOADER_COLOR, borderLeftColor: LOADER_COLOR }} />
           </div>
         );
 
       default:
         return (
-          <div className={`${baseSize} border-4 border-gray-200 dark:border-gray-700 border-t-4 border-t-${color} rounded-full animate-spin`}></div>
+          <div
+            className="rounded-full animate-spin"
+            style={{ width: px, height: px, border: '4px solid #e5e7eb', borderTopColor: LOADER_COLOR }}
+          />
         );
     }
   };
@@ -141,7 +153,7 @@ const Loader = ({
     <div className="flex flex-col items-center justify-center space-y-4">
       {renderLoader()}
       {text && (
-        <p className={`${textSizeClasses[size]} ${colorClass} font-medium dark:text-gray-200`}>
+        <p className={`${textSizeClasses[size]} font-medium`} style={{ color: LOADER_COLOR }}>
           {text}{dots}
         </p>
       )}

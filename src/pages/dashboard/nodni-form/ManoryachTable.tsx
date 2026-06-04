@@ -47,6 +47,9 @@ const ManoryachTable = ({ records, onEdit, onDelete }: ManoryachTableProps) => {
                 आकारणी दर
               </th>
               <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
+                मजला
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
                 कर आकारणी
               </th>
               <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
@@ -58,16 +61,16 @@ const ManoryachTable = ({ records, onEdit, onDelete }: ManoryachTableProps) => {
             {records.map((record, index) => (
               <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                  {record.malmattechePrakar}
+                  {record.malmattechePrakarName || record.malmattechePrakar}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                  {record.malmattecheVarnan}
+                  {record.malmattecheVarnanName || record.malmattecheVarnan}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
                   {record.vaparPrakar}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                  {record.manorycheBhag || '-'}
+                  {record.manorycheBhagName || record.manorycheBhag || '-'}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
                   {record.shetrafalPurvPachimFoot}
@@ -76,21 +79,22 @@ const ManoryachTable = ({ records, onEdit, onDelete }: ManoryachTableProps) => {
                   {record.shetrafalUttarDakshinFoot}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                  {record.shetrafalPurvPachimFoot && record.shetrafalUttarDakshinFoot
-                    ? (Number(record.shetrafalPurvPachimFoot) * Number(record.shetrafalUttarDakshinFoot)).toFixed(2)
-                    : '-'}
+                  {record.ekunShetrafalChorasFoot || '-'}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                  {record.shetrafalPurvPachimMeter && record.shetrafalUttarDakshinMeter
-                    ? (Number(record.shetrafalPurvPachimMeter) * Number(record.shetrafalUttarDakshinMeter)).toFixed(2)
+                  {record.ekunShetrafalChorasFoot
+                    ? (Number(record.ekunShetrafalChorasFoot) * 0.092903).toFixed(2)
                     : '-'}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
                   {record.aakraniDar}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                  {record.shetrafalPurvPachimMeter && record.shetrafalUttarDakshinMeter && record.aakraniDar
-                    ? ((Number(record.shetrafalPurvPachimMeter) * Number(record.shetrafalUttarDakshinMeter) * Number(record.aakraniDar)) / 1000).toFixed(2)
+                  {record.majla || '1'}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                  {record.ekunShetrafalChorasFoot && record.aakraniDar
+                    ? (Number(record.ekunShetrafalChorasFoot) * Number(record.aakraniDar) * (Number(record.majla) || 1)).toFixed(2)
                     : '-'}
                 </td>
                 <td className="px-4 py-3 text-sm">
@@ -115,6 +119,42 @@ const ManoryachTable = ({ records, onEdit, onDelete }: ManoryachTableProps) => {
                 </td>
               </tr>
             ))}
+            {/* Total Row */}
+            <tr className="bg-gray-100 dark:bg-gray-700 font-semibold border-t-2 border-gray-300 dark:border-gray-600">
+              <td colSpan={4} className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 text-right">
+                एकूण (Total):
+              </td>
+              {/* क्षेत्रफळ पूर्व पश्चिम (फूट) */}
+              <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                {records.reduce((sum, r) => sum + (Number(r.shetrafalPurvPachimFoot) || 0), 0).toFixed(2)}
+              </td>
+              {/* क्षेत्रफळ उत्तर दक्षिण (फूट) */}
+              <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                {records.reduce((sum, r) => sum + (Number(r.shetrafalUttarDakshinFoot) || 0), 0).toFixed(2)}
+              </td>
+              {/* एकूण क्षेत्रफळ (चौरस फूट) */}
+              <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                {records.reduce((sum, r) => sum + (Number(r.ekunShetrafalChorasFoot) || 0), 0).toFixed(2)}
+              </td>
+              {/* एकूण क्षेत्रफळ (चौरस मीटर) */}
+              <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                {records.reduce((sum, r) => sum + (r.ekunShetrafalChorasFoot ? Number(r.ekunShetrafalChorasFoot) * 0.092903 : 0), 0).toFixed(2)}
+              </td>
+              {/* आकारणी दर - skip */}
+              <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">-</td>
+              {/* मजला - skip */}
+              <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">-</td>
+              {/* कर आकारणी */}
+              <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                {records.reduce((sum, r) =>
+                  sum + (r.ekunShetrafalChorasFoot && r.aakraniDar
+                    ? Number(r.ekunShetrafalChorasFoot) * Number(r.aakraniDar) * (Number(r.majla) || 1)
+                    : 0), 0
+                ).toFixed(2)}
+              </td>
+              {/* कृती - skip */}
+              <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">-</td>
+            </tr>
           </tbody>
         </table>
       </div>

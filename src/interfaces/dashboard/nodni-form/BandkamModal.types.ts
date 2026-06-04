@@ -1,10 +1,14 @@
 export interface BandkamData {
   malmattechePrakar: string;
+  malmattechePrakarName?: string;
   malmattecheVarnan: string;
+  malmattecheVarnanName?: string;
   vaparPrakar: string;
   bandkamMajla: string;
+  bandkamMajlaName?: string;
   shetrafalPurvPachimFoot: string;
   shetrafalUttarDakshinFoot: string;
+  ekunShetrafalChorasFoot: string;
   shetrafalPurvPachimMeter: string;
   shetrafalUttarDakshinMeter: string;
   vayoman: string;
