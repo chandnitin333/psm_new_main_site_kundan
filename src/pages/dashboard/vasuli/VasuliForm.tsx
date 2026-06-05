@@ -6,6 +6,7 @@ import { useLoading } from '../../../contexts/LoadingContext';
 import YearPicker from '../../../components/common/YearPicker';
 import DatePicker from '../../../components/common/DatePicker';
 import type { VasuliFormData } from '../../../interfaces/dashboard/vasuli/VasuliForm.types';
+import { vasuliService, type VasuliAutofillResponse, type VasuliTaxHeads } from '../../../services/vasuliService';
 
 const VasuliForm = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const VasuliForm = () => {
   const existingRecord = location.state?.record;
 
   const [formData, setFormData] = useState<VasuliFormData>({
+    nodniId: '',
     year: new Date().getFullYear().toString(),
     toYear: (new Date().getFullYear() + 1).toString(),
     anuKramank: '',
@@ -104,81 +106,104 @@ const VasuliForm = () => {
     }
   }, [formData.year]);
 
-  // Load existing record data if editing
+  // Load existing record data if editing — fetch the FULL record from the API by id
   useEffect(() => {
-    if (isEdit && existingRecord) {
-      // Parse year from "2024-2025" format
-      const yearMatch = existingRecord.year?.match(/(\d{4})-(\d{4})/);
-      const year = yearMatch ? yearMatch[1] : new Date().getFullYear().toString();
-      const toYear = yearMatch ? yearMatch[2] : (new Date().getFullYear() + 1).toString();
+    if (!isEdit || !existingRecord?.id) return;
 
-      setFormData({
-        year: year,
-        toYear: toYear,
-        anuKramank: existingRecord.anuKramank || '',
-        malmattaKramank: existingRecord.milkatKramank || '',
-        wardKramank: existingRecord.wardNo || '',
-        plotKramank: existingRecord.plotNo || '',
-        khasaraKramank: existingRecord.khasaraKramank || '',
-        surveyKramank: existingRecord.surveyKramank || '',
-        khatedharkacheNav: existingRecord.khatedharkacheNav || '',
-        bhogwatdaracheNav: existingRecord.bhogwatdaracheNav || '',
-        patta: existingRecord.patta || '',
-        billBookNumber: existingRecord.billBookNumber || '',
-        pavtiNumber: existingRecord.pavtiNumber || '',
-        // Tax fields
-        gruhkarMagil: existingRecord.gruhkarMagil || '',
-        gruhkarChalu: existingRecord.gruhkarChalu || '',
-        gruhkarJama: existingRecord.gruhkarJama || '',
-        gruhkarShillak: existingRecord.gruhkarShillak || '',
-        vizMagil: existingRecord.vizMagil || '',
-        vizChalu: existingRecord.vizChalu || '',
-        vizJama: existingRecord.vizJama || '',
-        vizShillak: existingRecord.vizShillak || '',
-        aarogyaMagil: existingRecord.aarogyaMagil || '',
-        aarogyaChalu: existingRecord.aarogyaChalu || '',
-        aarogyaJama: existingRecord.aarogyaJama || '',
-        aarogyaShillak: existingRecord.aarogyaShillak || '',
-        safaeMagil: existingRecord.safaeMagil || '',
-        safaeChalu: existingRecord.safaeChalu || '',
-        safaeJama: existingRecord.safaeJama || '',
-        safaeShillak: existingRecord.safaeShillak || '',
-        gruhkarPavtiDate: existingRecord.gruhkarPavtiDate || '',
-        samanyaPaniMagil: existingRecord.samanyaPaniMagil || '',
-        samanyaPaniChalu: existingRecord.samanyaPaniChalu || '',
-        samanyaPaniJama: existingRecord.samanyaPaniJama || '',
-        samanyaPaniShillak: existingRecord.samanyaPaniShillak || '',
-        visheshPaniMagil: existingRecord.visheshPaniMagil || '',
-        visheshPaniChalu: existingRecord.visheshPaniChalu || '',
-        visheshPaniJama: existingRecord.visheshPaniJama || '',
-        visheshPaniShillak: existingRecord.visheshPaniShillak || '',
-        paniPavtiDate: existingRecord.paniPavtiDate || '',
-        noticeFeeMagil: existingRecord.noticeFeeMagil || '',
-        noticeFeeChalu: existingRecord.noticeFeeChalu || '',
-        noticeFeeJama: existingRecord.noticeFeeJama || '',
-        noticeFeeShillak: existingRecord.noticeFeeShillak || '',
-        etarFeeMagil: existingRecord.etarFeeMagil || '',
-        etarFeeChalu: existingRecord.etarFeeChalu || '',
-        etarFeeJama: existingRecord.etarFeeJama || '',
-        etarFeeShillak: existingRecord.etarFeeShillak || '',
-        // Payment method
-        paymentType: existingRecord.paymentType || '',
-        cashAmount: existingRecord.cashAmount || '',
-        chequeNumber: existingRecord.chequeNumber || '',
-        chequeAmount: existingRecord.chequeAmount || '',
-        chequeDate: existingRecord.chequeDate || '',
-        chequeBankName: existingRecord.chequeBankName || '',
-        ddNumber: existingRecord.ddNumber || '',
-        ddAmount: existingRecord.ddAmount || '',
-        ddDate: existingRecord.ddDate || '',
-        ddBankName: existingRecord.ddBankName || '',
-        onlineProvider: existingRecord.onlineProvider || '',
-        onlineAmount: existingRecord.onlineAmount || '',
-        onlineTransactionId: existingRecord.onlineTransactionId || '',
-        paymentImage: null,
-        paymentImagePreview: '',
-      });
-    }
+    const str = (v: unknown) => (v === null || v === undefined ? '' : String(v));
+    // Return YYYY-MM-DD for the DatePicker (handles RFC "Thu, 04 Jun 2026 ..." and ISO)
+    const dateStr = (v: unknown) => {
+      if (!v) return '';
+      const raw = String(v);
+      let d = new Date(raw);
+      if (isNaN(d.getTime())) {
+        const part = raw.split(/[ T]/)[0];
+        d = new Date(part);
+        if (isNaN(d.getTime())) return part;
+      }
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
+    const loadRecord = async () => {
+      showLoader('माहिती लोड करत आहे... (Loading record...)');
+      try {
+        const res = await vasuliService.getById(Number(existingRecord.id));
+        if (res.success && res.data) {
+          const r = res.data as Record<string, unknown>;
+          setFormData(prev => ({
+            ...prev,
+            nodniId: str(r.nodni_id),
+            year: str(r.year) || prev.year,
+            toYear: str(r.to_year) || prev.toYear,
+            anuKramank: str(r.anu_kramank),
+            malmattaKramank: str(r.malmatta_number),
+            wardKramank: str(r.ward_number),
+            plotKramank: str(r.plot_number),
+            khasaraKramank: str(r.khasara_kramank),
+            surveyKramank: str(r.survey_number),
+            khatedharkacheNav: str(r.khatedharkache_nav),
+            bhogwatdaracheNav: str(r.bhogwatdarache_nav),
+            patta: str(r.patta_address),
+
+            gruhkarMagil: str(r.magil_gruhkar_v_bhumikar),
+            gruhkarChalu: str(r.chalu_gruhkar_v_bhumikar),
+            gruhkarJama: str(r.jama_keleli_rakkam_gruhkar_v_bhumikar),
+            gruhkarShillak: str(r.sillak_gruhkar_v_bhumikar),
+
+            vizMagil: str(r.magil_viz_divabatti_kar),
+            vizChalu: str(r.chalu_viz_divabatti_kar),
+            vizJama: str(r.jama_keleli_rakkam_viz_divabatti_kar),
+            vizShillak: str(r.sillak_viz_divabatti_kar),
+
+            aarogyaMagil: str(r.magil_aarogya_rakshan_kar),
+            aarogyaChalu: str(r.chalu_aarogya_rakshan_kar),
+            aarogyaJama: str(r.jama_kelili_rakkam_aarogya_rakshan_kar),
+            aarogyaShillak: str(r.sillak_aarogya_rakshan_kar),
+
+            safaeMagil: str(r.magil_safae_kar),
+            safaeChalu: str(r.chalu_safae_kar),
+            safaeJama: str(r.jama_keleli_rakkam_safae_kar),
+            safaeShillak: str(r.sillak_safae_kar),
+
+            gruhkarPavtiDate: dateStr(r.gruhkar_v_bhumikar_pavti_date),
+
+            samanyaPaniMagil: str(r.magil_samanya_pani_kar),
+            samanyaPaniChalu: str(r.chalu_samanya_pani_kar),
+            samanyaPaniJama: str(r.jama_keleli_rakkam_samanya_pani_kar),
+            samanyaPaniShillak: str(r.sillak_samanya_pani_kar),
+
+            visheshPaniMagil: str(r.magil_vishesh_pani_kar),
+            visheshPaniChalu: str(r.chalu_vishesh_pani_kar),
+            visheshPaniJama: str(r.jama_keleli_rakkam_vishesh_pani_kar),
+            visheshPaniShillak: str(r.sillak_vishesh_pani_kar),
+
+            paniPavtiDate: dateStr(r.pani_kar_pavti_v_date),
+
+            noticeFeeMagil: str(r.magil_notice_fee),
+            noticeFeeChalu: str(r.chalu_notice_fee),
+            noticeFeeJama: str(r.jama_keleli_rakkam_notice_fee),
+            noticeFeeShillak: str(r.sillak_noticie_fee),
+
+            etarFeeMagil: str(r.magil_etar_fee),
+            etarFeeChalu: str(r.chalu_etar_fee),
+            etarFeeJama: str(r.jama_keleli_rakkam_etar_fee),
+            etarFeeShillak: str(r.sillak_etar_fee),
+          }));
+        } else {
+          toast.error(res.message || 'रेकॉर्ड लोड करण्यात अयशस्वी (Failed to load record)');
+        }
+      } catch (err) {
+        const message = (err as { message?: string })?.message || 'काहीतरी चूक झाली (Something went wrong)';
+        toast.error(message);
+      } finally {
+        hideLoader();
+      }
+    };
+    loadRecord();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-calculate शिल्लक रक्कम (Balance Amount) for all tax rows
@@ -249,6 +274,81 @@ const VasuliForm = () => {
     }
   };
 
+  // Auto-fill property + previous/current tax when anu_kramank + ward are entered
+  const handleAutofill = async () => {
+    const anu = formData.anuKramank.trim();
+    const ward = formData.wardKramank.trim();
+    if (!anu || !ward) return;
+
+    showLoader('माहिती मिळवत आहे... (Fetching data...)');
+    try {
+      const res = await vasuliService.autofill({
+        anu_kramank: anu,
+        ward_number: ward,
+        year: formData.year,
+      });
+
+      const data = res.data as VasuliAutofillResponse | undefined;
+      if (!res.success || !data || !data.found || !data.property) {
+        toast.info('या अनु क्रमांक व प्रभागासाठी नोंद आढळली नाही (No record found)');
+        return;
+      }
+
+      const p = data.property;
+      const magil = data.magil as VasuliTaxHeads;
+      const chalu = data.chalu as VasuliTaxHeads;
+      // shillak (balance) = magil + chalu (no jama collected yet)
+      const s = (m: number, c: number) => (Number(m) + Number(c)).toString();
+
+      setFormData(prev => ({
+        ...prev,
+        nodniId: String(p.nodni_id ?? ''),
+        // property fields
+        malmattaKramank: p.malmatta_number ?? prev.malmattaKramank,
+        plotKramank: p.plot_number ?? '',
+        khasaraKramank: p.khasara_number ?? '',
+        surveyKramank: p.survey_number ?? '',
+        khatedharkacheNav: p.khatedharkache_nav ?? '',
+        bhogwatdaracheNav: p.bhogwatdarache_nav ?? '',
+        patta: p.patta ?? '',
+        // magil (previous) column
+        gruhkarMagil: String(magil.gruhkar),
+        vizMagil: String(magil.viz),
+        aarogyaMagil: String(magil.aarogya),
+        safaeMagil: String(magil.safae),
+        samanyaPaniMagil: String(magil.samanya_pani),
+        visheshPaniMagil: String(magil.vishesh_pani),
+        noticeFeeMagil: String(magil.notice_fee),
+        etarFeeMagil: String(magil.etar_fee),
+        // chalu (current) column
+        gruhkarChalu: String(chalu.gruhkar),
+        vizChalu: String(chalu.viz),
+        aarogyaChalu: String(chalu.aarogya),
+        safaeChalu: String(chalu.safae),
+        samanyaPaniChalu: String(chalu.samanya_pani),
+        visheshPaniChalu: String(chalu.vishesh_pani),
+        noticeFeeChalu: String(chalu.notice_fee),
+        etarFeeChalu: String(chalu.etar_fee),
+        // shillak (balance) column
+        gruhkarShillak: s(magil.gruhkar, chalu.gruhkar),
+        vizShillak: s(magil.viz, chalu.viz),
+        aarogyaShillak: s(magil.aarogya, chalu.aarogya),
+        safaeShillak: s(magil.safae, chalu.safae),
+        samanyaPaniShillak: s(magil.samanya_pani, chalu.samanya_pani),
+        visheshPaniShillak: s(magil.vishesh_pani, chalu.vishesh_pani),
+        noticeFeeShillak: s(magil.notice_fee, chalu.notice_fee),
+        etarFeeShillak: s(magil.etar_fee, chalu.etar_fee),
+      }));
+
+      toast.success('माहिती भरली (Data filled)');
+    } catch (err) {
+      const message = (err as { message?: string })?.message || 'काहीतरी चूक झाली (Something went wrong)';
+      toast.error(message);
+    } finally {
+      hideLoader();
+    }
+  };
+
   // Calculate totals
   const calculateTotals = () => {
     const magilTotal = [
@@ -308,97 +408,109 @@ const VasuliForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    showLoader('वसुली जतन करत आहे...');
+    // A vasuli record must be tied to a property (nodni). It is set during auto-fill.
+    if (!formData.nodniId) {
+      toast.error('कृपया आधी अनु क्रमांक व प्रभाग टाकून माहिती मिळवा (Fetch property first via Anu Kramank + Ward)');
+      return;
+    }
 
-    // Simulate async operation (API call)
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Numeric tax columns are NOT NULL (default 0) -> send 0 for empty.
+    // Date/text columns are nullable -> send null for empty.
+    const num = (v: string) => (v === '' || v === undefined || v === null ? 0 : Number(v));
+    const txt = (v: string) => (v === '' ? null : v);
 
-    console.log('Vasuli Form Data:', formData);
+    // Map form (camelCase) -> API (snake_case, matches vasuli table columns)
+    const payload: Record<string, unknown> = {
+      nodni_id: Number(formData.nodniId),
+      year: formData.year,
+      to_year: formData.toYear,
+      anu_kramank: formData.anuKramank,
+      malmatta_number: formData.malmattaKramank,
+      ward_number: formData.wardKramank,
+      plot_number: formData.plotKramank,
+      khasara_kramank: formData.khasaraKramank,
+      survey_number: formData.surveyKramank,
+      khatedharkache_nav: formData.khatedharkacheNav,
+      bhogwatdarache_nav: formData.bhogwatdaracheNav,
+      patta_address: formData.patta,
 
-    // Map form field names to record field names
-    const recordData = {
-      anuKramank: formData.anuKramank,
-      milkatKramank: formData.malmattaKramank,
-      wardNo: formData.wardKramank,
-      khasaraKramank: formData.khasaraKramank,
-      khatedharkacheNav: formData.khatedharkacheNav,
-      bhogwatdaracheNav: formData.bhogwatdaracheNav,
-      year: `${formData.year}-${formData.toYear}`,
-      plotNo: formData.plotKramank,
-      surveyKramank: formData.surveyKramank,
-      patta: formData.patta,
-      billBookNumber: formData.billBookNumber,
-      pavtiNumber: formData.pavtiNumber,
-      // Include all tax fields
-      gruhkarMagil: formData.gruhkarMagil,
-      gruhkarChalu: formData.gruhkarChalu,
-      gruhkarJama: formData.gruhkarJama,
-      gruhkarShillak: formData.gruhkarShillak,
-      vizMagil: formData.vizMagil,
-      vizChalu: formData.vizChalu,
-      vizJama: formData.vizJama,
-      vizShillak: formData.vizShillak,
-      aarogyaMagil: formData.aarogyaMagil,
-      aarogyaChalu: formData.aarogyaChalu,
-      aarogyaJama: formData.aarogyaJama,
-      aarogyaShillak: formData.aarogyaShillak,
-      safaeMagil: formData.safaeMagil,
-      safaeChalu: formData.safaeChalu,
-      safaeJama: formData.safaeJama,
-      safaeShillak: formData.safaeShillak,
-      gruhkarPavtiDate: formData.gruhkarPavtiDate,
-      samanyaPaniMagil: formData.samanyaPaniMagil,
-      samanyaPaniChalu: formData.samanyaPaniChalu,
-      samanyaPaniJama: formData.samanyaPaniJama,
-      samanyaPaniShillak: formData.samanyaPaniShillak,
-      visheshPaniMagil: formData.visheshPaniMagil,
-      visheshPaniChalu: formData.visheshPaniChalu,
-      visheshPaniJama: formData.visheshPaniJama,
-      visheshPaniShillak: formData.visheshPaniShillak,
-      paniPavtiDate: formData.paniPavtiDate,
-      noticeFeeMagil: formData.noticeFeeMagil,
-      noticeFeeChalu: formData.noticeFeeChalu,
-      noticeFeeJama: formData.noticeFeeJama,
-      noticeFeeShillak: formData.noticeFeeShillak,
-      etarFeeMagil: formData.etarFeeMagil,
-      etarFeeChalu: formData.etarFeeChalu,
-      etarFeeJama: formData.etarFeeJama,
-      etarFeeShillak: formData.etarFeeShillak,
-      // Payment method
-      paymentType: formData.paymentType,
-      cashAmount: formData.cashAmount,
-      chequeNumber: formData.chequeNumber,
-      chequeAmount: formData.chequeAmount,
-      chequeDate: formData.chequeDate,
-      chequeBankName: formData.chequeBankName,
-      ddNumber: formData.ddNumber,
-      ddAmount: formData.ddAmount,
-      ddDate: formData.ddDate,
-      ddBankName: formData.ddBankName,
-      onlineProvider: formData.onlineProvider,
-      onlineAmount: formData.onlineAmount,
-      onlineTransactionId: formData.onlineTransactionId,
+      magil_gruhkar_v_bhumikar: num(formData.gruhkarMagil),
+      chalu_gruhkar_v_bhumikar: num(formData.gruhkarChalu),
+      jama_keleli_rakkam_gruhkar_v_bhumikar: num(formData.gruhkarJama),
+      sillak_gruhkar_v_bhumikar: num(formData.gruhkarShillak),
+
+      magil_viz_divabatti_kar: num(formData.vizMagil),
+      chalu_viz_divabatti_kar: num(formData.vizChalu),
+      jama_keleli_rakkam_viz_divabatti_kar: num(formData.vizJama),
+      sillak_viz_divabatti_kar: num(formData.vizShillak),
+
+      magil_aarogya_rakshan_kar: num(formData.aarogyaMagil),
+      chalu_aarogya_rakshan_kar: num(formData.aarogyaChalu),
+      jama_kelili_rakkam_aarogya_rakshan_kar: num(formData.aarogyaJama),
+      sillak_aarogya_rakshan_kar: num(formData.aarogyaShillak),
+
+      magil_safae_kar: num(formData.safaeMagil),
+      chalu_safae_kar: num(formData.safaeChalu),
+      jama_keleli_rakkam_safae_kar: num(formData.safaeJama),
+      sillak_safae_kar: num(formData.safaeShillak),
+
+      gruhkar_v_bhumikar_pavti_date: txt(formData.gruhkarPavtiDate),
+
+      magil_samanya_pani_kar: num(formData.samanyaPaniMagil),
+      chalu_samanya_pani_kar: num(formData.samanyaPaniChalu),
+      jama_keleli_rakkam_samanya_pani_kar: num(formData.samanyaPaniJama),
+      sillak_samanya_pani_kar: num(formData.samanyaPaniShillak),
+
+      magil_vishesh_pani_kar: num(formData.visheshPaniMagil),
+      chalu_vishesh_pani_kar: num(formData.visheshPaniChalu),
+      jama_keleli_rakkam_vishesh_pani_kar: num(formData.visheshPaniJama),
+      sillak_vishesh_pani_kar: num(formData.visheshPaniShillak),
+
+      pani_kar_pavti_v_date: txt(formData.paniPavtiDate),
+
+      magil_notice_fee: num(formData.noticeFeeMagil),
+      chalu_notice_fee: num(formData.noticeFeeChalu),
+      jama_keleli_rakkam_notice_fee: num(formData.noticeFeeJama),
+      sillak_noticie_fee: num(formData.noticeFeeShillak),
+
+      magil_etar_fee: num(formData.etarFeeMagil),
+      chalu_etar_fee: num(formData.etarFeeChalu),
+      jama_keleli_rakkam_etar_fee: num(formData.etarFeeJama),
+      sillak_etar_fee: num(formData.etarFeeShillak),
+
+      magil_ekun: num(totals.magilTotal),
+      chalu_ekun: num(totals.chaluTotal),
+      jama_keleli_ekun: num(totals.jamaTotal),
+      sillak_ekun: num(totals.shillakTotal),
     };
 
-    hideLoader();
+    showLoader('वसुली जतन करत आहे... (Saving vasuli...)');
+    try {
+      const res = isEdit && existingRecord?.id
+        ? await vasuliService.update(Number(existingRecord.id), payload)
+        : await vasuliService.create(payload);
 
-    if (isEdit) {
-      toast.success('वसुली यशस्वीरित्या अद्यतनित केली (Vasuli updated successfully)');
-      // Delay navigation to allow toast to be visible
-      setTimeout(() => {
-        navigate('/vasuli', { state: { updatedRecord: recordData, isEdit: true, originalRecord: existingRecord } });
-      }, 2500);
-    } else {
-      toast.success('वसुली यशस्वीरित्या जतन केली (Vasuli saved successfully)');
-      // Delay navigation to allow toast to be visible
-      setTimeout(() => {
-        navigate('/vasuli', { state: { newRecord: recordData } });
-      }, 2500);
+      if (res.success) {
+        toast.success(
+          isEdit
+            ? 'वसुली यशस्वीरित्या अद्यतनित केली (Vasuli updated successfully)'
+            : 'वसुली यशस्वीरित्या जतन केली (Vasuli saved successfully)'
+        );
+        setTimeout(() => navigate('/vasuli'), 1500);
+      } else {
+        toast.error(res.message || 'वसुली जतन करण्यात अयशस्वी (Failed to save vasuli)');
+      }
+    } catch (err) {
+      const message = (err as { message?: string })?.message || 'काहीतरी चूक झाली (Something went wrong)';
+      toast.error(message);
+    } finally {
+      hideLoader();
     }
   };
 
   const handleReset = () => {
     setFormData({
+      nodniId: '',
       year: new Date().getFullYear().toString(),
       toYear: (new Date().getFullYear() + 1).toString(),
       anuKramank: '',
@@ -553,6 +665,7 @@ const VasuliForm = () => {
                   name="wardKramank"
                   value={formData.wardKramank}
                   onChange={handleInputChange}
+                  onBlur={handleAutofill}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>

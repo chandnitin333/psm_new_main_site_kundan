@@ -1,4 +1,5 @@
 export interface VasuliFormData {
+  nodniId: string;
   year: string;
   toYear: string;
   anuKramank: string;

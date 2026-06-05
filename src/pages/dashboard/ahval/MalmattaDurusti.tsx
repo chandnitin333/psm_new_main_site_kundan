@@ -3,6 +3,7 @@ import Select2 from '../../../components/common/Select2';
 import type { Select2Option } from '../../../components/common/Select2';
 import YearPicker from '../../../components/common/YearPicker';
 import { useLoading } from '../../../contexts/LoadingContext';
+import { commonDdlService } from '../../../services';
 
 const MalmattaDurusti = () => {
   const { showLoader, hideLoader } = useLoading();
@@ -32,13 +33,27 @@ const MalmattaDurusti = () => {
     }
   }, [formData.year]);
 
-  // Auto-load page with loader
+  // Dynamic ward options (scoped to the logged-in user's gram panchayat)
+  const [wardOptions, setWardOptions] = useState<Select2Option[]>([]);
+
+  // Auto-load page + fetch wards
   useEffect(() => {
     document.title = 'Malmatta Durusti - मालमत्ता दुरुस्ती';
     const loadPage = async () => {
       showLoader('पृष्ठ लोड होत आहे... (Loading page...)');
-      await new Promise(resolve => setTimeout(resolve, 800));
-      hideLoader();
+      try {
+        const res = await commonDdlService.getWards();
+        if (res.success) {
+          const opts = ((res.data as { ward_number: string | number }[]) || [])
+            .filter((w) => w.ward_number !== null && w.ward_number !== undefined && w.ward_number !== '')
+            .map((w) => ({ value: String(w.ward_number), label: `प्रभाग ${w.ward_number}` }));
+          setWardOptions(opts);
+        }
+      } catch (e) {
+        console.error('Failed to load wards', e);
+      } finally {
+        hideLoader();
+      }
     };
     loadPage();
   }, []);
@@ -50,21 +65,39 @@ const MalmattaDurusti = () => {
     { value: 'ghar_kar_lavaycha', label: 'घर कर लावायचा आहे' },
   ];
 
-  const wardOptions: Select2Option[] = [
-    { value: '1', label: 'प्रभाग 1' },
-    { value: '2', label: 'प्रभाग 2' },
-    { value: '3', label: 'प्रभाग 3' },
-    { value: '4', label: 'प्रभाग 4' },
-    { value: '5', label: 'प्रभाग 5' },
-    { value: '6', label: 'प्रभाग 6' },
-    { value: '7', label: 'प्रभाग 7' },
-    { value: '8', label: 'प्रभाग 8' },
-  ];
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Only the यादी type is mandatory. ward/start/end are optional
+    // (no ward -> all wards fetched).
+    if (!formData.yad) {
+      alert('कृपया यादी निवडा (Please select a list type)');
+      return;
+    }
+    // All three यादी types open the same report; type filters the properties:
+    //  malmatta_dharkachi -> all | khula_bhukhand -> 'khula' | ghar_kar_lavaycha -> 'ghar'
+    if (
+      formData.yad === 'malmatta_dharkachi' ||
+      formData.yad === 'khula_bhukhand' ||
+      formData.yad === 'ghar_kar_lavaycha'
+    ) {
+      const typeMap: Record<string, string> = {
+        khula_bhukhand: 'khula',
+        ghar_kar_lavaycha: 'ghar',
+      };
+      sessionStorage.setItem(
+        'dharkachiYadiParams',
+        JSON.stringify({
+          ward: formData.wardNo,
+          start: formData.start,
+          end: formData.end,
+          year: formData.year,
+          type: typeMap[formData.yad] || '',
+        }),
+      );
+      window.open('/view-dharkachi-yadi', '_blank');
+      return;
+    }
     console.log('Form submitted:', formData);
-    // Add your submit logic here
   };
 
   const handleReset = () => {
@@ -89,9 +122,9 @@ const MalmattaDurusti = () => {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <form onSubmit={handleSubmit}>
           {/* First Row - All input fields */}
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
-            {/* Yad Dropdown */}
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-7 gap-4 mb-6">
+            {/* Yad Dropdown (wider so long options don't wrap) */}
+            <div className="md:col-span-2">
               <Select2
                 label="यादी"
                 options={yadOptions}

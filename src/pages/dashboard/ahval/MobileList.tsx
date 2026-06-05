@@ -1,51 +1,42 @@
 import { useState, useEffect } from 'react';
 import { useLoading } from '../../../contexts/LoadingContext';
 import { useToast } from '../../../hooks/useToast';
-import type { WardData } from '../../../interfaces/dashboard/ahval';
+import { commonDdlService } from '../../../services';
 
 const MobileList = () => {
   const { showLoader, hideLoader } = useLoading();
   const { toast, ToastContainer } = useToast();
 
-  // Sample ward data - replace with actual data from backend
-  const [wardsData] = useState<WardData[]>([
-    { wardNo: 1, wardName: 'प्रभाग १', totalProperties: 150, totalPopulation: 780, mobileLinked: 680 },
-    { wardNo: 2, wardName: 'प्रभाग २', totalProperties: 200, totalPopulation: 1050, mobileLinked: 920 },
-    { wardNo: 3, wardName: 'प्रभाग ३', totalProperties: 180, totalPopulation: 920, mobileLinked: 800 },
-    { wardNo: 4, wardName: 'प्रभाग ४', totalProperties: 165, totalPopulation: 850, mobileLinked: 750 },
-    { wardNo: 5, wardName: 'प्रभाग ५', totalProperties: 190, totalPopulation: 980, mobileLinked: 860 },
-    { wardNo: 6, wardName: 'प्रभाग ६', totalProperties: 175, totalPopulation: 890, mobileLinked: 820 },
-    { wardNo: 7, wardName: 'प्रभाग ७', totalProperties: 195, totalPopulation: 1020, mobileLinked: 900 },
-    { wardNo: 8, wardName: 'प्रभाग ८', totalProperties: 185, totalPopulation: 950, mobileLinked: 850 },
-  ]);
+  const [wards, setWards] = useState<(string | number)[]>([]);
 
-  // Auto-load page with loader
+  // Load wards dynamically (scoped to the logged-in user's gram panchayat)
   useEffect(() => {
     document.title = 'Mobile List - मोबाईल यादी';
-    const loadPage = async () => {
-      showLoader('पृष्ठ लोड होत आहे... (Loading page...)');
-      await new Promise(resolve => setTimeout(resolve, 800));
-      hideLoader();
-    };
-    loadPage();
+    (async () => {
+      showLoader('वार्ड लोड होत आहेत... (Loading wards...)');
+      try {
+        const res = await commonDdlService.getWards();
+        if (res.success) {
+          const list = ((res.data as { ward_number: string | number }[]) || [])
+            .map((w) => w.ward_number)
+            .filter((w) => w !== null && w !== undefined && w !== '');
+          setWards(list);
+        }
+      } catch (e) {
+        console.error('Failed to load wards', e);
+        toast.error('वार्ड यादी मिळवण्यात त्रुटी (Error loading wards)');
+      } finally {
+        hideLoader();
+      }
+    })();
   }, []);
 
-  const handleViewReport = async (ward: WardData) => {
-    showLoader(`प्रभाग ${ward.wardNo} चा अहवाल उघडत आहे... (Opening Ward ${ward.wardNo} Report...)`);
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Store ward data in sessionStorage for the new window to access
-    sessionStorage.setItem('mobileReportWard', JSON.stringify(ward));
-
-    // Open report in new tab
-    const url = `/view-mobile-report`;
-    const newWindow = window.open(url, '_blank');
-
+  const handleViewReport = (ward: string | number) => {
+    sessionStorage.setItem('mobileReportWard', String(ward));
+    const newWindow = window.open('/view-mobile-report', '_blank');
     if (newWindow) {
-      toast.success(`प्रभाग ${ward.wardNo} चा अहवाल नवीन टॅबमध्ये उघडला (Ward ${ward.wardNo} report opened in new tab)`);
+      toast.success(`वार्ड ${ward} चा अहवाल नवीन टॅबमध्ये उघडला (Ward ${ward} report opened)`);
     }
-
-    hideLoader();
   };
 
   return (
@@ -59,22 +50,27 @@ const MobileList = () => {
 
           <div className="mb-6">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              प्रभाग क्रमांकावर क्लिक करा अहवाल पाहण्यासाठी (Click on Ward Number to view report)
+              वार्ड क्रमांकावर क्लिक करा अहवाल पाहण्यासाठी (Click on Ward Number to view report)
             </p>
           </div>
 
-          {/* Ward Numbers Grid */}
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
-            {wardsData.map((ward) => (
-              <button
-                key={ward.wardNo}
-                onClick={() => handleViewReport(ward)}
-                className="aspect-square flex items-center justify-center bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow-md transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-              >
-                <span className="text-2xl font-bold">{ward.wardNo}</span>
-              </button>
-            ))}
-          </div>
+          {wards.length === 0 ? (
+            <p className="text-gray-500 dark:text-gray-400 text-sm py-8 text-center">
+              कोणतेही वार्ड उपलब्ध नाहीत (No wards available)
+            </p>
+          ) : (
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
+              {wards.map((ward) => (
+                <button
+                  key={String(ward)}
+                  onClick={() => handleViewReport(ward)}
+                  className="aspect-square flex items-center justify-center bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow-md transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                >
+                  <span className="text-2xl font-bold">{ward}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </>

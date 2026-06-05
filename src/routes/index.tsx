@@ -27,6 +27,11 @@ import KarAakarani from '../pages/dashboard/kar-aakarani/KarAakarani';
 import Vasuli from '../pages/dashboard/vasuli/Vasuli';
 import VasuliForm from '../pages/dashboard/vasuli/VasuliForm';
 import ViewVasuli from '../pages/dashboard/vasuli/ViewVasuli';
+import Namuna8Print from '../pages/dashboard/malmatta-nodni/Namuna8Print';
+import Namuna8SarkariPrint from '../pages/dashboard/malmatta-nodni/Namuna8SarkariPrint';
+import Namuna8NewPrint from '../pages/dashboard/malmatta-nodni/Namuna8NewPrint';
+import Namuna8ImagesPrint from '../pages/dashboard/malmatta-nodni/Namuna8ImagesPrint';
+import Namuna9Print from '../pages/dashboard/malmatta-nodni/Namuna9Print';
 import Ahval from '../pages/dashboard/ahval/Ahval';
 import AadharList from '../pages/dashboard/ahval/AadharList';
 import AadharReport from '../pages/dashboard/ahval/AadharReport';
@@ -37,6 +42,7 @@ import PaniReport from '../pages/dashboard/ahval/PaniReport';
 import ShouchalayList from '../pages/dashboard/ahval/ShouchalayList';
 import ShouchalayReport from '../pages/dashboard/ahval/ShouchalayReport';
 import MalmattaDurusti from '../pages/dashboard/ahval/MalmattaDurusti';
+import MalmattaDharkachiReport from '../pages/dashboard/ahval/MalmattaDharkachiReport';
 import Namuna8 from '../pages/dashboard/ahval/Namuna8';
 import Namuna9 from '../pages/dashboard/ahval/Namuna9';
 import Bill from '../pages/dashboard/ahval/Bill';
@@ -136,6 +142,46 @@ export const createRouter = (handleLogout: () => void) =>
       ),
     },
     {
+      path: '/namuna-8-1',
+      element: (
+        <ProtectedRoute>
+          <Namuna8Print />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/namuna-8-sarkari-1',
+      element: (
+        <ProtectedRoute>
+          <Namuna8SarkariPrint />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/namuna-8-new-1',
+      element: (
+        <ProtectedRoute>
+          <Namuna8NewPrint />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/namuna-8-images-1',
+      element: (
+        <ProtectedRoute>
+          <Namuna8ImagesPrint />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/namuna-9-1',
+      element: (
+        <ProtectedRoute>
+          <Namuna9Print />
+        </ProtectedRoute>
+      ),
+    },
+    {
       path: '/view-aadhar-report',
       element: (
         <ProtectedRoute>
@@ -164,6 +210,14 @@ export const createRouter = (handleLogout: () => void) =>
       element: (
         <ProtectedRoute>
           <ShouchalayReport />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-dharkachi-yadi',
+      element: (
+        <ProtectedRoute>
+          <MalmattaDharkachiReport />
         </ProtectedRoute>
       ),
     },

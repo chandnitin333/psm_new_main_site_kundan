@@ -15,11 +15,31 @@ const PrintModal = ({ isOpen, onClose, record }: PrintModalProps) => {
     }
   }, [isOpen]);
 
-  const handlePrint = (namunaType: string) => {
-    // Open the report in a new window
+  const handlePrint = (format: { id: string; title: string }) => {
+    // Dedicated design pages (fetch full data by id)
+    if (
+      format.id === 'namuna8' || format.id === 'namuna9' ||
+      format.id === 'sarkari8' || format.id === 'namuna8new' || format.id === 'namuna8images'
+    ) {
+      const id = (record as { id?: number } | undefined)?.id;
+      if (id) {
+        const path =
+          format.id === 'namuna8' ? '/namuna-8-1'
+          : format.id === 'sarkari8' ? '/namuna-8-sarkari-1'
+          : format.id === 'namuna8new' ? '/namuna-8-new-1'
+          : format.id === 'namuna8images' ? '/namuna-8-images-1'
+          : '/namuna-9-1';
+        window.open(`${path}?id=${id}`, '_blank');
+      } else {
+        alert('Record id not found');
+      }
+      return;
+    }
+
+    // Other formats: existing generic template (to be replaced later)
     const printWindow = window.open('', '_blank');
     if (printWindow) {
-      printWindow.document.write(generateReport(namunaType, record));
+      printWindow.document.write(generateReport(format.title, record));
       printWindow.document.close();
       printWindow.focus();
     }
@@ -249,7 +269,7 @@ const PrintModal = ({ isOpen, onClose, record }: PrintModalProps) => {
               key={format.id}
               ref={index === 0 ? firstButtonRef : null}
               type="button"
-              onClick={() => handlePrint(format.title)}
+              onClick={() => handlePrint(format)}
               className={`flex items-center gap-4 p-4 border-2 rounded-lg transition-all duration-200 ${getColorClasses(format.color)} focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2`}
             >
               <div className={`flex-shrink-0 ${getIconColorClasses(format.color)}`}>

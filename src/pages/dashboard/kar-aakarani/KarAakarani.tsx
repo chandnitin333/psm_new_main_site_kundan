@@ -1,10 +1,39 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
 import YearPicker from '../../../components/common/YearPicker';
 import KarAakaraniTable from './KarAakaraniTable';
 import { Select2, type Select2Option } from '../../../components/common';
-import type { KarAakaraniRecord } from '../../../interfaces/dashboard/kar-aakarani/KarAakarani.types';
+import { karAakaraniService } from '../../../services/karAakaraniService';
+import { commonDdlService } from '../../../services/commonDdlService';
+import {
+  EMPTY_TOTALS,
+  type KarAakaraniRecord,
+  type ApiKarAakaraniRecord,
+  type WardListItem,
+  type KarAakaraniTotals,
+  type KarAakaraniPagination,
+  type KarAakaraniListResponse,
+} from '../../../interfaces/dashboard/kar-aakarani/KarAakarani.types';
+
+// Map a raw API record to the display shape used by the table.
+// "chalu" (current-year) values are used for each tax head.
+const toDisplayRecord = (r: ApiKarAakaraniRecord): KarAakaraniRecord => ({
+  drNo: r.anu_kramank ?? '',
+  year: r.year ?? '',
+  toYear: r.to_year ?? '',
+  wardNo: r.ward_number ?? '',
+  khatedarkacheNav: r.khatedharkache_nav ?? '',
+  gruhkarVBhumikar: String(r.chalu_gruhkar_v_bhumikar ?? 0),
+  vizDivabattikar: String(r.chalu_viz_divabatti_kar ?? 0),
+  aarogyaRakshanKar: String(r.chalu_aarogya_rakshan_kar ?? 0),
+  safaeKar: String(r.chalu_safae_kar ?? 0),
+  samanyaPaniKar: String(r.chalu_samanya_pani_kar ?? 0),
+  visheshPaniKar: String(r.chalu_vishesh_pani_kar ?? 0),
+  ekunMagilBaki: String(r.magil_ekun ?? 0),
+  ekunImaratKar: String(r.ekun_emarat_kar ?? 0),
+  ekun: String(r.chalu_ekun ?? 0),
+});
 
 const KarAakarani = () => {
   const { toast, ToastContainer } = useToast();
@@ -15,99 +44,48 @@ const KarAakarani = () => {
     toYear: (new Date().getFullYear() + 1).toString(),
   });
 
-  // Sample data - replace with actual API data
-  const [allRecords] = useState<KarAakaraniRecord[]>([
-    {
-      drNo: '001',
-      year: '2024',
-      toYear: '2025',
-      wardNo: '1',
-      khatedarkacheNav: 'राम शर्मा',
-      gruhkarVBhumikar: '5000',
-      vizDivabattikar: '500',
-      aarogyaRakshanKar: '300',
-      safaeKar: '200',
-      samanyaPaniKar: '400',
-      visheshPaniKar: '600',
-      ekunMagilBaki: '1500',
-      ekunImaratKar: '8500',
-      ekun: '10000'
-    },
-    {
-      drNo: '002',
-      year: '2024',
-      toYear: '2025',
-      wardNo: '2',
-      khatedarkacheNav: 'श्याम पाटील',
-      gruhkarVBhumikar: '4500',
-      vizDivabattikar: '450',
-      aarogyaRakshanKar: '280',
-      safaeKar: '180',
-      samanyaPaniKar: '380',
-      visheshPaniKar: '580',
-      ekunMagilBaki: '1200',
-      ekunImaratKar: '8050',
-      ekun: '9250'
-    },
-    {
-      drNo: '003',
-      year: '2024',
-      toYear: '2025',
-      wardNo: '3',
-      khatedarkacheNav: 'सीता देवी',
-      gruhkarVBhumikar: '6000',
-      vizDivabattikar: '600',
-      aarogyaRakshanKar: '350',
-      safaeKar: '250',
-      samanyaPaniKar: '450',
-      visheshPaniKar: '650',
-      ekunMagilBaki: '2000',
-      ekunImaratKar: '10250',
-      ekun: '12250'
-    },
-    {
-      drNo: '004',
-      year: '2023',
-      toYear: '2024',
-      wardNo: '1',
-      khatedarkacheNav: 'गीता कुमार',
-      gruhkarVBhumikar: '5500',
-      vizDivabattikar: '550',
-      aarogyaRakshanKar: '320',
-      safaeKar: '220',
-      samanyaPaniKar: '420',
-      visheshPaniKar: '620',
-      ekunMagilBaki: '1800',
-      ekunImaratKar: '9430',
-      ekun: '11230'
-    },
-    {
-      drNo: '005',
-      year: '2023',
-      toYear: '2024',
-      wardNo: '4',
-      khatedarkacheNav: 'राजेश वर्मा',
-      gruhkarVBhumikar: '4800',
-      vizDivabattikar: '480',
-      aarogyaRakshanKar: '290',
-      safaeKar: '190',
-      samanyaPaniKar: '390',
-      visheshPaniKar: '590',
-      ekunMagilBaki: '1400',
-      ekunImaratKar: '8530',
-      ekun: '9930'
-    },
-  ]);
+  const PER_PAGE = 10;
+  const [records, setRecords] = useState<KarAakaraniRecord[]>([]);
+  const [totals, setTotals] = useState<KarAakaraniTotals>(EMPTY_TOTALS);
+  const [pagination, setPagination] = useState<KarAakaraniPagination>({
+    current_page: 1,
+    per_page: PER_PAGE,
+    total_records: 0,
+    total_pages: 0,
+    has_next: false,
+    has_prev: false,
+  });
+  // Filters that were actually applied (used when paging, independent of live form edits)
+  const [appliedFilters, setAppliedFilters] = useState<{ wardNo: string; year: string; toYear: string } | null>(null);
+  const [wardNoOptions, setWardNoOptions] = useState<Select2Option[]>([]);
 
-  // Page load effect with loader
+  // Page load: set title, fetch ward list, and auto-load current-year (all wards) records
   useEffect(() => {
     document.title = 'Kar Aakarani - कर आकारणी';
     const loadPage = async () => {
-      showLoader('पृष्ठ लोड होत आहे... (Loading page...)');
-      await new Promise(resolve => setTimeout(resolve, 800));
-      hideLoader();
+      try {
+        const res = await commonDdlService.getWards();
+        if (res.success && Array.isArray(res.data)) {
+          const options = (res.data as WardListItem[]).map((w) => ({
+            value: String(w.ward_number),
+            label: `प्रभाग ${w.ward_number} (Ward ${w.ward_number})`,
+          }));
+          setWardNoOptions(options);
+        }
+      } catch {
+        toast.error('वॉर्ड यादी लोड करण्यात अयशस्वी (Failed to load ward list)');
+      }
+      // Default view: current year, all wards (no ward filter)
+      const initial = {
+        wardNo: '',
+        year: new Date().getFullYear().toString(),
+        toYear: (new Date().getFullYear() + 1).toString(),
+      };
+      setAppliedFilters(initial);
+      await fetchRecords(initial, 1);
     };
     loadPage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-fill "To Year" when "Year" changes
@@ -123,51 +101,80 @@ const KarAakarani = () => {
     }
   }, [formData.year]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
   const handleYearChange = (year: string) => {
     setFormData(prev => ({ ...prev, year }));
   };
-
-  // Select2 options
-  const wardNoOptions: Select2Option[] = useMemo(() => [
-    { value: '1', label: 'प्रभाग 1 (Ward 1)' },
-    { value: '2', label: 'प्रभाग 2 (Ward 2)' },
-    { value: '3', label: 'प्रभाग 3 (Ward 3)' },
-    { value: '4', label: 'प्रभाग 4 (Ward 4)' },
-    { value: '5', label: 'प्रभाग 5 (Ward 5)' },
-    { value: '6', label: 'प्रभाग 6 (Ward 6)' },
-    { value: '7', label: 'प्रभाग 7 (Ward 7)' },
-    { value: '8', label: 'प्रभाग 8 (Ward 8)' },
-    { value: '9', label: 'प्रभाग 9 (Ward 9)' },
-    { value: '10', label: 'प्रभाग 10 (Ward 10)' },
-  ], []);
 
   const handleWardNoChange = (value: string | number | (string | number)[]) => {
     setFormData(prev => ({ ...prev, wardNo: value as string }));
   };
 
+  // Fetch a page of records for the given filters from the server
+  const fetchRecords = async (
+    filters: { wardNo: string; year: string; toYear: string },
+    page: number,
+    notifyEmpty = false
+  ) => {
+    showLoader('कर आकारणी करत आहे... (Processing Kar Aakarani...)');
+    try {
+      const res = await karAakaraniService.list({
+        ward_number: filters.wardNo,
+        year: filters.year,
+        to_year: filters.toYear,
+        page,
+        per_page: PER_PAGE,
+      });
+
+      if (res.success && res.data) {
+        const data = res.data as KarAakaraniListResponse;
+        setRecords((data.records ?? []).map(toDisplayRecord));
+        setTotals(data.totals ?? EMPTY_TOTALS);
+        if (data.pagination) setPagination(data.pagination);
+        if (notifyEmpty) {
+          const count = data.pagination?.total_records ?? 0;
+          if (count === 0) toast.info('कोणतीही नोंद आढळली नाही (No records found)');
+          else toast.success(`${count} नोंदी आढळल्या (records found)`);
+        }
+      } else {
+        toast.error(res.message || 'डेटा लोड करण्यात अयशस्वी (Failed to load data)');
+      }
+    } catch (err) {
+      const message = (err as { message?: string })?.message || 'काहीतरी चूक झाली (Something went wrong)';
+      toast.error(message);
+    } finally {
+      hideLoader();
+    }
+  };
+
   const handleKarAakarani = async (e: React.FormEvent) => {
     e.preventDefault();
-    showLoader('कर आकारणी करत आहे... (Processing Kar Aakarani...)');
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log('Kar Aakarani Data:', formData);
-    hideLoader();
-    toast.success('कर आकारणी प्रक्रिया यशस्वीरित्या पूर्ण झाली (Kar Aakarani process completed successfully)');
+    const filters = { wardNo: formData.wardNo, year: formData.year, toYear: formData.toYear };
+    setAppliedFilters(filters);
+    await fetchRecords(filters, 1, true);
+  };
+
+  const handlePageChange = (page: number) => {
+    if (!appliedFilters || page < 1 || page > pagination.total_pages) return;
+    fetchRecords(appliedFilters, page);
   };
 
   const handleReset = async () => {
-    showLoader('रीसेट करत आहे... (Resetting...)');
-    await new Promise(resolve => setTimeout(resolve, 500));
     setFormData({
       wardNo: '',
       year: new Date().getFullYear().toString(),
       toYear: (new Date().getFullYear() + 1).toString(),
     });
-    hideLoader();
+    setRecords([]);
+    setTotals(EMPTY_TOTALS);
+    setAppliedFilters(null);
+    setPagination({
+      current_page: 1,
+      per_page: PER_PAGE,
+      total_records: 0,
+      total_pages: 0,
+      has_next: false,
+      has_prev: false,
+    });
   };
 
   return (
@@ -188,11 +195,10 @@ const KarAakarani = () => {
                   options={wardNoOptions}
                   value={formData.wardNo}
                   onChange={handleWardNoChange}
-                  placeholder="निवडा (Select)"
-                  label="वॉर्ड क्र. (Ward No) *"
+                  placeholder="सर्व वॉर्ड (All Wards)"
+                  label="वॉर्ड क्र. (Ward No)"
                   searchable={true}
-                  clearable={false}
-                  required
+                  clearable={true}
                 />
               </div>
 
@@ -230,7 +236,7 @@ const KarAakarani = () => {
                   type="submit"
                   className="w-full px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors font-medium"
                 >
-                  कर आकारणी (Kar Aakarani)
+                  कर आकारणी
                 </button>
               </div>
 
@@ -249,7 +255,12 @@ const KarAakarani = () => {
         </div>
 
         {/* Table Component */}
-        <KarAakaraniTable records={allRecords} />
+        <KarAakaraniTable
+          records={records}
+          totals={totals}
+          pagination={pagination}
+          onPageChange={handlePageChange}
+        />
       </div>
     </>
   );

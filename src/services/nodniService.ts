@@ -9,6 +9,7 @@ const NODNI_ENDPOINTS = {
   CREATE: '/main/nodni',
   UPDATE: (id: number) => `/main/nodni/${id}`,
   GET_BY_ID: (id: number) => `/main/nodni/${id}`,
+  DHARKACHI_YADI: '/main/nodni/dharkachi-yadi',
   TAX_LIST: '/main/nodni/tax-list',
   SEARCH: '/main/malmatta-nodni/search',
   FILTER: '/main/malmatta-nodni/filter',
@@ -42,6 +43,26 @@ export const nodniService = {
    */
   getById: async (id: number): Promise<ApiResponse> => {
     return api.get(NODNI_ENDPOINTS.GET_BY_ID(id));
+  },
+
+  /**
+   * मालमत्ता धारकाची यादी — ward-wise list of properties with full नमुना ८ detail
+   */
+  getDharkachiYadi: async (
+    ward?: string | number,
+    start?: string | number,
+    end?: string | number,
+    type?: string,
+    year?: string | number,
+  ): Promise<ApiResponse> => {
+    const params = new URLSearchParams();
+    if (ward !== undefined && ward !== '') params.append('ward', String(ward));
+    if (start !== undefined && start !== '') params.append('start', String(start));
+    if (end !== undefined && end !== '') params.append('end', String(end));
+    if (type !== undefined && type !== '') params.append('type', type);
+    if (year !== undefined && year !== '') params.append('year', String(year));
+    const qs = params.toString();
+    return api.get(qs ? `${NODNI_ENDPOINTS.DHARKACHI_YADI}?${qs}` : NODNI_ENDPOINTS.DHARKACHI_YADI);
   },
 
   /**

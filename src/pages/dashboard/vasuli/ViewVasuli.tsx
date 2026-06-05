@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { Printer, Download } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import { Printer } from 'lucide-react';
+import { vasuliService } from '../../../services/vasuliService';
+import { numberToWordsRupees } from '../../../utils/numberToWords';
 import type { ViewVasuliData } from '../../../interfaces/dashboard/vasuli/ViewVasuli.types';
 
 const ViewVasuli = () => {
@@ -26,85 +26,116 @@ const ViewVasuli = () => {
     };
   }, []);
 
-  // Get today and tomorrow dates
-  const getTodayDate = () => {
-    const today = new Date();
-    return today.toLocaleDateString('en-GB');
-  };
+  // Today's date (used in the receipt footer)
+  const getTodayDate = () => new Date().toLocaleDateString('en-GB');
 
-  const getTomorrowDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toLocaleDateString('en-GB');
-  };
-
-  // Get record from sessionStorage
-  const getRecordFromSession = () => {
-    const stored = sessionStorage.getItem('vasuliViewRecord');
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch (e) {
-        console.error('Error parsing stored record:', e);
-      }
+  // Header (gram panchayat / tahsil / jilha) from the logged-in user, best-effort
+  const getUserLocation = () => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      return {
+        gramPanchayat: u.gram_panchayat || u.gramPanchayat || u.gram_panchayat_name || '',
+        tahsil: u.taluka || u.taluka_name || u.tahsil || '',
+        jilha: u.district || u.district_name || u.jilha || '',
+      };
+    } catch {
+      return { gramPanchayat: '', tahsil: '', jilha: '' };
     }
-    return null;
+  };
+  const userLoc = getUserLocation();
+
+  // Default/placeholder values; record-specific fields are filled from the API below
+  const defaultData: ViewVasuliData = {
+    gramPanchayat: userLoc.gramPanchayat,
+    tahsil: userLoc.tahsil,
+    jilha: userLoc.jilha,
+    pavtiKramank: '',
+    anuKramank: '',
+    malmattaKramank: '',
+    wardKramank: '',
+    plotKramank: '',
+    khasaraKramank: '',
+    surveyKramank: '',
+    khatedarkacheNav: '',
+    patniMulacheNav: '',
+    bhogwatdaracheNav: '',
+    gruhkarVBhumikarDinank: '',
+    paniKarDinank: '',
+    shera: 'या पावतीच्या आधारे करभरणा केलेली रक्कम माझ्याकडून मिळाली आणि ती ग्रामपंचायतीच्या खात्यात जमा केली गेली आहे.',
+    gruhkarVBhumikar: { magilBaki: '0', chaluKar: '0', ekunJamaRakkam: '0', thakbakiRakkam: '0' },
+    divabattiVizKar: { magilBaki: '0', chaluKar: '0', ekunJamaRakkam: '0', thakbakiRakkam: '0' },
+    aarogyaRakshanKar: { magilBaki: '0', chaluKar: '0', ekunJamaRakkam: '0', thakbakiRakkam: '0' },
+    safaeKar: { magilBaki: '0', chaluKar: '0', ekunJamaRakkam: '0', thakbakiRakkam: '0' },
+    samanyaPaniKar: { magilBaki: '0', chaluKar: '0', ekunJamaRakkam: '0', thakbakiRakkam: '0' },
+    visheshPaniKar: { magilBaki: '0', chaluKar: '0', ekunJamaRakkam: '0', thakbakiRakkam: '0' },
+    ekunRakkam: { magilBaki: '0', chaluKar: '0', ekunJamaRakkam: '0', thakbakiRakkam: '0' },
+    bharleliRakkamAkshari: '',
   };
 
-  const storedRecord = getRecordFromSession();
+  const [data, setData] = useState<ViewVasuliData>(defaultData);
 
-  // Sample data - replace with actual data from sessionStorage
-  const data: ViewVasuliData = storedRecord ? {
-    gramPanchayat: 'Pune',
-    tahsil: 'Pune Gramin',
-    jilha: 'Pune',
-    pavtiKramank: storedRecord.anuKramank || '1',
-    anuKramank: storedRecord.anuKramank || '001',
-    malmattaKramank: storedRecord.milkatKramank || 'MK-001',
-    wardKramank: storedRecord.wardNo || 'W-01',
-    plotKramank: storedRecord.plotKramank || 'P-101',
-    khasaraKramank: storedRecord.khasaraKramank || 'KK-001',
-    surveyKramank: storedRecord.surveyKramank || 'SK-001',
-    khatedarkacheNav: storedRecord.khatedharkacheNav || 'Kundan Kotangale',
-    patniMulacheNav: 'ABC PQR',
-    bhogwatdaracheNav: storedRecord.bhogwatdaracheNav || 'JKL MNJ',
-    gruhkarVBhumikarDinank: getTodayDate(),
-    paniKarDinank: getTomorrowDate(),
-    shera: 'या पावतीच्या आधारे करभरणा केलेली रक्कम माझ्याकडून मिळाली आणि ती ग्रामपंचायतीच्या खात्यात जमा केली गेली आहे.',
-    gruhkarVBhumikar: { magilBaki: '500', chaluKar: '2000', ekunJamaRakkam: '2500', thakbakiRakkam: '0' },
-    divabattiVizKar: { magilBaki: '200', chaluKar: '800', ekunJamaRakkam: '1000', thakbakiRakkam: '0' },
-    aarogyaRakshanKar: { magilBaki: '150', chaluKar: '600', ekunJamaRakkam: '750', thakbakiRakkam: '0' },
-    safaeKar: { magilBaki: '100', chaluKar: '400', ekunJamaRakkam: '500', thakbakiRakkam: '0' },
-    samanyaPaniKar: { magilBaki: '300', chaluKar: '1200', ekunJamaRakkam: '1500', thakbakiRakkam: '0' },
-    visheshPaniKar: { magilBaki: '250', chaluKar: '1000', ekunJamaRakkam: '1250', thakbakiRakkam: '0' },
-    ekunRakkam: { magilBaki: '1500', chaluKar: '6000', ekunJamaRakkam: '7500', thakbakiRakkam: '0' },
-    bharleliRakkamAkshari: 'सात हजार पाचशे रुपये फक्त'
-  } : {
-    gramPanchayat: 'Pune',
-    tahsil: 'Pune Gramin',
-    jilha: 'Pune',
-    pavtiKramank: '1',
-    anuKramank: '001',
-    malmattaKramank: 'MK-001',
-    wardKramank: 'W-01',
-    plotKramank: 'P-101',
-    khasaraKramank: 'KK-001',
-    surveyKramank: 'SK-001',
-    khatedarkacheNav: 'Kundan Kotangale',
-    patniMulacheNav: 'ABC PQR',
-    bhogwatdaracheNav: 'JKL MNJ',
-    gruhkarVBhumikarDinank: getTodayDate(),
-    paniKarDinank: getTomorrowDate(),
-    shera: 'या पावतीच्या आधारे करभरणा केलेली रक्कम माझ्याकडून मिळाली आणि ती ग्रामपंचायतीच्या खात्यात जमा केली गेली आहे.',
-    gruhkarVBhumikar: { magilBaki: '500', chaluKar: '2000', ekunJamaRakkam: '2500', thakbakiRakkam: '0' },
-    divabattiVizKar: { magilBaki: '200', chaluKar: '800', ekunJamaRakkam: '1000', thakbakiRakkam: '0' },
-    aarogyaRakshanKar: { magilBaki: '150', chaluKar: '600', ekunJamaRakkam: '750', thakbakiRakkam: '0' },
-    safaeKar: { magilBaki: '100', chaluKar: '400', ekunJamaRakkam: '500', thakbakiRakkam: '0' },
-    samanyaPaniKar: { magilBaki: '300', chaluKar: '1200', ekunJamaRakkam: '1500', thakbakiRakkam: '0' },
-    visheshPaniKar: { magilBaki: '250', chaluKar: '1000', ekunJamaRakkam: '1250', thakbakiRakkam: '0' },
-    ekunRakkam: { magilBaki: '1500', chaluKar: '6000', ekunJamaRakkam: '7500', thakbakiRakkam: '0' },
-    bharleliRakkamAkshari: 'तेरा हजार पंचवीस रुपये फक्त'
-  };
+  // Fetch the full vasuli record (by id from the URL) and populate the receipt dynamically
+  useEffect(() => {
+    const id = Number(new URLSearchParams(window.location.search).get('id'));
+    if (!id) return;
+
+    const s = (v: unknown) => (v === null || v === undefined ? '' : String(v));
+    const dateStr = (v: unknown) => {
+      if (!v) return '';
+      const raw = String(v);
+      // Try parsing the full string first (handles RFC like "Thu, 04 Jun 2026 00:00:00 GMT")
+      let d = new Date(raw);
+      if (isNaN(d.getTime())) {
+        // Fallback for "YYYY-MM-DD HH:MM:SS" / ISO -> take the date portion
+        const datePart = raw.split(/[ T]/)[0];
+        d = new Date(datePart);
+        if (isNaN(d.getTime())) return raw;
+      }
+      return d.toLocaleDateString('en-GB'); // dd/mm/yyyy
+    };
+    const row = (r: Record<string, unknown>, magil: string, chalu: string, jama: string, sillak: string) => ({
+      magilBaki: s(r[magil] ?? '0'),
+      chaluKar: s(r[chalu] ?? '0'),
+      ekunJamaRakkam: s(r[jama] ?? '0'),
+      thakbakiRakkam: s(r[sillak] ?? '0'),
+    });
+
+    (async () => {
+      try {
+        const res = await vasuliService.getById(id);
+        if (res.success && res.data) {
+          const r = res.data as Record<string, unknown>;
+          // भरलेली रक्कम (amount paid) = total jama; show it in words
+          const totalPaid = Number(r.jama_keleli_ekun ?? 0);
+          setData(prev => ({
+            ...prev,
+            bharleliRakkamAkshari: numberToWordsRupees(totalPaid),
+            patniMulacheNav: s(r.patni_mulache_nav),
+            pavtiKramank: s(r.id),
+            anuKramank: s(r.anu_kramank),
+            malmattaKramank: s(r.malmatta_number),
+            wardKramank: s(r.ward_number),
+            plotKramank: s(r.plot_number),
+            khasaraKramank: s(r.khasara_kramank),
+            surveyKramank: s(r.survey_number),
+            khatedarkacheNav: s(r.khatedharkache_nav),
+            bhogwatdaracheNav: s(r.bhogwatdarache_nav),
+            gruhkarVBhumikarDinank: dateStr(r.gruhkar_v_bhumikar_pavti_date),
+            paniKarDinank: dateStr(r.pani_kar_pavti_v_date),
+            gruhkarVBhumikar: row(r, 'magil_gruhkar_v_bhumikar', 'chalu_gruhkar_v_bhumikar', 'jama_keleli_rakkam_gruhkar_v_bhumikar', 'sillak_gruhkar_v_bhumikar'),
+            divabattiVizKar: row(r, 'magil_viz_divabatti_kar', 'chalu_viz_divabatti_kar', 'jama_keleli_rakkam_viz_divabatti_kar', 'sillak_viz_divabatti_kar'),
+            aarogyaRakshanKar: row(r, 'magil_aarogya_rakshan_kar', 'chalu_aarogya_rakshan_kar', 'jama_kelili_rakkam_aarogya_rakshan_kar', 'sillak_aarogya_rakshan_kar'),
+            safaeKar: row(r, 'magil_safae_kar', 'chalu_safae_kar', 'jama_keleli_rakkam_safae_kar', 'sillak_safae_kar'),
+            samanyaPaniKar: row(r, 'magil_samanya_pani_kar', 'chalu_samanya_pani_kar', 'jama_keleli_rakkam_samanya_pani_kar', 'sillak_samanya_pani_kar'),
+            visheshPaniKar: row(r, 'magil_vishesh_pani_kar', 'chalu_vishesh_pani_kar', 'jama_keleli_rakkam_vishesh_pani_kar', 'sillak_vishesh_pani_kar'),
+            ekunRakkam: row(r, 'magil_ekun', 'chalu_ekun', 'jama_keleli_ekun', 'sillak_ekun'),
+          }));
+        }
+      } catch (e) {
+        console.error('Failed to load vasuli record for view', e);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     // Set page title
@@ -171,80 +202,10 @@ const ViewVasuli = () => {
     `,
   });
 
-  const handleDownloadPDF = async () => {
-    try {
-      const element = componentRef.current;
-      if (!element) {
-        alert('Content not found');
-        return;
-      }
-
-      // Force light mode before capturing
-      const originalHtmlClass = document.documentElement.className;
-      const originalBodyClass = document.body.className;
-      document.documentElement.classList.remove('dark');
-      document.body.classList.remove('dark');
-
-      // Create a canvas from the HTML element
-      const canvas = await html2canvas(element, {
-        scale: 2, // Higher quality
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        onclone: (clonedDoc) => {
-          // Ensure cloned document is also in light mode
-          clonedDoc.documentElement.classList.remove('dark');
-          clonedDoc.body.classList.remove('dark');
-          clonedDoc.documentElement.style.backgroundColor = '#ffffff';
-          clonedDoc.body.style.backgroundColor = '#ffffff';
-        }
-      });
-
-      // Restore original classes if needed
-      document.documentElement.className = originalHtmlClass;
-      document.body.className = originalBodyClass;
-
-      // A4 dimensions in mm
-      const pdfWidth = 210;
-
-      // Margins matching print preview (10mm on all sides, as per @page margin: 10mm in handlePrint)
-      const marginLeft = 10;
-      const marginTop = 10;
-      const marginRight = 10;
-
-      // Content area after margins
-      const contentWidth = pdfWidth - marginLeft - marginRight;
-
-      // Calculate scaled dimensions to fit in content area
-      const imgWidth = contentWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      // Create PDF
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgData = canvas.toDataURL('image/png');
-
-      // Add image to PDF with margins
-      pdf.addImage(imgData, 'PNG', marginLeft, marginTop, imgWidth, imgHeight);
-
-      // Save PDF
-      pdf.save('करबद्दल_पावती.pdf');
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('PDF generation failed. Please try again.');
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4 print:p-0 print:bg-white">
-      {/* Print and Download Buttons - Hidden when printing */}
+      {/* Print Button - Hidden when printing */}
       <div className="mb-4 print:hidden flex justify-end gap-4">
-        <button
-          onClick={handleDownloadPDF}
-          className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
-        >
-          <Download className="w-5 h-5" />
-          Download PDF / पीडीएफ डाउनलोड करा
-        </button>
         <button
           onClick={handlePrint}
           className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium flex items-center gap-2"

@@ -9,3 +9,5 @@ export { contactService } from './contactService';
 export { nodniService } from './nodniService';
 export { commonDdlService } from './commonDdlService';
 export { ferfarService } from './ferfarService';
+export { karAakaraniService } from './karAakaraniService';
+export { vasuliService } from './vasuliService';

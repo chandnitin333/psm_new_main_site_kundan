@@ -12,6 +12,7 @@ export interface VasuliFormData {
 }
 
 export interface VasuliRecord {
+  id?: number;
   anuKramank: string;
   milkatKramank: string;
   wardNo: string;

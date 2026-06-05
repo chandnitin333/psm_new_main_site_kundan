@@ -20,6 +20,8 @@ const DDL_ENDPOINTS = {
   GHASARA_DAR: '/main/common-ddl/ghasara-dar',
   TOWER: '/main/common-ddl/tower',
   FERFAR_YADI: '/main/common-ddl/ferfar-yadi',
+  WARD_LIST: '/main/common-ddl/ward-list',
+  AADHAR_WARD_LIST: '/main/common-ddl/aadhar-ward-list',
 } as const;
 
 export const commonDdlService = {
@@ -126,6 +128,20 @@ export const commonDdlService = {
    */
   getFerfarYadi: async (): Promise<ApiResponse> => {
     return api.get(DDL_ENDPOINTS.FERFAR_YADI);
+  },
+
+  /**
+   * Get distinct ward numbers for the logged-in user's gram panchayat
+   */
+  getWards: async (): Promise<ApiResponse> => {
+    return api.get(DDL_ENDPOINTS.WARD_LIST);
+  },
+
+  /**
+   * Ward-wise आधार/वोटर कार्ड यादी for the logged-in user
+   */
+  getAadharWardList: async (ward: string | number): Promise<ApiResponse> => {
+    return api.get(`${DDL_ENDPOINTS.AADHAR_WARD_LIST}?ward=${encodeURIComponent(ward)}`);
   },
 };
 
