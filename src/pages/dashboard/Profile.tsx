@@ -1,35 +1,124 @@
 import { useState, useEffect, useMemo } from 'react';
-import { User, Mail, Phone, MapPin, Camera, Save, X, CreditCard, Building2 } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Camera, CreditCard, Building2, Calendar } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import { DISTRICTS, TALUKAS, GRAM_PANCHAYATS, GAT_GRAM_PANCHAYATS } from '../../assets/data/locations';
 import { Select2, type Select2Option } from '../../components/common';
 import type { ProfileData } from '../../interfaces/dashboard/Profile.types';
+import { commonDdlService } from '../../services/commonDdlService';
+import { config } from '../../config';
+
+const backendBase = config.api.baseUrl.replace(/\/api$/, '');
+
+/** Format a backend date value (ISO / RFC string) to DD-MM-YYYY; '' if missing/invalid */
+const formatDate = (v: unknown): string => {
+  if (v === null || v === undefined || v === '') return '';
+  const d = new Date(v as string);
+  if (Number.isNaN(d.getTime())) return String(v);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${dd}-${mm}-${d.getFullYear()}`;
+};
+
+/** Display names that come straight from the backend (joined) */
+interface ProfileDisplay {
+  district: string;
+  taluka: string;
+  gramPanchayat: string;
+  gatGramPanchayat: string;
+  designation: string;
+  dateOfJoining: string;
+}
 
 const Profile = () => {
   const { toast, ToastContainer } = useToast();
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing] = useState(false);
   const [profileImage, setProfileImage] = useState<string>('/default-avatar.png');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [imgError, setImgError] = useState(false);
+
+  const [profileData, setProfileData] = useState<ProfileData>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    mobileNo: '',
+    aadharCardNo: '',
+    district: '',
+    taluka: '',
+    gramPanchayat: '',
+    gatGramPanchayat: '',
+    address: '',
+    department: '',
+    bio: '',
+  });
+
+  // Names + extra fields resolved by the backend (used for read-only display)
+  const [display, setDisplay] = useState<ProfileDisplay>({
+    district: '',
+    taluka: '',
+    gramPanchayat: '',
+    gatGramPanchayat: '',
+    designation: '',
+    dateOfJoining: '',
+  });
 
   // Set page title
   useEffect(() => {
     document.title = 'Profile - प्रोफाइल';
   }, []);
 
-  const [profileData, setProfileData] = useState<ProfileData>({
-    firstName: 'Admin',
-    lastName: 'User',
-    email: 'admin@grampanchayat.in',
-    mobileNo: '+91 9876543210',
-    aadharCardNo: '1234 5678 9012',
-    district: 'd1',
-    taluka: 't1',
-    gramPanchayat: 'gp1',
-    gatGramPanchayat: 'ggp1',
-    address: 'Village Office, Mundikota',
-    department: 'Administration',
-    bio: 'Dedicated public servant working for the development of Gram Panchayat.',
-  });
+  // Load the logged-in user's real profile
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await commonDdlService.getMyProfile();
+        if (!active) return;
+        const u = (res?.data ?? {}) as Record<string, unknown>;
+        const str = (v: unknown) => (v === null || v === undefined ? '' : String(v));
+
+        setProfileData((prev) => ({
+          ...prev,
+          firstName: str(u.first_name),
+          lastName: str(u.last_name),
+          email: str(u.email),
+          mobileNo: str(u.mobile_no),
+          aadharCardNo: str(u.aadhar_card_no),
+          district: str(u.district_id),
+          taluka: str(u.taluka_id),
+          gramPanchayat: str(u.gram_panchayat_id),
+          gatGramPanchayat: str(u.gat_gram_panchayat_id),
+          address: str(u.address),
+          department: str(u.department),
+          bio: str(u.bio),
+        }));
+
+        setDisplay({
+          district: str(u.district_name),
+          taluka: str(u.taluka_name),
+          gramPanchayat: str(u.gram_panchayat_name),
+          gatGramPanchayat: str(u.gat_gram_panchayat_name),
+          designation: str(u.designation_name),
+          dateOfJoining: formatDate(u.date_of_joning),
+        });
+
+        const img = str(u.profile_image);
+        if (img) setProfileImage(`${backendBase}/${img}`);
+      } catch {
+        if (active) toast.error('प्रोफाइल माहिती मिळवण्यात अयशस्वी / Failed to load profile');
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const initials =
+    `${profileData.firstName?.[0] ?? ''}${profileData.lastName?.[0] ?? ''}`.toUpperCase() || 'U';
+  const hasImage = !!profileImage && profileImage !== '/default-avatar.png';
 
   // Convert data to Select2 options
   const districtOptions: Select2Option[] = useMemo(
@@ -96,57 +185,50 @@ const Profile = () => {
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setIsUploadingImage(true);
+    if (!file) return;
 
-      // Preview the image
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-
-      // Simulate API call to upload profile image
-      try {
-        // TODO: Replace with actual API call
-        // const formData = new FormData();
-        // formData.append('profileImage', file);
-        // await uploadProfileImage(formData);
-
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate upload delay
-
-        setIsUploadingImage(false);
-        toast.success('Profile picture updated successfully! / प्रोफाइल फोटो यशस्वीरित्या अपडेट केला!');
-      } catch (error) {
-        setIsUploadingImage(false);
-        toast.error('Failed to upload profile picture! / प्रोफाइल फोटो अपलोड करण्यात अयशस्वी!');
-      }
-    }
-  };
-
-  const handleSave = () => {
-    // Validation
-    if (!profileData.firstName || !profileData.lastName) {
-      toast.error('Please fill in all required fields! / सर्व आवश्यक फील्ड भरा!');
+    // Basic validation
+    if (!file.type.startsWith('image/')) {
+      toast.error('कृपया वैध इमेज फाइल निवडा / Please select a valid image file');
       return;
     }
 
-    // Save profile data (integrate with your API)
-    // TODO: Call API to update profile
-    setIsEditing(false);
-    toast.success('Profile updated successfully! / प्रोफाइल यशस्वीरित्या अपडेट केले!');
+    setIsUploadingImage(true);
+
+    // Instant local preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImgError(false);
+      setProfileImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    try {
+      // Upload to backend — saves file + updates users.profile_image in DB
+      const res = await commonDdlService.uploadMyProfileImage(file);
+      const savedPath = res?.data?.profile_image;
+      if (res?.success && savedPath) {
+        // Use the persisted path so it survives a refresh
+        setImgError(false);
+        setProfileImage(`${backendBase}/${savedPath}?t=${Date.now()}`);
+        toast.success('प्रोफाइल फोटो यशस्वीरित्या अपडेट केला! / Profile picture updated successfully!');
+      } else {
+        throw new Error(res?.message || 'upload failed');
+      }
+    } catch {
+      toast.error('प्रोफाइल फोटो अपलोड करण्यात अयशस्वी! / Failed to upload profile picture!');
+    } finally {
+      setIsUploadingImage(false);
+      // allow re-selecting the same file again
+      e.target.value = '';
+    }
   };
 
-  const handleCancel = () => {
-    setIsEditing(false);
-    // Reset to original data if needed
-  };
-
-  // Get display names for location fields
-  const getDistrictName = () => DISTRICTS.find(d => d.id === profileData.district)?.name || '';
-  const getTalukaName = () => TALUKAS.find(t => t.id === profileData.taluka)?.name || '';
-  const getGramPanchayatName = () => GRAM_PANCHAYATS.find(gp => gp.id === profileData.gramPanchayat)?.name || '';
-  const getGatGramPanchayatName = () => GAT_GRAM_PANCHAYATS.find(ggp => ggp.id === profileData.gatGramPanchayat)?.name || '';
+  // Get display names for location fields (resolved by backend join)
+  const getDistrictName = () => display.district || DISTRICTS.find(d => d.id === profileData.district)?.name || '';
+  const getTalukaName = () => display.taluka || TALUKAS.find(t => t.id === profileData.taluka)?.name || '';
+  const getGramPanchayatName = () => display.gramPanchayat || GRAM_PANCHAYATS.find(gp => gp.id === profileData.gramPanchayat)?.name || '';
+  const getGatGramPanchayatName = () => display.gatGramPanchayat || GAT_GRAM_PANCHAYATS.find(ggp => ggp.id === profileData.gatGramPanchayat)?.name || '';
 
   return (
     <>
@@ -160,8 +242,14 @@ const Profile = () => {
           </p>
         </div>
 
+        {isLoading && (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+
         {/* Profile Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+        <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden ${isLoading ? 'hidden' : ''}`}>
           {/* Cover Image */}
           <div className="h-32 bg-gradient-to-r from-primary-500 to-primary-700"></div>
 
@@ -170,14 +258,18 @@ const Profile = () => {
             {/* Profile Image */}
             <div className="relative -mt-16 mb-4">
               <div className="relative inline-block">
-                <img
-                  src={profileImage}
-                  alt="Profile"
-                  className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 object-cover bg-gray-200 dark:bg-gray-700"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://ui-avatars.com/api/?name=Admin+User&size=128&background=3b82f6&color=fff';
-                  }}
-                />
+                {hasImage && !imgError ? (
+                  <img
+                    src={profileImage}
+                    alt="Profile"
+                    className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 object-cover bg-gray-200 dark:bg-gray-700"
+                    onError={() => setImgError(true)}
+                  />
+                ) : (
+                  <div className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white text-4xl font-bold select-none">
+                    {initials}
+                  </div>
+                )}
                 <label
                   htmlFor="profile-image"
                   className={`absolute bottom-0 right-0 bg-primary-600 hover:bg-primary-700 text-white p-2 rounded-full cursor-pointer shadow-lg transition-colors ${
@@ -202,35 +294,7 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex justify-end mb-6 gap-2">
-              {!isEditing ? (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium flex items-center gap-2"
-                >
-                  <User className="w-4 h-4" />
-                  Edit Profile / प्रोफाइल संपादित करा
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={handleCancel}
-                    className="px-6 py-2 bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-700 transition-colors font-medium flex items-center gap-2"
-                  >
-                    <X className="w-4 h-4" />
-                    Cancel / रद्द करा
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
-                  >
-                    <Save className="w-4 h-4" />
-                    Save Changes / बदल जतन करा
-                  </button>
-                </>
-              )}
-            </div>
+            <div className="mb-6" />
 
             {/* Profile Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -346,21 +410,11 @@ const Profile = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
                     <Building2 className="w-4 h-4" />
-                    Department / विभाग
+                    Designation / पद
                   </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="department"
-                      value={profileData.department}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    />
-                  ) : (
-                    <p className="text-gray-900 dark:text-gray-100 font-medium">
-                      {profileData.department}
-                    </p>
-                  )}
+                  <p className="text-gray-900 dark:text-gray-100 font-medium">
+                    {display.designation || '-'}
+                  </p>
                 </div>
               </div>
 
@@ -486,23 +540,15 @@ const Profile = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Bio / माहिती
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Date of Joining / रुजू दिनांक
                   </label>
-                  {isEditing ? (
-                    <textarea
-                      name="bio"
-                      value={profileData.bio}
-                      onChange={handleInputChange}
-                      rows={3}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    />
-                  ) : (
-                    <p className="text-gray-900 dark:text-gray-100">
-                      {profileData.bio}
-                    </p>
-                  )}
+                  <p className="text-gray-900 dark:text-gray-100 font-medium">
+                    {display.dateOfJoining || '-'}
+                  </p>
                 </div>
+
               </div>
             </div>
           </div>

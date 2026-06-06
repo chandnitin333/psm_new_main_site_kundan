@@ -11,6 +11,7 @@ const VASULI_ENDPOINTS = {
   CREATE: '/main/vasuli',
   UPDATE: (id: number) => `/main/vasuli/${id}`,
   DELETE: (id: number) => `/main/vasuli/${id}`,
+  STATS: '/main/vasuli/stats',
 } as const;
 
 export interface VasuliListPayload {
@@ -108,6 +109,13 @@ export const vasuliService = {
    */
   delete: async (id: number): Promise<ApiResponse> => {
     return api.delete(VASULI_ENDPOINTS.DELETE(id));
+  },
+
+  /**
+   * Dashboard वसुली stats — year-wise + tax-head-wise collected totals
+   */
+  getStats: async (): Promise<ApiResponse> => {
+    return api.get(VASULI_ENDPOINTS.STATS);
   },
 };
 

@@ -23,6 +23,8 @@ const DDL_ENDPOINTS = {
   WARD_LIST: '/main/common-ddl/ward-list',
   AADHAR_WARD_LIST: '/main/common-ddl/aadhar-ward-list',
   GP_MEMBERS: '/main/common-ddl/gram-panchayat-members',
+  PROFILE: '/main/common-ddl/profile',
+  PROFILE_IMAGE: '/main/common-ddl/profile-image',
 } as const;
 
 export const commonDdlService = {
@@ -150,6 +152,23 @@ export const commonDdlService = {
    */
   getGramPanchayatMembers: async (): Promise<ApiResponse> => {
     return api.get(DDL_ENDPOINTS.GP_MEMBERS);
+  },
+
+  /**
+   * Full profile of the currently logged-in user (real data from DB)
+   */
+  getMyProfile: async (): Promise<ApiResponse> => {
+    return api.get(DDL_ENDPOINTS.PROFILE);
+  },
+
+  /**
+   * Upload / replace the logged-in user's profile image. Updates the DB and
+   * returns the new stored relative path { profile_image }.
+   */
+  uploadMyProfileImage: async (file: File): Promise<ApiResponse<{ profile_image: string }>> => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.upload<{ profile_image: string }>(DDL_ENDPOINTS.PROFILE_IMAGE, fd);
   },
 };
 
