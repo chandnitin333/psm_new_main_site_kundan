@@ -15,6 +15,7 @@ import NotFound from '../pages/NotFound';
 // Dashboard Pages
 import Dashboard from '../pages/dashboard/Dashboard';
 import CategoryDetail from '../pages/dashboard/CategoryDetail';
+import ChaluKhatedar from '../pages/dashboard/ChaluKhatedar';
 import Profile from '../pages/dashboard/Profile';
 import ChangePassword from '../pages/dashboard/ChangePassword';
 import Components from '../pages/dashboard/components/Components';
@@ -387,6 +388,13 @@ export const createRouter = (handleLogout: () => void) =>
       ),
       children: [
         { index: true, element: <Dashboard /> },
+        { path: 'chalu-khatedar', element: <ChaluKhatedar /> },
+        { path: 'adhikrut', element: <ChaluKhatedar title="अधिकृत" prakar="adhikrut" /> },
+        { path: 'indira-awas', element: <ChaluKhatedar title="इंदिरा आवास" prakar="gharkul" /> },
+        { path: 'imlakar', element: <ChaluKhatedar title="इमलाकर" prakar="imlakar" /> },
+        { path: 'ghar-kar', element: <ChaluKhatedar title="घर कर" prakar="gharkar" /> },
+        { path: 'audogyik', element: <ChaluKhatedar title="औद्योगिक" prakar="audogyik" /> },
+        { path: 'manora', element: <ChaluKhatedar title="मनोरा" prakar="manora" /> },
         { path: 'category/:categoryId', element: <CategoryDetail /> },
       ],
     },

@@ -9,6 +9,8 @@ const NODNI_ENDPOINTS = {
   CREATE: '/main/nodni',
   UPDATE: (id: number) => `/main/nodni/${id}`,
   GET_BY_ID: (id: number) => `/main/nodni/${id}`,
+  CHALU_KHATEDAR: '/main/nodni/chalu-khatedar',
+  DASHBOARD_COUNTS: '/main/nodni/dashboard-counts',
   DHARKACHI_YADI: '/main/nodni/dharkachi-yadi',
   TAX_LIST: '/main/nodni/tax-list',
   SEARCH: '/main/malmatta-nodni/search',
@@ -43,6 +45,21 @@ export const nodniService = {
    */
   getById: async (id: number): Promise<ApiResponse> => {
     return api.get(NODNI_ENDPOINTS.GET_BY_ID(id));
+  },
+
+  /**
+   * चालू खातेदार — active account holders (all properties) for the logged-in user
+   */
+  getChaluKhatedar: async (prakar?: string): Promise<ApiResponse> => {
+    const qs = prakar ? `?prakar=${encodeURIComponent(prakar)}` : '';
+    return api.get(`${NODNI_ENDPOINTS.CHALU_KHATEDAR}${qs}`);
+  },
+
+  /**
+   * Dashboard category counts (one query)
+   */
+  getDashboardCounts: async (): Promise<ApiResponse> => {
+    return api.get(NODNI_ENDPOINTS.DASHBOARD_COUNTS);
   },
 
   /**

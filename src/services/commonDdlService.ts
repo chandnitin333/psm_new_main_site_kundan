@@ -22,6 +22,7 @@ const DDL_ENDPOINTS = {
   FERFAR_YADI: '/main/common-ddl/ferfar-yadi',
   WARD_LIST: '/main/common-ddl/ward-list',
   AADHAR_WARD_LIST: '/main/common-ddl/aadhar-ward-list',
+  GP_MEMBERS: '/main/common-ddl/gram-panchayat-members',
 } as const;
 
 export const commonDdlService = {
@@ -142,6 +143,13 @@ export const commonDdlService = {
    */
   getAadharWardList: async (ward: string | number): Promise<ApiResponse> => {
     return api.get(`${DDL_ENDPOINTS.AADHAR_WARD_LIST}?ward=${encodeURIComponent(ward)}`);
+  },
+
+  /**
+   * Gram panchayat members/employees (सरपंच, उपसरपंच, सदस्य) of the logged-in user's GP
+   */
+  getGramPanchayatMembers: async (): Promise<ApiResponse> => {
+    return api.get(DDL_ENDPOINTS.GP_MEMBERS);
   },
 };
 
