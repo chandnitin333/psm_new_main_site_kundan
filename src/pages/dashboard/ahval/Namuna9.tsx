@@ -3,10 +3,15 @@ import Select2 from '../../../components/common/Select2';
 import type { Select2Option } from '../../../components/common/Select2';
 import YearPicker from '../../../components/common/YearPicker';
 import { useLoading } from '../../../contexts/LoadingContext';
-import { commonDdlService } from '../../../services';
+import { useToast } from '../../../hooks/useToast';
+import { commonDdlService, nodniService } from '../../../services';
+import { openReportIfData } from '../../../utils/openReport';
+
+type AnyRow = Record<string, unknown>;
 
 const Namuna9 = () => {
   const { showLoader, hideLoader } = useLoading();
+  const { toast, ToastContainer } = useToast();
 
   const currentYear = new Date().getFullYear();
   const [wardOptions, setWardOptions] = useState<Select2Option[]>([]);
@@ -65,74 +70,40 @@ const Namuna9 = () => {
     { value: 'namuna9_ghoshwara_new', label: 'नमुना 9 घोषवारा न्यू' },
   ];
 
+  // namuna -> { report url, sessionStorage key }
+  const reportMap: Record<string, { url: string; key: string }> = {
+    namuna9: { url: '/view-namuna9-multi', key: 'namuna9Params' },
+    namuna9_ghoshwara_new: { url: '/view-namuna9-ghosvara', key: 'namuna9GhosvaraParams' },
+    namuna9_new: { url: '/view-namuna9-new-multi', key: 'namuna9NewParams' },
+    namuna9_anukramnika: { url: '/view-namuna9-anukramika', key: 'namuna9AnukramikaParams' },
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.namuna) {
-      alert('कृपया नमुना निवडा (Please select a namuna)');
+      toast.error('कृपया नमुना निवडा (Please select a namuna)');
       return;
     }
-    // नमुना ९ (multiple) -> demand register, one block per property
-    if (formData.namuna === 'namuna9') {
-      sessionStorage.setItem(
-        'namuna9Params',
-        JSON.stringify({
-          ward: formData.wardNo,
-          start: formData.start,
-          end: formData.end,
-          year: formData.year,
-        }),
-      );
-      window.open('/view-namuna9-multi', '_blank');
+    // घोषवारा -> ward is compulsory
+    if (formData.namuna === 'namuna9_ghoshwara_new' && !formData.wardNo) {
+      toast.error('कृपया प्रभाग क्रमांक निवडा (Ward is required for घोषवारा)');
       return;
     }
-    // नमुना ९ घोषवारा न्यू -> aggregate summary (ward is COMPULSORY)
-    if (formData.namuna === 'namuna9_ghoshwara_new') {
-      if (!formData.wardNo) {
-        alert('कृपया प्रभाग क्रमांक निवडा (Ward is required for घोषवारा)');
-        return;
-      }
-      sessionStorage.setItem(
-        'namuna9GhosvaraParams',
-        JSON.stringify({
-          ward: formData.wardNo,
-          start: formData.start,
-          end: formData.end,
-          year: formData.year,
-        }),
-      );
-      window.open('/view-namuna9-ghosvara', '_blank');
+    const target = reportMap[formData.namuna];
+    if (!target) {
+      console.log('Form submitted:', formData);
       return;
     }
-    // नमुना ९ न्यू (multiple) -> wide register, one row per property
-    if (formData.namuna === 'namuna9_new') {
-      sessionStorage.setItem(
-        'namuna9NewParams',
-        JSON.stringify({
-          ward: formData.wardNo,
-          start: formData.start,
-          end: formData.end,
-          year: formData.year,
-        }),
-      );
-      window.open('/view-namuna9-new-multi', '_blank');
-      return;
-    }
-    // नमुना ९ अनुक्रमणिका -> index report
-    if (formData.namuna === 'namuna9_anukramnika') {
-      sessionStorage.setItem(
-        'namuna9AnukramikaParams',
-        JSON.stringify({
-          ward: formData.wardNo,
-          start: formData.start,
-          end: formData.end,
-          year: formData.year,
-        }),
-      );
-      window.open('/view-namuna9-anukramika', '_blank');
-      return;
-    }
-    // Other namuna types to be wired later
-    console.log('Form submitted:', formData);
+    openReportIfData({
+      fetcher: async () => {
+        const res = await nodniService.getDharkachiYadi(formData.wardNo, formData.start, formData.end, '', formData.year);
+        return (res.success ? (res.data as AnyRow[]) : []) || [];
+      },
+      url: target.url,
+      sessionKey: target.key,
+      sessionValue: { ward: formData.wardNo, start: formData.start, end: formData.end, year: formData.year },
+      onEmpty: () => toast.error('या निवडीसाठी माहिती उपलब्ध नाही (No data found)'),
+    });
   };
 
   const handleReset = () => {
@@ -148,6 +119,7 @@ const Namuna9 = () => {
 
   return (
     <div className="p-6">
+      <ToastContainer />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           नमुना 9 (Namuna 9)

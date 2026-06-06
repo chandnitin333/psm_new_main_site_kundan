@@ -6,7 +6,8 @@ import type { Column } from '../../../components/common/Table';
 import type { BillWardRecord } from '../../../interfaces/dashboard/ahval';
 import { useLoading } from '../../../contexts/LoadingContext';
 import { useToast } from '../../../hooks/useToast';
-import { commonDdlService } from '../../../services';
+import { commonDdlService, nodniService } from '../../../services';
+import { openReportIfData } from '../../../utils/openReport';
 
 const BillWard = () => {
   const { showLoader, hideLoader } = useLoading();
@@ -94,42 +95,43 @@ const BillWard = () => {
     return d && m && y ? `${d}/${m}/${y}` : v;
   };
 
+  const billParams = (ward: string) => ({
+    ward,
+    start: formData.start,
+    end: formData.end,
+    year: formData.year,
+    toYear: formData.toYear,
+    startDate: fmtDate(formData.deyakDinank),
+    endDate: fmtDate(formData.antimTarik),
+    bharna: formData.bharna,
+  });
+  const fetchWardData = async (ward: string) => {
+    const res = await nodniService.getDharkachiYadi(ward, formData.start, formData.end, '', formData.year);
+    return (res.success ? (res.data as Record<string, unknown>[]) : []) || [];
+  };
+
   // Handle view report for 129(1)
   const handleViewReport129_1 = (row: BillWardRecord) => {
     if (!validateRequired()) return;
-    sessionStorage.setItem(
-      'bill129_1Params',
-      JSON.stringify({
-        ward: row.column129_1, // ward number
-        start: formData.start,
-        end: formData.end,
-        year: formData.year,
-        toYear: formData.toYear,
-        startDate: fmtDate(formData.deyakDinank),
-        endDate: fmtDate(formData.antimTarik),
-        bharna: formData.bharna,
-      }),
-    );
-    window.open('/view-bill-129-1', '_blank');
+    openReportIfData({
+      fetcher: () => fetchWardData(row.column129_1),
+      url: '/view-bill-129-1',
+      sessionKey: 'bill129_1Params',
+      sessionValue: billParams(row.column129_1),
+      onEmpty: () => toast.error('या वार्डसाठी माहिती उपलब्ध नाही (No data found)'),
+    });
   };
 
   // Handle view report for 129(2)
   const handleViewReport129_2 = (row: BillWardRecord) => {
     if (!validateRequired()) return;
-    sessionStorage.setItem(
-      'bill129_2Params',
-      JSON.stringify({
-        ward: row.column129_2, // ward number
-        start: formData.start,
-        end: formData.end,
-        year: formData.year,
-        toYear: formData.toYear,
-        startDate: fmtDate(formData.deyakDinank),
-        endDate: fmtDate(formData.antimTarik),
-        bharna: formData.bharna,
-      }),
-    );
-    window.open('/view-bill-129-2', '_blank');
+    openReportIfData({
+      fetcher: () => fetchWardData(row.column129_2),
+      url: '/view-bill-129-2',
+      sessionKey: 'bill129_2Params',
+      sessionValue: billParams(row.column129_2),
+      onEmpty: () => toast.error('या वार्डसाठी माहिती उपलब्ध नाही (No data found)'),
+    });
   };
 
   // Table columns configuration

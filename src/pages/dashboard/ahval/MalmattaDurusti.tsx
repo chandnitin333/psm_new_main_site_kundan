@@ -3,10 +3,15 @@ import Select2 from '../../../components/common/Select2';
 import type { Select2Option } from '../../../components/common/Select2';
 import YearPicker from '../../../components/common/YearPicker';
 import { useLoading } from '../../../contexts/LoadingContext';
-import { commonDdlService } from '../../../services';
+import { useToast } from '../../../hooks/useToast';
+import { commonDdlService, nodniService } from '../../../services';
+import { openReportIfData } from '../../../utils/openReport';
+
+type AnyRow = Record<string, unknown>;
 
 const MalmattaDurusti = () => {
   const { showLoader, hideLoader } = useLoading();
+  const { toast, ToastContainer } = useToast();
 
   const currentYear = new Date().getFullYear();
   const [formData, setFormData] = useState({
@@ -85,17 +90,17 @@ const MalmattaDurusti = () => {
         khula_bhukhand: 'khula',
         ghar_kar_lavaycha: 'ghar',
       };
-      sessionStorage.setItem(
-        'dharkachiYadiParams',
-        JSON.stringify({
-          ward: formData.wardNo,
-          start: formData.start,
-          end: formData.end,
-          year: formData.year,
-          type: typeMap[formData.yad] || '',
-        }),
-      );
-      window.open('/view-dharkachi-yadi', '_blank');
+      const type = typeMap[formData.yad] || '';
+      openReportIfData({
+        fetcher: async () => {
+          const res = await nodniService.getDharkachiYadi(formData.wardNo, formData.start, formData.end, type, formData.year);
+          return (res.success ? (res.data as AnyRow[]) : []) || [];
+        },
+        url: '/view-dharkachi-yadi',
+        sessionKey: 'dharkachiYadiParams',
+        sessionValue: { ward: formData.wardNo, start: formData.start, end: formData.end, year: formData.year, type },
+        onEmpty: () => toast.error('या निवडीसाठी माहिती उपलब्ध नाही (No data found)'),
+      });
       return;
     }
     console.log('Form submitted:', formData);
@@ -114,6 +119,7 @@ const MalmattaDurusti = () => {
 
   return (
     <div className="p-6">
+      <ToastContainer />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           मालमत्ता दुरुस्ती (Malmatta Durusti)

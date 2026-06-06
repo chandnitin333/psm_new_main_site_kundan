@@ -3,10 +3,15 @@ import Select2 from '../../../components/common/Select2';
 import type { Select2Option } from '../../../components/common/Select2';
 import YearPicker from '../../../components/common/YearPicker';
 import { useLoading } from '../../../contexts/LoadingContext';
-import { commonDdlService } from '../../../services';
+import { useToast } from '../../../hooks/useToast';
+import { commonDdlService, nodniService } from '../../../services';
+import { openReportIfData } from '../../../utils/openReport';
+
+type AnyRow = Record<string, unknown>;
 
 const Namuna8 = () => {
   const { showLoader, hideLoader } = useLoading();
+  const { toast, ToastContainer } = useToast();
 
   const currentYear = new Date().getFullYear();
   const [wardOptions, setWardOptions] = useState<Select2Option[]>([]);
@@ -105,98 +110,38 @@ const Namuna8 = () => {
     { value: 'sarkari_namuna8', label: 'सरकारी नमुना 8' },
   ];
 
+  // namuna -> { report url, sessionStorage key }
+  const reportMap: Record<string, { url: string; key: string }> = {
+    namuna8: { url: '/view-namuna8-multi', key: 'namuna8Params' },
+    sarkari_namuna8: { url: '/view-namuna8-sarkari-multi', key: 'sarkari8Params' },
+    namuna8_ghoshwara: { url: '/view-namuna8-ghosvara', key: 'ghosvaraParams' },
+    namuna8_anukramnika: { url: '/view-namuna8-anukramika', key: 'anukramikaParams' },
+    namuna8_new: { url: '/view-namuna8-new-multi', key: 'namuna8NewParams' },
+    namuna8_images: { url: '/view-namuna8-images-multi', key: 'namuna8ImagesParams' },
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.namuna) {
-      alert('कृपया नमुना निवडा (Please select a namuna)');
+      toast.error('कृपया नमुना निवडा (Please select a namuna)');
       return;
     }
-    // नमुना ८ (multiple) -> same 3-table layout as /namuna-8-1, one block per property
-    if (formData.namuna === 'namuna8') {
-      sessionStorage.setItem(
-        'namuna8Params',
-        JSON.stringify({
-          ward: formData.wardNo,
-          start: formData.start,
-          end: formData.end,
-          year: formData.year,
-        }),
-      );
-      window.open('/view-namuna8-multi', '_blank');
+    const target = reportMap[formData.namuna];
+    if (!target) {
+      console.log('Form submitted:', formData);
       return;
     }
-    // सरकारी नमुना ८ (multiple) -> sarkari layout, one block per property
-    if (formData.namuna === 'sarkari_namuna8') {
-      sessionStorage.setItem(
-        'sarkari8Params',
-        JSON.stringify({
-          ward: formData.wardNo,
-          start: formData.start,
-          end: formData.end,
-          year: formData.year,
-        }),
-      );
-      window.open('/view-namuna8-sarkari-multi', '_blank');
-      return;
-    }
-    // नमुना ८ घोषवारा -> aggregate summary report
-    if (formData.namuna === 'namuna8_ghoshwara') {
-      sessionStorage.setItem(
-        'ghosvaraParams',
-        JSON.stringify({
-          ward: formData.wardNo,
-          start: formData.start,
-          end: formData.end,
-          year: formData.year,
-        }),
-      );
-      window.open('/view-namuna8-ghosvara', '_blank');
-      return;
-    }
-    // नमुना ८ अनुक्रमणिका -> open the anukramika index report
-    if (formData.namuna === 'namuna8_anukramnika') {
-      sessionStorage.setItem(
-        'anukramikaParams',
-        JSON.stringify({
-          ward: formData.wardNo,
-          start: formData.start,
-          end: formData.end,
-          year: formData.year,
-        }),
-      );
-      window.open('/view-namuna8-anukramika', '_blank');
-      return;
-    }
-    // नमुना 8 न्यू (multiple) -> नमुना ८ नियम ३२(१), one block per property
-    if (formData.namuna === 'namuna8_new') {
-      sessionStorage.setItem(
-        'namuna8NewParams',
-        JSON.stringify({
-          ward: formData.wardNo,
-          start: formData.start,
-          end: formData.end,
-          year: formData.year,
-        }),
-      );
-      window.open('/view-namuna8-new-multi', '_blank');
-      return;
-    }
-    // नमुना 8 इमेजेस (multiple) -> नमुना ८ + property image, one block per property
-    if (formData.namuna === 'namuna8_images') {
-      sessionStorage.setItem(
-        'namuna8ImagesParams',
-        JSON.stringify({
-          ward: formData.wardNo,
-          start: formData.start,
-          end: formData.end,
-          year: formData.year,
-        }),
-      );
-      window.open('/view-namuna8-images-multi', '_blank');
-      return;
-    }
-    // Other namuna types to be wired later
-    console.log('Form submitted:', formData);
+    // all namuna 8 reports read this property list — open only if data exists
+    openReportIfData({
+      fetcher: async () => {
+        const res = await nodniService.getDharkachiYadi(formData.wardNo, formData.start, formData.end, '', formData.year);
+        return (res.success ? (res.data as AnyRow[]) : []) || [];
+      },
+      url: target.url,
+      sessionKey: target.key,
+      sessionValue: { ward: formData.wardNo, start: formData.start, end: formData.end, year: formData.year },
+      onEmpty: () => toast.error('या निवडीसाठी माहिती उपलब्ध नाही (No data found)'),
+    });
   };
 
   const handleReset = () => {
@@ -214,6 +159,7 @@ const Namuna8 = () => {
 
   return (
     <div className="p-6">
+      <ToastContainer />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           नमुना 8 (Namuna 8)

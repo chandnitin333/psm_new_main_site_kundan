@@ -3,10 +3,15 @@ import Select2 from '../../../components/common/Select2';
 import type { Select2Option } from '../../../components/common/Select2';
 import YearPicker from '../../../components/common/YearPicker';
 import { useLoading } from '../../../contexts/LoadingContext';
-import { commonDdlService } from '../../../services';
+import { useToast } from '../../../hooks/useToast';
+import { commonDdlService, nodniService } from '../../../services';
+import { openReportIfData } from '../../../utils/openReport';
+
+type AnyRow = Record<string, unknown>;
 
 const ImlaKar = () => {
   const { showLoader, hideLoader } = useLoading();
+  const { toast, ToastContainer } = useToast();
 
   const currentYear = new Date().getFullYear();
   const [wardOptions, setWardOptions] = useState<Select2Option[]>([]);
@@ -104,32 +109,26 @@ const ImlaKar = () => {
       alert('कृपया इमला कर निवडा (Please select Imla Kar)');
       return;
     }
+    const params = { ward: formData.wardNo, start: formData.start, end: formData.end, year: formData.year };
+    // both इमलाकर reports use only इमलाकर properties — pre-check before opening
+    const fetchImla = async () => {
+      const res = await nodniService.getDharkachiYadi(formData.wardNo, formData.start, formData.end, '', formData.year);
+      const all = (res.success ? (res.data as AnyRow[]) : []) || [];
+      return all.filter((n) => {
+        const v = String(n.milkat_prakar ?? '').trim().toLowerCase();
+        return v === 'imlakar' || v === 'इमलाकर';
+      });
+    };
+    const noData = () => toast.error('या निवडीसाठी माहिती उपलब्ध नाही (No data found)');
+
     // इमलाकर -> इमलाकर मोजमाप यादी report
     if (formData.imlakar === 'imlakar') {
-      sessionStorage.setItem(
-        'imlakarParams',
-        JSON.stringify({
-          ward: formData.wardNo,
-          start: formData.start,
-          end: formData.end,
-          year: formData.year,
-        }),
-      );
-      window.open('/view-imlakar', '_blank');
+      openReportIfData({ fetcher: fetchImla, url: '/view-imlakar', sessionKey: 'imlakarParams', sessionValue: params, onEmpty: noData });
       return;
     }
     // इमलाकर- अनुक्रमणिका -> इमलाकार अनुक्रमणिका index report
     if (formData.imlakar === 'imlakarannukramanika') {
-      sessionStorage.setItem(
-        'imlakarAnukramikaParams',
-        JSON.stringify({
-          ward: formData.wardNo,
-          start: formData.start,
-          end: formData.end,
-          year: formData.year,
-        }),
-      );
-      window.open('/view-imlakar-anukramika', '_blank');
+      openReportIfData({ fetcher: fetchImla, url: '/view-imlakar-anukramika', sessionKey: 'imlakarAnukramikaParams', sessionValue: params, onEmpty: noData });
       return;
     }
     console.log('Form submitted:', formData);
@@ -150,6 +149,7 @@ const ImlaKar = () => {
 
   return (
     <div className="p-6">
+      <ToastContainer />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           इमला कर (Imla Kar)
