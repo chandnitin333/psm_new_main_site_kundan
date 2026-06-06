@@ -3,15 +3,18 @@ import Select2 from '../../../components/common/Select2';
 import type { Select2Option } from '../../../components/common/Select2';
 import YearPicker from '../../../components/common/YearPicker';
 import { useLoading } from '../../../contexts/LoadingContext';
+import { commonDdlService } from '../../../services';
 
 const Namuna8 = () => {
   const { showLoader, hideLoader } = useLoading();
 
+  const currentYear = new Date().getFullYear();
+  const [wardOptions, setWardOptions] = useState<Select2Option[]>([]);
   const [formData, setFormData] = useState({
     namuna: '',
     wardNo: '',
-    year: '',
-    toYear: '',
+    year: String(currentYear),       // default to current year on load
+    toYear: String(currentYear + 1),
     year_1: '',
     toYear_1: '',
     start: '',
@@ -70,13 +73,24 @@ const Namuna8 = () => {
     }
   }, [formData.year_1]);
 
-  // Auto-load page with loader
+  // Auto-load page + fetch dynamic wards
   useEffect(() => {
     document.title = 'Namuna 8 - नमुना ८';
     const loadPage = async () => {
       showLoader('पृष्ठ लोड होत आहे... (Loading page...)');
-      await new Promise(resolve => setTimeout(resolve, 800));
-      hideLoader();
+      try {
+        const res = await commonDdlService.getWards();
+        if (res.success) {
+          const opts = ((res.data as { ward_number: string | number }[]) || [])
+            .filter((w) => w.ward_number !== null && w.ward_number !== undefined && w.ward_number !== '')
+            .map((w) => ({ value: String(w.ward_number), label: `प्रभाग ${w.ward_number}` }));
+          setWardOptions(opts);
+        }
+      } catch (e) {
+        console.error('Failed to load wards', e);
+      } finally {
+        hideLoader();
+      }
     };
     loadPage();
   }, []);
@@ -91,29 +105,106 @@ const Namuna8 = () => {
     { value: 'sarkari_namuna8', label: 'सरकारी नमुना 8' },
   ];
 
-  const wardOptions: Select2Option[] = [
-    { value: '1', label: 'प्रभाग 1' },
-    { value: '2', label: 'प्रभाग 2' },
-    { value: '3', label: 'प्रभाग 3' },
-    { value: '4', label: 'प्रभाग 4' },
-    { value: '5', label: 'प्रभाग 5' },
-    { value: '6', label: 'प्रभाग 6' },
-    { value: '7', label: 'प्रभाग 7' },
-    { value: '8', label: 'प्रभाग 8' },
-  ];
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.namuna) {
+      alert('कृपया नमुना निवडा (Please select a namuna)');
+      return;
+    }
+    // नमुना ८ (multiple) -> same 3-table layout as /namuna-8-1, one block per property
+    if (formData.namuna === 'namuna8') {
+      sessionStorage.setItem(
+        'namuna8Params',
+        JSON.stringify({
+          ward: formData.wardNo,
+          start: formData.start,
+          end: formData.end,
+          year: formData.year,
+        }),
+      );
+      window.open('/view-namuna8-multi', '_blank');
+      return;
+    }
+    // सरकारी नमुना ८ (multiple) -> sarkari layout, one block per property
+    if (formData.namuna === 'sarkari_namuna8') {
+      sessionStorage.setItem(
+        'sarkari8Params',
+        JSON.stringify({
+          ward: formData.wardNo,
+          start: formData.start,
+          end: formData.end,
+          year: formData.year,
+        }),
+      );
+      window.open('/view-namuna8-sarkari-multi', '_blank');
+      return;
+    }
+    // नमुना ८ घोषवारा -> aggregate summary report
+    if (formData.namuna === 'namuna8_ghoshwara') {
+      sessionStorage.setItem(
+        'ghosvaraParams',
+        JSON.stringify({
+          ward: formData.wardNo,
+          start: formData.start,
+          end: formData.end,
+          year: formData.year,
+        }),
+      );
+      window.open('/view-namuna8-ghosvara', '_blank');
+      return;
+    }
+    // नमुना ८ अनुक्रमणिका -> open the anukramika index report
+    if (formData.namuna === 'namuna8_anukramnika') {
+      sessionStorage.setItem(
+        'anukramikaParams',
+        JSON.stringify({
+          ward: formData.wardNo,
+          start: formData.start,
+          end: formData.end,
+          year: formData.year,
+        }),
+      );
+      window.open('/view-namuna8-anukramika', '_blank');
+      return;
+    }
+    // नमुना 8 न्यू (multiple) -> नमुना ८ नियम ३२(१), one block per property
+    if (formData.namuna === 'namuna8_new') {
+      sessionStorage.setItem(
+        'namuna8NewParams',
+        JSON.stringify({
+          ward: formData.wardNo,
+          start: formData.start,
+          end: formData.end,
+          year: formData.year,
+        }),
+      );
+      window.open('/view-namuna8-new-multi', '_blank');
+      return;
+    }
+    // नमुना 8 इमेजेस (multiple) -> नमुना ८ + property image, one block per property
+    if (formData.namuna === 'namuna8_images') {
+      sessionStorage.setItem(
+        'namuna8ImagesParams',
+        JSON.stringify({
+          ward: formData.wardNo,
+          start: formData.start,
+          end: formData.end,
+          year: formData.year,
+        }),
+      );
+      window.open('/view-namuna8-images-multi', '_blank');
+      return;
+    }
+    // Other namuna types to be wired later
     console.log('Form submitted:', formData);
-    // Add your submit logic here
   };
 
   const handleReset = () => {
     setFormData({
       namuna: '',
       wardNo: '',
-      year: '',
-      toYear: '',
+      year: String(currentYear),
+      toYear: String(currentYear + 1),
       year_1: '',
       toYear_1: '',
       start: '',

@@ -1,0 +1,299 @@
+import { useEffect, useState } from 'react';
+import { nodniService } from '../../../services';
+
+/* नमुना ८ नवीन आवृत्ती (multiple) — नमुना ८ नियम ३२(१), one block per property/page.
+   Filters via sessionStorage 'namuna8NewParams' from the Namuna 8 ahval page. */
+
+type Row = Record<string, unknown>;
+const s = (v: unknown) => (v === null || v === undefined ? '' : String(v));
+const f = (v: unknown) => {
+  if (v === null || v === undefined || v === '') return '';
+  const num = Number(v);
+  return isNaN(num) ? String(v) : num.toFixed(2);
+};
+
+const sqmOf = (it: Row) => Number(it.ekun_shetrafal_choras_foot || 0) * 0.092903;
+const landBhandvali = (it: Row) => sqmOf(it) * Number(it.jaminiche_varshik_mulya || 0);
+const consBhandvali = (it: Row) =>
+  sqmOf(it) * Number(it.imaratiche_varshik_mulya || 0) * Number(it.bharank || 0);
+const manoraKar = (it: Row) =>
+  Number(it.ekun_shetrafal_choras_foot || 0) * Number(it.aakarani_dar || 0) * (Number(it.majla) || 1);
+
+const td = 'border border-black px-0.5 py-0.5 text-[9px] align-middle text-center';
+const tdL = 'border border-black px-0.5 py-0.5 text-[9px] align-middle text-left';
+const th = 'border border-black px-0.5 py-0.5 text-[8.5px] align-middle text-center font-bold bg-gray-100';
+const thv = `${th} n8n-vert`;
+const tdv = `${td} n8n-vert`;
+const colW = [30, 26, 26, 40, 80, 80, 110, 26, 50, 24, 24, 24, 24, 24, 26, 24, 38, 24, 24, 26, 40, 38, 24, 24, 24, 40, 60];
+const tableW = colW.reduce((x, y) => x + y, 0);
+const sumBase = Math.floor(tableW / 6);
+const sumW = [sumBase, sumBase, sumBase, sumBase, sumBase, tableW - sumBase * 5];
+
+const area = (it: Row) => (
+  <>{f(sqmOf(it))}<br />( {s(it.ekun_shetrafal_choras_foot)} चौ,फू )</>
+);
+const dims = (it: Row) => `( लांबी ${s(it.shetrafal_purv_paschim_foot)} x रुंदी ${s(it.shetrafal_uttar_dakshin_foot)} )`;
+
+const RecordBlock = ({ n, loc, cy }: { n: Row; loc: { district: string; taluka: string; gramPanchayat: string }; cy: number }) => {
+  const land = (n.khula_bhukhand_kar_aakarani as Row[]) || [];
+  const cons = (n.bandkamachi_kar_aakarani as Row[]) || [];
+  const manora = (n.manoryache_kar_aakarani as Row[]) || [];
+  const landRows = land.length ? land : [{} as Row];
+  const otherTax = (n.other_tax_calculation as Row[]) || [];
+  const taxAmt = (id: number) => {
+    const r = otherTax.find((t) => Number(t.tax_id) === id);
+    return r && r.tax_rate != null ? Number(r.tax_rate) : 0;
+  };
+  const gruhkarAmt = Number(n.gruhkar_v_bhumikar || 0);
+  const vizAmt = taxAmt(1);
+  const aarogyaAmt = taxAmt(2);
+  const safaiAmt = taxAmt(3);
+  const samanyaPaniAmt = taxAmt(4);
+  const visheshPaniAmt = taxAmt(5);
+  const paniAmt = samanyaPaniAmt !== 0 ? samanyaPaniAmt : visheshPaniAmt;
+
+  return (
+    <div className="n8nm-page mx-auto" style={{ width: `${tableW}px` }}>
+      <div className="text-center">
+        <p className="font-bold text-base">नमुना ८ नियम ३२ (१)</p>
+        <p className="text-sm">सन. {cy}-{cy + 1} साठी कर आकारणी नोंदवही (वैयक्तिक असेसमेंट उतारा पाहण्याकरीता)</p>
+      </div>
+      <div className="flex justify-between text-xs mt-1 mb-1">
+        <span>ग्रामपंचायत :- {loc.gramPanchayat}</span>
+        <span>तालुका :- {loc.taluka}</span>
+        <span>जिल्हा :- {loc.district}</span>
+        <span>वार्ड नं. {s(n.ward_kramnak)}</span>
+      </div>
+
+      <table className="table-fixed border-collapse" style={{ width: `${tableW}px` }}>
+        <colgroup>{colW.map((w, i) => <col key={i} style={{ width: `${w}px` }} />)}</colgroup>
+        <thead>
+          <tr>
+            <th className={th} rowSpan={2}>अ.क्र.</th>
+            <th className={thv} rowSpan={2}>रस्त्याचे नाव गल्लीचे नाव</th>
+            <th className={thv} rowSpan={2}>गट क्र. भूमापन क्र.</th>
+            <th className={th} rowSpan={2}>मालमत्ता क्रमांक</th>
+            <th className={th} rowSpan={2}>मालकाचे नाव (धारण करणाऱ्याचे नाव)</th>
+            <th className={th} rowSpan={2}>भोगवटा करणाऱ्याचे नाव</th>
+            <th className={th} rowSpan={2}>मालमत्तेचे वर्णन</th>
+            <th className={thv} rowSpan={2}>मिळकत बांधकामाचे वर्ष (वयोमान वर्षामध्ये)</th>
+            <th className={th} rowSpan={2}>क्षेत्रफळ चौ मी / (चौ.फू)</th>
+            <th className={th} colSpan={3}>रेडीरेकनर दर प्रति चौ मी</th>
+            <th className={thv} rowSpan={2}>घसारा</th>
+            <th className={thv} rowSpan={2}>इ. वापरानुसार भारांक</th>
+            <th className={thv} rowSpan={2}>भांडवली मूल्य</th>
+            <th className={thv} rowSpan={2}>कराचा दर</th>
+            <th className={th} colSpan={5}>वार्षिक कराची रक्कम (रुपयात)</th>
+            <th className={th} colSpan={5}>अपीलाचे निकाल व त्यावर केलेले फेरफार</th>
+            <th className={th} rowSpan={2}>नंतर वाढ किंवा घट झालेल्या बाबतीत आदेशाच्या संदर्भात शेरा</th>
+          </tr>
+          <tr>
+            <th className={thv}>जमीन</th>
+            <th className={thv}>इमारत</th>
+            <th className={thv}>बांधकाम</th>
+            <th className={th}>इमारत कर</th>
+            <th className={thv}>दिवाबत्ती कर</th>
+            <th className={thv}>आरोग्य कर</th>
+            <th className={thv}>सार्व/खास पा.पट्टी</th>
+            <th className={th}>एकूण</th>
+            <th className={th}>इमारत कर</th>
+            <th className={thv}>दिवाबत्ती कर</th>
+            <th className={thv}>आरोग्य कर</th>
+            <th className={thv}>सार्व. पा. पट्टी</th>
+            <th className={thv}>एकूण</th>
+          </tr>
+          <tr>
+            {Array.from({ length: 27 }).map((_, i) => (
+              <th key={i} className={th}>{i + 1}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {landRows.map((it, i) => (
+            <tr key={`l${i}`}>
+              <td className={td}>{i === 0 ? s(n.anu_kramank) : ''}</td>
+              <td className={td} />
+              <td className={td} />
+              <td className={td}>{i === 0 ? s(n.malmatta_number) : ''}</td>
+              <td className={tdL}>{i === 0 ? s(n.ghar_malkache_nav) : ''}</td>
+              <td className={tdL}>{i === 0 ? s(n.bhogavat_darache_nav) : ''}</td>
+              <td className={tdL}>{s(it.malmatteche_varnan_name)}</td>
+              <td className={td} />
+              <td className={td}>{area(it)}</td>
+              <td className={tdv}>{s(it.jaminiche_varshik_mulya)}</td>
+              <td className={td} />
+              <td className={td} />
+              <td className={td} />
+              <td className={td} />
+              <td className={tdv}>{f(landBhandvali(it))}</td>
+              <td className={tdv}>{s(it.aakarani_dar)}</td>
+              <td className={td}>{f(landBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
+              <td className={td} /><td className={td} /><td className={td} /><td className={td} />
+              <td className={td} /><td className={td} /><td className={td} /><td className={td} /><td className={td} />
+              <td className={td} />
+            </tr>
+          ))}
+          {cons.map((it, i) => (
+            <tr key={`c${i}`}>
+              <td className={td} /><td className={td} /><td className={td} /><td className={td} /><td className={td} /><td className={td} />
+              <td className={tdL}>
+                {s(it.malmatteche_varnan_name)}, {s(it.vapar_prakar)}, {s(it.bandkam_majla_name)}<br />{dims(it)}
+              </td>
+              <td className={tdv}>{s(it.vayoman)}</td>
+              <td className={td}>{area(it)}</td>
+              <td className={td} />
+              <td className={td} />
+              <td className={tdv}>{s(it.imaratiche_varshik_mulya)}</td>
+              <td className={tdv}>{s(it.ghasara_dar)}</td>
+              <td className={tdv}>{s(it.bharank)}</td>
+              <td className={tdv}>{f(consBhandvali(it))}</td>
+              <td className={tdv}>{s(it.aakarani_dar)}</td>
+              <td className={td}>{f(consBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
+              <td className={td} /><td className={td} /><td className={td} /><td className={td} />
+              <td className={td} /><td className={td} /><td className={td} /><td className={td} /><td className={td} />
+              <td className={td} />
+            </tr>
+          ))}
+          {manora.map((it, i) => (
+            <tr key={`m${i}`}>
+              <td className={td} /><td className={td} /><td className={td} /><td className={td} /><td className={td} /><td className={td} />
+              <td className={tdL}>
+                {s(it.vapar_prakar)}, {s(it.manoryache_bhag_name)}<br />{dims(it)}
+              </td>
+              <td className={td} />
+              <td className={td}>{area(it)}</td>
+              <td className={td} /><td className={td} /><td className={td} /><td className={td} /><td className={td} /><td className={td} />
+              <td className={tdv}>{s(it.aakarani_dar)}</td>
+              <td className={td}>{f(manoraKar(it))}</td>
+              <td className={td} /><td className={td} /><td className={td} /><td className={td} />
+              <td className={td} /><td className={td} /><td className={td} /><td className={td} /><td className={td} />
+              <td className={td} />
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <table className="table-fixed border-collapse mt-2" style={{ width: `${tableW}px` }}>
+        <colgroup>{sumW.map((w, i) => <col key={i} style={{ width: `${w}px` }} />)}</colgroup>
+        <thead>
+          <tr>
+            <th className={th}>एकूण इमारत कर</th>
+            <th className={th}>एकूण दिवाबत्ती कर</th>
+            <th className={th}>एकूण आरोग्य कर</th>
+            <th className={th}>एकूण पाणीपट्टी</th>
+            <th className={th}>एकूण पडसर कर</th>
+            <th className={th}>एकूण कराची रक्कम</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td className={td}>{f(gruhkarAmt)}</td>
+            <td className={td}>{f(vizAmt)}</td>
+            <td className={td}>{f(aarogyaAmt)}</td>
+            <td className={td}>{f(paniAmt)}</td>
+            <td className={td}>{f(safaiAmt)}</td>
+            <td className={td}>{f(n.ekun_kar_bharne)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div className="text-[10px] leading-snug mt-2 space-y-1">
+        <p>1. सदरचा उतारा हा मालकी हक्काचा नसून कर आकारणीचा आहे, सदरच्या उताऱ्यावरून खरेदी विक्रीचा व्यवहार झालेस त्यास ग्रामपंचायत जबाबदार राहणार नाही.</p>
+        <p>2. शासन परिपत्रक क्र VTM२६०३/ प्र.क्र. २०६८ / पं.रा. ४ दि २० नोव्हेंबर २०२३ नुसार ग्रामीण भागातील घरांची नोंदणी पती-पत्नी यांच्या संयुक्त नावे करण्याबाबत निर्देशित करण्यात आलेले आहे.</p>
+        <p className="text-red-600">3. सदर वैयक्तिक असेसमेंट उतारा पाहण्याकरीता आपणास सादर करण्याकरीता देण्यात आलेला आहे.</p>
+      </div>
+      <div className="text-right text-sm mt-2">पान नंबर : {s(n.anu_kramank)}</div>
+    </div>
+  );
+};
+
+const Namuna8NewMultiReport = () => {
+  const [records, setRecords] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [reportYear, setReportYear] = useState<number>(new Date().getFullYear());
+  const [zoom, setZoom] = useState(1.3); // SCREEN-only default zoom (130%); does not affect print
+  const [loc] = useState(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      return {
+        district: u.district || u.district_name || u.jilha || '',
+        taluka: u.taluka || u.taluka_name || u.tahsil || '',
+        gramPanchayat: u.gram_panchayat || u.gramPanchayat || u.gram_panchayat_name || '',
+      };
+    } catch {
+      return { district: '', taluka: '', gramPanchayat: '' };
+    }
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.remove('dark');
+    document.body.classList.remove('dark');
+    document.title = 'नमुना ८ नवीन आवृत्ती';
+    let params: { ward?: string; start?: string; end?: string; year?: string } = {};
+    try {
+      params = JSON.parse(sessionStorage.getItem('namuna8NewParams') || '{}');
+    } catch {
+      params = {};
+    }
+    if (params.year && !isNaN(Number(params.year))) setReportYear(Number(params.year));
+    (async () => {
+      try {
+        const res = await nodniService.getDharkachiYadi(params.ward, params.start, params.end, '', params.year);
+        if (res.success) setRecords((res.data as Row[]) || []);
+      } catch (e) {
+        console.error('Failed to load namuna-8-new multi', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  return (
+    <div className="n8nm-report bg-white text-black p-4" style={{ colorScheme: 'light' }}>
+      <style>{`
+        html, body { background: #fff !important; }
+        .n8nm-report { min-height: 100vh; background: #fff; }
+        .n8n-vert { writing-mode: vertical-rl; text-orientation: mixed; white-space: nowrap; }
+        @media print {
+          @page { size: A4 landscape; margin: 6mm; }
+          html, body { background: #fff !important; }
+          .no-print { display: none !important; }
+          .n8nm-report { zoom: 0.9; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .n8nm-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
+          .n8nm-zoom { zoom: 1 !important; }   /* ignore screen zoom while printing */
+          .n8nm-page { page-break-after: always; }
+          .n8nm-page:last-child { page-break-after: auto; }
+        }`}</style>
+
+      <div className="no-print mb-4 flex items-center gap-3">
+        <button
+          onClick={() => window.print()}
+          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium shadow-sm transition-colors"
+        >
+          🖨️ Print / Save as PDF
+        </button>
+        <div className="flex items-center gap-1 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
+          <span className="px-2 text-sm font-medium text-gray-500 select-none">Zoom</span>
+          <button onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.1).toFixed(2)))} className="flex h-8 w-8 items-center justify-center rounded text-lg font-bold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors" title="Zoom out">−</button>
+          <span className="w-14 text-center text-sm font-semibold text-gray-700 tabular-nums select-none">{Math.round(zoom * 100)}%</span>
+          <button onClick={() => setZoom((z) => Math.min(2.5, +(z + 0.1).toFixed(2)))} className="flex h-8 w-8 items-center justify-center rounded text-lg font-bold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors" title="Zoom in">+</button>
+          <button onClick={() => setZoom(1)} className="ml-1 h-8 rounded px-3 text-xs font-medium text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors" title="Reset zoom">Reset</button>
+        </div>
+      </div>
+
+      <div className="n8nm-wrap overflow-x-auto">
+        <div className="n8nm-zoom space-y-10 print:space-y-0" style={{ zoom }}>
+          {records.length === 0 ? (
+            <p className="text-center text-gray-500 py-10">
+              {loading ? 'लोड होत आहे...' : 'या निवडीसाठी माहिती उपलब्ध नाही'}
+            </p>
+          ) : (
+            records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} cy={reportYear} />)
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Namuna8NewMultiReport;

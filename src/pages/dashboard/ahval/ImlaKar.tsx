@@ -3,15 +3,18 @@ import Select2 from '../../../components/common/Select2';
 import type { Select2Option } from '../../../components/common/Select2';
 import YearPicker from '../../../components/common/YearPicker';
 import { useLoading } from '../../../contexts/LoadingContext';
+import { commonDdlService } from '../../../services';
 
 const ImlaKar = () => {
   const { showLoader, hideLoader } = useLoading();
 
+  const currentYear = new Date().getFullYear();
+  const [wardOptions, setWardOptions] = useState<Select2Option[]>([]);
   const [formData, setFormData] = useState({
     imlakar: '',
     wardNo: '',
-    year: '',
-    toYear: '',
+    year: String(currentYear),       // default to current year
+    toYear: String(currentYear + 1),
     year_1: '',
     toYear_1: '',
     start: '',
@@ -67,39 +70,68 @@ const ImlaKar = () => {
     }
   }, [formData.year_1]);
 
-  // Auto-load page with loader
+  // Auto-load page + fetch dynamic wards
   useEffect(() => {
     document.title = 'Imla Kar - इमला कर';
     const loadPage = async () => {
       showLoader('पृष्ठ लोड होत आहे... (Loading page...)');
-      await new Promise(resolve => setTimeout(resolve, 800));
-      hideLoader();
+      try {
+        const res = await commonDdlService.getWards();
+        if (res.success) {
+          const opts = ((res.data as { ward_number: string | number }[]) || [])
+            .filter((w) => w.ward_number !== null && w.ward_number !== undefined && w.ward_number !== '')
+            .map((w) => ({ value: String(w.ward_number), label: `प्रभाग ${w.ward_number}` }));
+          setWardOptions(opts);
+        }
+      } catch (e) {
+        console.error('Failed to load wards', e);
+      } finally {
+        hideLoader();
+      }
     };
     loadPage();
   }, []);
 
-  // Imlakar dropdown options
+  // इमला कर dropdown options (same as old imla-kar-form-new)
   const imlakarOptions: Select2Option[] = [
-    { value: 'imlakar_1', label: 'इमलाकर 1' },
-    { value: 'imlakar_2', label: 'इमलाकर 2' },
-    { value: 'imlakar_3', label: 'इमलाकर 3' },
-    { value: 'imlakar_4', label: 'इमलाकर 4' },
-  ];
-
-  // Ward dropdown options (1-8)
-  const wardOptions: Select2Option[] = [
-    { value: '1', label: 'प्रभाग 1' },
-    { value: '2', label: 'प्रभाग 2' },
-    { value: '3', label: 'प्रभाग 3' },
-    { value: '4', label: 'प्रभाग 4' },
-    { value: '5', label: 'प्रभाग 5' },
-    { value: '6', label: 'प्रभाग 6' },
-    { value: '7', label: 'प्रभाग 7' },
-    { value: '8', label: 'प्रभाग 8' },
+    { value: 'imlakar', label: 'इमलाकर' },
+    { value: 'imlakarannukramanika', label: 'इमलाकर- अनुक्रमणिका' },
   ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.imlakar) {
+      alert('कृपया इमला कर निवडा (Please select Imla Kar)');
+      return;
+    }
+    // इमलाकर -> इमलाकर मोजमाप यादी report
+    if (formData.imlakar === 'imlakar') {
+      sessionStorage.setItem(
+        'imlakarParams',
+        JSON.stringify({
+          ward: formData.wardNo,
+          start: formData.start,
+          end: formData.end,
+          year: formData.year,
+        }),
+      );
+      window.open('/view-imlakar', '_blank');
+      return;
+    }
+    // इमलाकर- अनुक्रमणिका -> इमलाकार अनुक्रमणिका index report
+    if (formData.imlakar === 'imlakarannukramanika') {
+      sessionStorage.setItem(
+        'imlakarAnukramikaParams',
+        JSON.stringify({
+          ward: formData.wardNo,
+          start: formData.start,
+          end: formData.end,
+          year: formData.year,
+        }),
+      );
+      window.open('/view-imlakar-anukramika', '_blank');
+      return;
+    }
     console.log('Form submitted:', formData);
   };
 
@@ -107,8 +139,8 @@ const ImlaKar = () => {
     setFormData({
       imlakar: '',
       wardNo: '',
-      year: '',
-      toYear: '',
+      year: String(currentYear),
+      toYear: String(currentYear + 1),
       year_1: '',
       toYear_1: '',
       start: '',

@@ -8,11 +8,12 @@ import { commonDdlService } from '../../../services';
 const MalmattaDurusti = () => {
   const { showLoader, hideLoader } = useLoading();
 
+  const currentYear = new Date().getFullYear();
   const [formData, setFormData] = useState({
     yad: '',
     wardNo: '',
-    year: '',
-    year_1: '',
+    year: String(currentYear),       // default to current year on load
+    year_1: String(currentYear + 1),
     start: '',
     end: '',
   });

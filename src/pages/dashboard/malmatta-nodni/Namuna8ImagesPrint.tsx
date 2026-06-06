@@ -136,7 +136,7 @@ const Namuna8ImagesPrint = () => {
         <div className="text-center">
           <p className="font-bold text-lg">नमुना ८</p>
           <p className="text-sm">
-            सन {cy}-{cy + 1} ते {cy + 2}-{cy + 3} या वर्षासाठी करास पात्र असलेल्या इमारती व जमिनी (खुला भूखंड) यांची कर आकारणी नोंदवही.
+            सन {cy}-{cy + 1} ते {cy + 3}-{cy + 4} या वर्षासाठी करास पात्र असलेल्या इमारती व जमिनी (खुला भूखंड) यांची कर आकारणी नोंदवही.
           </p>
           <p className="text-sm">सदर नोंद ग्रामपंचायत नमुना ८ पान क्रमांक __{s(n.anu_kramank)}__ वरून घेण्यात आली</p>
         </div>

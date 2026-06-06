@@ -91,7 +91,6 @@ export const DASHBOARD_MENU_ITEMS: MenuItem[] = [
       { id: 'ahval-malmatta-durusti', label: 'Malmatta Durusti Yadi', path: '/ahval/malmatta-durusti' },
       { id: 'ahval-namuna8', label: 'Namuna 8', path: '/ahval/namuna8' },
       { id: 'ahval-namuna9', label: 'Namuna 9', path: '/ahval/namuna9' },
-      { id: 'ahval-bill', label: 'Karanchya Magniche Bill', path: '/ahval/bill' },
       { id: 'ahval-bill-ward', label: 'Karanchya Magniche Bill Ward New', path: '/ahval/bill-ward' },
       { id: 'ahval-namuna10', label: 'Namuna 10', path: '/ahval/namuna10' },
       { id: 'ahval-imla-kar', label: 'Imla Kar', path: '/ahval/imla-kar' }

@@ -3,15 +3,18 @@ import Select2 from '../../../components/common/Select2';
 import type { Select2Option } from '../../../components/common/Select2';
 import YearPicker from '../../../components/common/YearPicker';
 import { useLoading } from '../../../contexts/LoadingContext';
+import { commonDdlService } from '../../../services';
 
 const Namuna9 = () => {
   const { showLoader, hideLoader } = useLoading();
 
+  const currentYear = new Date().getFullYear();
+  const [wardOptions, setWardOptions] = useState<Select2Option[]>([]);
   const [formData, setFormData] = useState({
     namuna: '',
     wardNo: '',
-    year: '',
-    year_1: '',
+    year: String(currentYear),       // default to current year on load
+    year_1: String(currentYear + 1),
     start: '',
     end: '',
   });
@@ -32,13 +35,24 @@ const Namuna9 = () => {
     }
   }, [formData.year]);
 
-  // Auto-load page with loader
+  // Auto-load page + fetch dynamic wards
   useEffect(() => {
     document.title = 'Namuna 9 - नमुना ९';
     const loadPage = async () => {
       showLoader('पृष्ठ लोड होत आहे... (Loading page...)');
-      await new Promise(resolve => setTimeout(resolve, 800));
-      hideLoader();
+      try {
+        const res = await commonDdlService.getWards();
+        if (res.success) {
+          const opts = ((res.data as { ward_number: string | number }[]) || [])
+            .filter((w) => w.ward_number !== null && w.ward_number !== undefined && w.ward_number !== '')
+            .map((w) => ({ value: String(w.ward_number), label: `प्रभाग ${w.ward_number}` }));
+          setWardOptions(opts);
+        }
+      } catch (e) {
+        console.error('Failed to load wards', e);
+      } finally {
+        hideLoader();
+      }
     };
     loadPage();
   }, []);
@@ -51,29 +65,82 @@ const Namuna9 = () => {
     { value: 'namuna9_ghoshwara_new', label: 'नमुना 9 घोषवारा न्यू' },
   ];
 
-  const wardOptions: Select2Option[] = [
-    { value: '1', label: 'प्रभाग 1' },
-    { value: '2', label: 'प्रभाग 2' },
-    { value: '3', label: 'प्रभाग 3' },
-    { value: '4', label: 'प्रभाग 4' },
-    { value: '5', label: 'प्रभाग 5' },
-    { value: '6', label: 'प्रभाग 6' },
-    { value: '7', label: 'प्रभाग 7' },
-    { value: '8', label: 'प्रभाग 8' },
-  ];
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.namuna) {
+      alert('कृपया नमुना निवडा (Please select a namuna)');
+      return;
+    }
+    // नमुना ९ (multiple) -> demand register, one block per property
+    if (formData.namuna === 'namuna9') {
+      sessionStorage.setItem(
+        'namuna9Params',
+        JSON.stringify({
+          ward: formData.wardNo,
+          start: formData.start,
+          end: formData.end,
+          year: formData.year,
+        }),
+      );
+      window.open('/view-namuna9-multi', '_blank');
+      return;
+    }
+    // नमुना ९ घोषवारा न्यू -> aggregate summary (ward is COMPULSORY)
+    if (formData.namuna === 'namuna9_ghoshwara_new') {
+      if (!formData.wardNo) {
+        alert('कृपया प्रभाग क्रमांक निवडा (Ward is required for घोषवारा)');
+        return;
+      }
+      sessionStorage.setItem(
+        'namuna9GhosvaraParams',
+        JSON.stringify({
+          ward: formData.wardNo,
+          start: formData.start,
+          end: formData.end,
+          year: formData.year,
+        }),
+      );
+      window.open('/view-namuna9-ghosvara', '_blank');
+      return;
+    }
+    // नमुना ९ न्यू (multiple) -> wide register, one row per property
+    if (formData.namuna === 'namuna9_new') {
+      sessionStorage.setItem(
+        'namuna9NewParams',
+        JSON.stringify({
+          ward: formData.wardNo,
+          start: formData.start,
+          end: formData.end,
+          year: formData.year,
+        }),
+      );
+      window.open('/view-namuna9-new-multi', '_blank');
+      return;
+    }
+    // नमुना ९ अनुक्रमणिका -> index report
+    if (formData.namuna === 'namuna9_anukramnika') {
+      sessionStorage.setItem(
+        'namuna9AnukramikaParams',
+        JSON.stringify({
+          ward: formData.wardNo,
+          start: formData.start,
+          end: formData.end,
+          year: formData.year,
+        }),
+      );
+      window.open('/view-namuna9-anukramika', '_blank');
+      return;
+    }
+    // Other namuna types to be wired later
     console.log('Form submitted:', formData);
-    // Add your submit logic here
   };
 
   const handleReset = () => {
     setFormData({
       namuna: '',
       wardNo: '',
-      year: '',
-      year_1: '',
+      year: String(currentYear),
+      year_1: String(currentYear + 1),
       start: '',
       end: '',
     });
@@ -90,9 +157,9 @@ const Namuna9 = () => {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <form onSubmit={handleSubmit}>
           {/* First Row - All input fields */}
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
-            {/* Namuna Dropdown */}
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-7 gap-4 mb-6">
+            {/* Namuna Dropdown (wider so long options don't wrap) */}
+            <div className="md:col-span-2">
               <Select2
                 label="नमुना"
                 options={namunaOptions}

@@ -1,93 +1,33 @@
 import { useEffect, useState } from 'react';
 import { nodniService } from '../../../services';
 
-/* Namuna 8 (नमुना ८) — tax assessment register print view.
-   Opened in a new tab from the Print modal: /namuna-8-1?id=<nodni_id>.
-   Data is fetched from the full nodni record (main + land/construction/manora rows). */
+/* नमुना ८ (multiple) — same 3-table layout as /namuna-8-1, one block per property/page.
+   Filters via sessionStorage 'namuna8Params' from the Namuna 8 ahval page. */
 
 type Row = Record<string, unknown>;
 const s = (v: unknown) => (v === null || v === undefined ? '' : String(v));
-// Format numeric amounts/areas to 2 decimal places (e.g. 1332.25); blank stays blank
 const f = (v: unknown) => {
   if (v === null || v === undefined || v === '') return '';
   const num = Number(v);
   return isNaN(num) ? String(v) : num.toFixed(2);
 };
 
-const Namuna8Print = () => {
-  const [n, setN] = useState<Row>({});
-  const [land, setLand] = useState<Row[]>([]);
-  const [construction, setConstruction] = useState<Row[]>([]);
-  const [manora, setManora] = useState<Row[]>([]);
-  const [zoom, setZoom] = useState(1); // SCREEN-only zoom (does not affect print)
-  const [loc] = useState(() => {
-    try {
-      const u = JSON.parse(localStorage.getItem('user') || '{}');
-      return {
-        district: u.district || u.district_name || u.jilha || '',
-        taluka: u.taluka || u.taluka_name || u.tahsil || '',
-        gramPanchayat: u.gram_panchayat || u.gramPanchayat || u.gram_panchayat_name || '',
-      };
-    } catch {
-      return { district: '', taluka: '', gramPanchayat: '' };
-    }
-  });
+const sqmOf = (it: Row) => Number(it.ekun_shetrafal_choras_foot || 0) * 0.092903;
+const landBhandvali = (it: Row) => sqmOf(it) * Number(it.jaminiche_varshik_mulya || 0);
+const consBhandvali = (it: Row) =>
+  sqmOf(it) * Number(it.imaratiche_varshik_mulya || 0) * Number(it.bharank || 0);
 
-  const cy = new Date().getFullYear();
+const td = 'border border-black px-1 py-0.5 text-[11px] align-middle text-center';
+const tdc = td;
+const colW = [60, 60, 95, 80, 115, 50, 80, 80, 80, 80, 75, 50, 50, 80, 70, 130, 45, 45];
+const tableW = colW.reduce((a, b) => a + b, 0);
+const colW3 = [77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 80, 45, 45];
+const colW1 = [60, 60, 90, 75, 70, 60, 70, 60, 65, 65, 70, 65, 110, 75, 65, 75, 110, 80];
 
-  useEffect(() => {
-    document.documentElement.classList.remove('dark');
-    document.body.classList.remove('dark');
-    document.title = 'नमुना ८';
-    const id = Number(new URLSearchParams(window.location.search).get('id'));
-    if (!id) return;
-    (async () => {
-      try {
-        const res = await nodniService.getById(id);
-        if (res.success && res.data) {
-          const d = res.data as Row;
-          setN(d);
-          setLand((d.khula_bhukhand_kar_aakarani as Row[]) || []);
-          setConstruction((d.bandkamachi_kar_aakarani as Row[]) || []);
-          setManora((d.manoryache_kar_aakarani as Row[]) || []);
-        }
-      } catch (e) {
-        console.error('Failed to load namuna-8 data', e);
-      }
-    })();
-  }, []);
-
-  const td = 'border border-black px-1 py-0.5 text-[11px] align-middle text-center';
-  const tdc = td;
-  // Shared fixed column widths (px) for the taxation (2) and tax-amount (3) tables.
-  // Wide enough so header labels fit on ONE line at full font; both tables use the SAME
-  // widths so their columns (incl. the last one) stay vertically aligned.
-  // col5 = बांधकामाचा मजला (wider for big values); last 2 = कर आकारणी (a bit narrower)
-  const colW = [60, 60, 95, 80, 115, 50, 80, 80, 80, 80, 75, 50, 50, 80, 70, 130, 45, 45];
-  const tableW = colW.reduce((a, b) => a + b, 0);
-  // 3rd (tax-amount) table: wider, more-uniform columns so labels like "सफाई कर" fit one line.
-  // First 16 cols sum = colW's first 16 (1235) and last 2 = 45+45, so ONLY the last column
-  // aligns with the taxation table.
-  const colW3 = [77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 80, 45, 45];
-  // 1st (property) table: widths tuned so the first row's label/value pairs fit one line.
-  // Same total (1325) so the table width still matches the other two.
-  const colW1 = [60, 60, 90, 75, 70, 60, 70, 60, 65, 65, 70, 65, 110, 75, 65, 75, 110, 80];
-
-  // Individual tax-head amounts come from nodni_other_tax_calculation (tax_id -> amount).
-  // tax_id: 1=वीज/दिवाबत्ती, 2=आरोग्य, 3=सफाई, 4=सामान्य पाणी, 5=विशेष पाणी, 6=इतर
-  // All areas use the CORRECT sq-ft -> sq-m conversion (1 sq ft = 0.092903 sq m, i.e. ÷10.764).
-  // (The stored ekun_shetrafal_choras_meter is wrong from data entry, so we recompute it.)
-  const sqmOf = (it: Row) => Number(it.ekun_shetrafal_choras_foot || 0) * 0.092903;
-
-  // Old-app formulas (verified from nodni-form components):
-  //  खुला भूखंड (land):  भांडवली = चौ.मी. × वार्षिक मूल्य ;            कर = भांडवली × दर ÷ 1000
-  //  बांधकाम (building): भांडवली = घसारा × चौ.मी. × भारांक × वार्षिक ; कर = भांडवली × दर ÷ 1000
-  //  मनोरा (manora):     कर = क्षेत्रफळ(चौ.फूट) × दर × मजला
-  const landBhandvali = (it: Row) => sqmOf(it) * Number(it.jaminiche_varshik_mulya || 0);
-  // बांधकाम — matches the NEW nodni form (BandkamModal): भांडवली = चौ.मी. × वार्षिक मूल्य × भारांक (no घसारा)
-  const consBhandvali = (it: Row) =>
-    sqmOf(it) * Number(it.imaratiche_varshik_mulya || 0) * Number(it.bharank || 0);
-
+const RecordBlock = ({ n, loc, cy }: { n: Row; loc: { district: string; taluka: string; gramPanchayat: string }; cy: number }) => {
+  const land = (n.khula_bhukhand_kar_aakarani as Row[]) || [];
+  const construction = (n.bandkamachi_kar_aakarani as Row[]) || [];
+  const manora = (n.manoryache_kar_aakarani as Row[]) || [];
   const otherTax = (n.other_tax_calculation as Row[]) || [];
   const taxAmt = (id: number) => {
     const r = otherTax.find((t) => Number(t.tax_id) === id);
@@ -100,83 +40,27 @@ const Namuna8Print = () => {
   const visheshPaniAmt = taxAmt(5);
   const itarAmt = taxAmt(6);
   const gruhkarAmt = Number(n.gruhkar_v_bhumikar || 0);
-  // एकूण = sum of tax_id 1..6 (वीज + आरोग्य + सफाई + सामान्य पाणी + विशेष पाणी + इतर)
   const ekunTaxAmt = vizAmt + aarogyaAmt + safaiAmt + samanyaPaniAmt + visheshPaniAmt + itarAmt;
 
   return (
-    <div className="namuna8-report bg-white text-black p-4" style={{ colorScheme: 'light' }}>
-      <style>{`
-        html, body { background: #fff !important; }
-        .namuna8-report { min-height: 100vh; background: #fff; }
-        @media print {
-          @page { size: A4 landscape; margin: 6mm; }
-          html, body { background: #fff !important; }
-          .no-print { display: none !important; }
-          .namuna8-report { zoom: 0.75; padding: 0 !important; min-height: 0; }   /* shrink wide tables to fit the page */
-          /* center the fixed-width tables/header/footer so left & right gaps are equal */
-          .n8-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
-          .n8-zoom { zoom: 1 !important; }   /* ignore screen zoom while printing */
-        }`}</style>
-
-      <div className="no-print mb-4 flex items-center gap-3">
-        <button
-          onClick={() => window.print()}
-          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium shadow-sm transition-colors"
-        >
-          🖨️ Print / Save as PDF
-        </button>
-
-        <div className="flex items-center gap-1 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
-          <span className="px-2 text-sm font-medium text-gray-500 select-none">Zoom</span>
-          <button
-            onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.1).toFixed(2)))}
-            className="flex h-8 w-8 items-center justify-center rounded text-lg font-bold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors"
-            title="Zoom out"
-          >
-            −
-          </button>
-          <span className="w-14 text-center text-sm font-semibold text-gray-700 tabular-nums select-none">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            onClick={() => setZoom((z) => Math.min(2.5, +(z + 0.1).toFixed(2)))}
-            className="flex h-8 w-8 items-center justify-center rounded text-lg font-bold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors"
-            title="Zoom in"
-          >
-            +
-          </button>
-          <button
-            onClick={() => setZoom(1)}
-            className="ml-1 h-8 rounded px-3 text-xs font-medium text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors"
-            title="Reset zoom"
-          >
-            Reset
-          </button>
-        </div>
-      </div>
-
-      {/* Whole report is a fixed-width "page": centered on wide screens, scrolls on narrow. */}
-      <div className="n8-wrap overflow-x-auto">
-      <div className="n8-zoom mx-auto" style={{ width: `${tableW}px`, zoom }}>
+    <div className="n8m-page mx-auto" style={{ width: `${tableW}px` }}>
       <div className="text-center">
         <p className="font-bold text-lg">नमुना ८</p>
         <p className="text-sm">
           सन {cy}-{cy + 1} ते {cy + 3}-{cy + 4} या वर्षासाठी करास पात्र असलेल्या इमारती व जमिनी (खुला भूखंड) यांची कर आकारणी नोंदवही.
         </p>
-        <p className="text-sm">
-          सदर नोंद ग्रामपंचायत नमुना ८ पान क्रमांक __{s(n.anu_kramank)}__ वरून घेण्यात आली
-        </p>
+        <p className="text-sm">सदर नोंद ग्रामपंचायत नमुना ८ पान क्रमांक __{s(n.anu_kramank)}__ वरून घेण्यात आली</p>
       </div>
       <div className="flex justify-between text-sm mt-1 mb-0.5">
         <span>जिल्हा :- {loc.district}</span>
         <span>तालुका :- {loc.taluka}</span>
         <span>ग्रामपंचायत :- {loc.gramPanchayat}</span>
       </div>
-      {/* ===== Property details table (1) ===== */}
+
+      {/* Property details table (1) */}
       <table className="table-fixed border-collapse mb-2" style={{ width: `${tableW}px` }}>
         <colgroup>{colW1.map((w, i) => <col key={i} style={{ width: `${w}px` }} />)}</colgroup>
         <tbody>
-          {/* ===== Property details ===== */}
           <tr>
             <td className={td}>अ.क्र</td><td className={tdc}>{s(n.anu_kramank)}</td>
             <td className={td}>मालमत्ता क्र.</td><td className={tdc}>{s(n.malmatta_number)}</td>
@@ -235,7 +119,7 @@ const Namuna8Print = () => {
         </tbody>
       </table>
 
-      {/* ===== Taxation table (2) — aligned 18-col grid ===== */}
+      {/* Taxation table (2) */}
       <table className="table-fixed border-collapse mb-2" style={{ width: `${tableW}px` }}>
         <colgroup>{colW.map((w, i) => <col key={i} style={{ width: `${w}px` }} />)}</colgroup>
         <tbody>
@@ -257,7 +141,6 @@ const Namuna8Print = () => {
             <td className={tdc}>प्रति रु.१००० च्या भांडवली</td>
             <td className={tdc} colSpan={2}>कर आकारणी</td>
           </tr>
-          {/* Land (खुला भूखंड) */}
           {land.map((it, i) => (
             <tr key={`l${i}`}>
               <td className={td} colSpan={2}>{s(it.malmatteche_prakar_name)}</td>
@@ -268,7 +151,7 @@ const Namuna8Print = () => {
               <td className={tdc}>{s(it.shetrafal_purv_paschim_foot)}</td>
               <td className={tdc}>{s(it.shetrafal_uttar_dakshin_foot)}</td>
               <td className={tdc}>{s(it.ekun_shetrafal_choras_foot)}</td>
-              <td className={tdc}>{f(Number(it.ekun_shetrafal_choras_foot || 0) * 0.092903)}</td>
+              <td className={tdc}>{f(sqmOf(it))}</td>
               <td className={tdc}>{s(it.jaminiche_varshik_mulya)}</td>
               <td className={tdc}></td>
               <td className={tdc}></td>
@@ -278,7 +161,6 @@ const Namuna8Print = () => {
               <td className={tdc} colSpan={2}>{f(landBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
             </tr>
           ))}
-          {/* Construction (बांधकाम) */}
           {construction.map((it, i) => (
             <tr key={`c${i}`}>
               <td className={td} colSpan={2}>{s(it.malmatteche_prakar_name)}</td>
@@ -289,7 +171,7 @@ const Namuna8Print = () => {
               <td className={tdc}>{s(it.shetrafal_purv_paschim_foot)}</td>
               <td className={tdc}>{s(it.shetrafal_uttar_dakshin_foot)}</td>
               <td className={tdc}>{s(it.ekun_shetrafal_choras_foot)}</td>
-              <td className={tdc}>{f(Number(it.ekun_shetrafal_choras_foot || 0) * 0.092903)}</td>
+              <td className={tdc}>{f(sqmOf(it))}</td>
               <td className={tdc}>{s(it.imaratiche_varshik_mulya)}</td>
               <td className={tdc}>{s(it.ghasara_dar)}</td>
               <td className={tdc}>{s(it.bharank)}</td>
@@ -299,7 +181,6 @@ const Namuna8Print = () => {
               <td className={tdc} colSpan={2}>{f(consBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
             </tr>
           ))}
-          {/* Manora (मनोरा) */}
           {manora.map((it, i) => (
             <tr key={`m${i}`}>
               <td className={td} colSpan={2}>{s(it.malmatteche_varnan_name)}</td>
@@ -310,7 +191,7 @@ const Namuna8Print = () => {
               <td className={tdc}>{s(it.shetrafal_purv_paschim_foot)}</td>
               <td className={tdc}>{s(it.shetrafal_uttar_dakshin_foot)}</td>
               <td className={tdc}>{s(it.ekun_shetrafal_choras_foot)}</td>
-              <td className={tdc}>{f(Number(it.ekun_shetrafal_choras_foot || 0) * 0.092903)}</td>
+              <td className={tdc}>{f(sqmOf(it))}</td>
               <td className={tdc}></td>
               <td className={tdc}></td>
               <td className={tdc}></td>
@@ -323,7 +204,7 @@ const Namuna8Print = () => {
         </tbody>
       </table>
 
-      {/* ===== Tax amount table (3) — own widths; only last column matches taxation table ===== */}
+      {/* Tax amount table (3) */}
       <table className="table-fixed border-collapse" style={{ width: `${tableW}px` }}>
         <colgroup>{colW3.map((w, i) => <col key={i} style={{ width: `${w}px` }} />)}</colgroup>
         <tbody>
@@ -378,21 +259,102 @@ const Namuna8Print = () => {
           </tr>
           <tr>
             <td className="border border-black px-1 py-0.5 text-[10px] align-top text-left leading-tight" colSpan={14}>
-              <span className="font-bold">टीप :-</span> १) मोक्यावर असलेल्या बांधकामनुसार कराची आकारणी करण्यात आली आहे. २) मालकी हक्का बाबाद कसलाही वाद. असल्यास
-              किंव्हा भविष्यात उदभवल्यास तो न्यायालया मार्फत सोडवावा. ३) न्यायालयाचा निर्णय अर्जदारास व ग्रामपंचायतीला बंधनकारक राहील.
-              ४) नामांतरण हे फक्त भोगवटदारावर कर वसुलीच्या द्रूष्टीने मंजूर करण्यात येत आहे. ५) ग्रामपंचायत कर आकारणी नमुना ८ वर नाव दर्ज
-              झाले आहे म्हणजे घराबाबत मालकीहक्क प्राप्त होत नही. १) पक्के बांधकाम (आर.सी.सी) :- वीटा सीमेंट पक्के स्ल्याब आतुन बाहेरून
-              रंगविलेले, टाईल्स फ्लोरिंग २) इतर पक्के बांधकाम :- लोडबेरिंग, स्ल्याब, कच्चे सिमेंट फ्लोरिंग, विटाची भिंत ३) अर्ध पक्के बांधकाम :-
-              टीनपत्रे, सिमेंटशीट, विटाची भिंत. ४) कच्चे बांधकाम :- दगडाच्या मातीच्या भिंती, कौलारू, गवती छाप्पर.
+              <span className="font-bold">टीप :-</span> १) मोक्यावर असलेल्या बांधकामनुसार कराची आकारणी करण्यात आली आहे. २) मालकी हक्का बाबाद कसलाही वाद. असल्यास किंव्हा भविष्यात उदभवल्यास तो न्यायालया मार्फत सोडवावा. ३) न्यायालयाचा निर्णय अर्जदारास व ग्रामपंचायतीला बंधनकारक राहील. ४) नामांतरण हे फक्त भोगवटदारावर कर वसुलीच्या द्रूष्टीने मंजूर करण्यात येत आहे. ५) ग्रामपंचायत कर आकारणी नमुना ८ वर नाव दर्ज झाले आहे म्हणजे घराबाबत मालकीहक्क प्राप्त होत नही. १) पक्के बांधकाम (आर.सी.सी) :- वीटा सीमेंट पक्के स्ल्याब आतुन बाहेरून रंगविलेले, टाईल्स फ्लोरिंग २) इतर पक्के बांधकाम :- लोडबेरिंग, स्ल्याब, कच्चे सिमेंट फ्लोरिंग, विटाची भिंत ३) अर्ध पक्के बांधकाम :- टीनपत्रे, सिमेंटशीट, विटाची भिंत. ४) कच्चे बांधकाम :- दगडाच्या मातीच्या भिंती, कौलारू, गवती छाप्पर.
             </td>
           </tr>
         </tbody>
       </table>
       <div className="text-right text-sm">पान नंबर : {s(n.anu_kramank)}</div>
+    </div>
+  );
+};
+
+const Namuna8MultiReport = () => {
+  const [records, setRecords] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [reportYear, setReportYear] = useState<number>(new Date().getFullYear());
+  const [zoom, setZoom] = useState(1);
+  const [loc] = useState(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      return {
+        district: u.district || u.district_name || u.jilha || '',
+        taluka: u.taluka || u.taluka_name || u.tahsil || '',
+        gramPanchayat: u.gram_panchayat || u.gramPanchayat || u.gram_panchayat_name || '',
+      };
+    } catch {
+      return { district: '', taluka: '', gramPanchayat: '' };
+    }
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.remove('dark');
+    document.body.classList.remove('dark');
+    document.title = 'नमुना ८';
+    let params: { ward?: string; start?: string; end?: string; year?: string } = {};
+    try {
+      params = JSON.parse(sessionStorage.getItem('namuna8Params') || '{}');
+    } catch {
+      params = {};
+    }
+    if (params.year && !isNaN(Number(params.year))) setReportYear(Number(params.year));
+    (async () => {
+      try {
+        const res = await nodniService.getDharkachiYadi(params.ward, params.start, params.end, '', params.year);
+        if (res.success) setRecords((res.data as Row[]) || []);
+      } catch (e) {
+        console.error('Failed to load namuna-8 multi', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  return (
+    <div className="n8m-report bg-white text-black p-4" style={{ colorScheme: 'light' }}>
+      <style>{`
+        html, body { background: #fff !important; }
+        .n8m-report { min-height: 100vh; background: #fff; }
+        @media print {
+          @page { size: A4 landscape; margin: 6mm; }
+          html, body { background: #fff !important; }
+          .no-print { display: none !important; }
+          .n8m-report { zoom: 0.75; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .n8m-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
+          .n8m-zoom { zoom: 1 !important; }
+          .n8m-page { page-break-after: always; }
+          .n8m-page:last-child { page-break-after: auto; }
+        }`}</style>
+
+      <div className="no-print mb-4 flex items-center gap-3">
+        <button
+          onClick={() => window.print()}
+          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium shadow-sm transition-colors"
+        >
+          🖨️ Print / Save as PDF
+        </button>
+        <div className="flex items-center gap-1 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
+          <span className="px-2 text-sm font-medium text-gray-500 select-none">Zoom</span>
+          <button onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.1).toFixed(2)))} className="flex h-8 w-8 items-center justify-center rounded text-lg font-bold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors" title="Zoom out">−</button>
+          <span className="w-14 text-center text-sm font-semibold text-gray-700 tabular-nums select-none">{Math.round(zoom * 100)}%</span>
+          <button onClick={() => setZoom((z) => Math.min(2.5, +(z + 0.1).toFixed(2)))} className="flex h-8 w-8 items-center justify-center rounded text-lg font-bold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors" title="Zoom in">+</button>
+          <button onClick={() => setZoom(1)} className="ml-1 h-8 rounded px-3 text-xs font-medium text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors" title="Reset zoom">Reset</button>
+        </div>
       </div>
+
+      <div className="n8m-wrap overflow-x-auto">
+        <div className="n8m-zoom space-y-10 print:space-y-0" style={{ zoom }}>
+          {records.length === 0 ? (
+            <p className="text-center text-gray-500 py-10">
+              {loading ? 'लोड होत आहे...' : 'या निवडीसाठी माहिती उपलब्ध नाही'}
+            </p>
+          ) : (
+            records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} cy={reportYear} />)
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
-export default Namuna8Print;
+export default Namuna8MultiReport;

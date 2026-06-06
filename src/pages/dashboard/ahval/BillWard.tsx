@@ -5,15 +5,21 @@ import Table from '../../../components/common/Table';
 import type { Column } from '../../../components/common/Table';
 import type { BillWardRecord } from '../../../interfaces/dashboard/ahval';
 import { useLoading } from '../../../contexts/LoadingContext';
+import { useToast } from '../../../hooks/useToast';
+import { commonDdlService } from '../../../services';
 
 const BillWard = () => {
   const { showLoader, hideLoader } = useLoading();
+  const { toast, ToastContainer } = useToast();
 
+  const currentYear = new Date().getFullYear();
+  const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const [wards, setWards] = useState<(string | number)[]>([]);
   const [formData, setFormData] = useState({
-    year: '',
-    toYear: '',
-    deyakDinank: '',
-    antimTarik: '',
+    year: String(currentYear),       // default to current year
+    toYear: String(currentYear + 1),
+    deyakDinank: todayStr,           // default to today
+    antimTarik: todayStr,            // default to today (editable)
     start: '',
     end: '',
     bharna: '',
@@ -35,57 +41,95 @@ const BillWard = () => {
     }
   }, [formData.year]);
 
-  // Auto-calculate antimTarik (deyakDinank + 30 days)
-  useEffect(() => {
-    if (formData.deyakDinank) {
-      const deyakDate = new Date(formData.deyakDinank);
-      const antimDate = new Date(deyakDate);
-      antimDate.setDate(antimDate.getDate() + 30);
-
-      const year = antimDate.getFullYear();
-      const month = String(antimDate.getMonth() + 1).padStart(2, '0');
-      const day = String(antimDate.getDate()).padStart(2, '0');
-
-      setFormData(prev => ({
-        ...prev,
-        antimTarik: `${year}-${month}-${day}`
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        antimTarik: ''
-      }));
-    }
-  }, [formData.deyakDinank]);
-
-  // Auto-load page with loader
+  // Auto-load page + fetch dynamic wards
   useEffect(() => {
     document.title = 'Bill Ward - बिल प्रभाग';
     const loadPage = async () => {
       showLoader('पृष्ठ लोड होत आहे... (Loading page...)');
-      await new Promise(resolve => setTimeout(resolve, 800));
-      hideLoader();
+      try {
+        const res = await commonDdlService.getWards();
+        if (res.success) {
+          const list = ((res.data as { ward_number: string | number }[]) || [])
+            .map((w) => w.ward_number)
+            .filter((w) => w !== null && w !== undefined && w !== '');
+          setWards(list);
+        }
+      } catch (e) {
+        console.error('Failed to load wards', e);
+      } finally {
+        hideLoader();
+      }
     };
     loadPage();
   }, []);
 
-  // Sample data for the table
-  const tableData: BillWardRecord[] = Array.from({ length: 50 }, (_, i) => ({
-    wardKramank: `प्रभाग ${Math.floor(Math.random() * 8) + 1}`,
-    column129_1: `${Math.floor(Math.random() * 10000)}`,
-    column129_2: `${Math.floor(Math.random() * 10000)}`,
+  // Dynamic ward rows (one per ward, with 129(1) / 129(2) report buttons)
+  const tableData: BillWardRecord[] = wards.map((w) => ({
+    wardKramank: `प्रभाग ${w}`,
+    column129_1: String(w),
+    column129_2: String(w),
   }));
+
+  // All fields are required before generating a report
+  const validateRequired = (): boolean => {
+    const missing: string[] = [];
+    if (!formData.year) missing.push('वर्ष');
+    if (!formData.toYear) missing.push('ते वर्ष');
+    if (!formData.deyakDinank) missing.push('देयक दिनांक');
+    if (!formData.antimTarik) missing.push('अंतिम तारीख');
+    if (!formData.start) missing.push('सुरुवात क्रमांक');
+    if (!formData.end) missing.push('शेवट क्रमांक');
+    if (!formData.bharna) missing.push('भरणा');
+    if (missing.length > 0) {
+      toast.error(`कृपया सर्व आवश्यक माहिती भरा (Required): ${missing.join(', ')}`);
+      return false;
+    }
+    return true;
+  };
+
+  // dd/mm/yyyy from a YYYY-MM-DD value
+  const fmtDate = (v: string) => {
+    if (!v) return '';
+    const [y, m, d] = v.split('-');
+    return d && m && y ? `${d}/${m}/${y}` : v;
+  };
 
   // Handle view report for 129(1)
   const handleViewReport129_1 = (row: BillWardRecord) => {
-    console.log('View Report 129(1) for:', row);
-    alert(`View Report 129(1) for ${row.wardKramank}`);
+    if (!validateRequired()) return;
+    sessionStorage.setItem(
+      'bill129_1Params',
+      JSON.stringify({
+        ward: row.column129_1, // ward number
+        start: formData.start,
+        end: formData.end,
+        year: formData.year,
+        toYear: formData.toYear,
+        startDate: fmtDate(formData.deyakDinank),
+        endDate: fmtDate(formData.antimTarik),
+        bharna: formData.bharna,
+      }),
+    );
+    window.open('/view-bill-129-1', '_blank');
   };
 
   // Handle view report for 129(2)
   const handleViewReport129_2 = (row: BillWardRecord) => {
-    console.log('View Report 129(2) for:', row);
-    alert(`View Report 129(2) for ${row.wardKramank}`);
+    if (!validateRequired()) return;
+    sessionStorage.setItem(
+      'bill129_2Params',
+      JSON.stringify({
+        ward: row.column129_2, // ward number
+        start: formData.start,
+        end: formData.end,
+        year: formData.year,
+        toYear: formData.toYear,
+        startDate: fmtDate(formData.deyakDinank),
+        endDate: fmtDate(formData.antimTarik),
+        bharna: formData.bharna,
+      }),
+    );
+    window.open('/view-bill-129-2', '_blank');
   };
 
   // Table columns configuration
@@ -145,6 +189,7 @@ const BillWard = () => {
 
   return (
     <div className="p-6">
+      <ToastContainer />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           बिल - प्रभाग
@@ -189,20 +234,19 @@ const BillWard = () => {
                 onChange={(value) => setFormData({ ...formData, deyakDinank: value })}
                 placeholder="दिनांक निवडा"
                 format="DD/MM/YYYY"
+                max={todayStr}
               />
             </div>
 
-            {/* Antim Tarik - readonly, auto-calculated (deyakDinank + 30 days) */}
+            {/* Antim Tarik - auto-filled (deyakDinank + 30 days) but editable */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                अंतिम तारीख
-              </label>
-              <input
-                type="text"
-                value={formData.antimTarik ? new Date(formData.antimTarik).toLocaleDateString('en-GB') : ''}
-                readOnly
-                placeholder="अंतिम तारीख"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
+              <DatePicker
+                label="अंतिम तारीख"
+                value={formData.antimTarik}
+                onChange={(value) => setFormData({ ...formData, antimTarik: value })}
+                placeholder="अंतिम तारीख निवडा"
+                format="DD/MM/YYYY"
+                max={todayStr}
               />
             </div>
 

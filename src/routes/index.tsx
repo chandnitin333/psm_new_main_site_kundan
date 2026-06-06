@@ -43,9 +43,22 @@ import ShouchalayList from '../pages/dashboard/ahval/ShouchalayList';
 import ShouchalayReport from '../pages/dashboard/ahval/ShouchalayReport';
 import MalmattaDurusti from '../pages/dashboard/ahval/MalmattaDurusti';
 import MalmattaDharkachiReport from '../pages/dashboard/ahval/MalmattaDharkachiReport';
+import Namuna8AnukramikaReport from '../pages/dashboard/ahval/Namuna8AnukramikaReport';
+import Namuna8NewMultiReport from '../pages/dashboard/ahval/Namuna8NewMultiReport';
+import Namuna8ImagesMultiReport from '../pages/dashboard/ahval/Namuna8ImagesMultiReport';
+import Namuna8MultiReport from '../pages/dashboard/ahval/Namuna8MultiReport';
+import Namuna8GhosvaraReport from '../pages/dashboard/ahval/Namuna8GhosvaraReport';
+import Namuna8SarkariMultiReport from '../pages/dashboard/ahval/Namuna8SarkariMultiReport';
+import Namuna9AnukramikaReport from '../pages/dashboard/ahval/Namuna9AnukramikaReport';
+import Namuna9MultiReport from '../pages/dashboard/ahval/Namuna9MultiReport';
+import Namuna9NewMultiReport from '../pages/dashboard/ahval/Namuna9NewMultiReport';
+import Namuna9GhosvaraReport from '../pages/dashboard/ahval/Namuna9GhosvaraReport';
+import Bill129_1Report from '../pages/dashboard/ahval/Bill129_1Report';
+import Bill129_2Report from '../pages/dashboard/ahval/Bill129_2Report';
+import ImlaKarReport from '../pages/dashboard/ahval/ImlaKarReport';
+import ImlaKarAnukramikaReport from '../pages/dashboard/ahval/ImlaKarAnukramikaReport';
 import Namuna8 from '../pages/dashboard/ahval/Namuna8';
 import Namuna9 from '../pages/dashboard/ahval/Namuna9';
-import Bill from '../pages/dashboard/ahval/Bill';
 import BillWard from '../pages/dashboard/ahval/BillWard';
 import Namuna10 from '../pages/dashboard/ahval/Namuna10';
 import ImlaKar from '../pages/dashboard/ahval/ImlaKar';
@@ -222,6 +235,118 @@ export const createRouter = (handleLogout: () => void) =>
       ),
     },
     {
+      path: '/view-namuna8-anukramika',
+      element: (
+        <ProtectedRoute>
+          <Namuna8AnukramikaReport />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-namuna8-new-multi',
+      element: (
+        <ProtectedRoute>
+          <Namuna8NewMultiReport />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-namuna8-images-multi',
+      element: (
+        <ProtectedRoute>
+          <Namuna8ImagesMultiReport />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-namuna8-multi',
+      element: (
+        <ProtectedRoute>
+          <Namuna8MultiReport />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-namuna8-ghosvara',
+      element: (
+        <ProtectedRoute>
+          <Namuna8GhosvaraReport />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-namuna8-sarkari-multi',
+      element: (
+        <ProtectedRoute>
+          <Namuna8SarkariMultiReport />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-namuna9-anukramika',
+      element: (
+        <ProtectedRoute>
+          <Namuna9AnukramikaReport />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-namuna9-multi',
+      element: (
+        <ProtectedRoute>
+          <Namuna9MultiReport />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-namuna9-new-multi',
+      element: (
+        <ProtectedRoute>
+          <Namuna9NewMultiReport />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-namuna9-ghosvara',
+      element: (
+        <ProtectedRoute>
+          <Namuna9GhosvaraReport />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-bill-129-1',
+      element: (
+        <ProtectedRoute>
+          <Bill129_1Report />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-bill-129-2',
+      element: (
+        <ProtectedRoute>
+          <Bill129_2Report />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-imlakar',
+      element: (
+        <ProtectedRoute>
+          <ImlaKarReport />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-imlakar-anukramika',
+      element: (
+        <ProtectedRoute>
+          <ImlaKarAnukramikaReport />
+        </ProtectedRoute>
+      ),
+    },
+    {
       path: '/ahval',
       element: (
         <ProtectedRoute>
@@ -237,7 +362,6 @@ export const createRouter = (handleLogout: () => void) =>
         { path: 'malmatta-durusti', element: <MalmattaDurusti /> },
         { path: 'namuna8', element: <Namuna8 /> },
         { path: 'namuna9', element: <Namuna9 /> },
-        { path: 'bill', element: <Bill /> },
         { path: 'bill-ward', element: <BillWard /> },
         { path: 'namuna10', element: <Vasuli /> },
         { path: 'imla-kar', element: <ImlaKar /> },
