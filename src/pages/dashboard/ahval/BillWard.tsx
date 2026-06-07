@@ -177,17 +177,6 @@ const BillWard = () => {
     console.log('Form submitted:', formData);
   };
 
-  const handleReset = () => {
-    setFormData({
-      year: '',
-      toYear: '',
-      deyakDinank: '',
-      antimTarik: '',
-      start: '',
-      end: '',
-      bharna: '',
-    });
-  };
 
   return (
     <div className="p-6">

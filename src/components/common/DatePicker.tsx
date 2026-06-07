@@ -92,8 +92,8 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
             placeholderText={placeholder || format}
             disabled={disabled}
             required={required}
-            minDate={minDate}
-            maxDate={maxDate}
+            minDate={minDate ?? undefined}
+            maxDate={maxDate ?? undefined}
             name={name}
             autoComplete="off"
             showMonthDropdown

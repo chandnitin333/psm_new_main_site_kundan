@@ -1,10 +1,33 @@
 <!doctype html>
-<html lang="en">
+<html lang="mr">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="/psm_logo2.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>kundan-prompt-test-react</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- PWA -->
+    <meta name="theme-color" content="#764ba2" />
+    <meta name="description" content="ग्रामपंचायत मालमत्ता नोंदणी, कर आकारणी व वसुली व्यवस्थापन प्रणाली" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="PSM" />
+
+    <title>PSM - ग्रामपंचायत मालमत्ता व कर व्यवस्थापन</title>
+
+    <!-- Capture the install prompt as early as possible (it can fire before React mounts) -->
+    <script>
+      window.__pwaInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        window.__pwaInstallPrompt = e;
+        window.dispatchEvent(new Event('pwa-installable'));
+      });
+      window.addEventListener('appinstalled', function () {
+        window.__pwaInstallPrompt = null;
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

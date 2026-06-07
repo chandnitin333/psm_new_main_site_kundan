@@ -181,7 +181,14 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
 
     try {
       const currentUser = authService.getCurrentUser();
-      if (!currentUser) return;
+      if (
+        !currentUser?.district_id ||
+        !currentUser?.taluka_id ||
+        !currentUser?.gram_panchayat_id ||
+        !currentUser?.gat_gram_panchayat_id
+      ) {
+        return;
+      }
 
       const res = await commonDdlService.getAnnualTaxRates({
         district_id: currentUser.district_id,

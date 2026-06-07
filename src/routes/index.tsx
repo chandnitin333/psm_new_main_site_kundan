@@ -61,7 +61,6 @@ import ImlaKarAnukramikaReport from '../pages/dashboard/ahval/ImlaKarAnukramikaR
 import Namuna8 from '../pages/dashboard/ahval/Namuna8';
 import Namuna9 from '../pages/dashboard/ahval/Namuna9';
 import BillWard from '../pages/dashboard/ahval/BillWard';
-import Namuna10 from '../pages/dashboard/ahval/Namuna10';
 import ImlaKar from '../pages/dashboard/ahval/ImlaKar';
 import Loaders from '../pages/dashboard/loaders/Loaders';
 

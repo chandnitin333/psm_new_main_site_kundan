@@ -9,7 +9,7 @@ import type {
   LoginResponse,
   OtpVerifyPayload,
   OtpVerifyResponse,
-  User,
+  ApiUser,
   UserType,
 } from '../interfaces';
 
@@ -144,7 +144,7 @@ export const authService = {
   /**
    * Get current user from storage
    */
-  getCurrentUser: (): Partial<User> | null => {
+  getCurrentUser: (): Partial<ApiUser> | null => {
     const userStr = localStorage.getItem(STORAGE_KEYS.USER);
     return userStr ? JSON.parse(userStr) : null;
   },

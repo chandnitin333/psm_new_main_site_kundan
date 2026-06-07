@@ -129,6 +129,7 @@ function Table<T extends Record<string, any>>({
         key: 'actions',
         label: 'Actions',
         width: `${actions.length * 50}px`,
+        sortable: false,
         render: (row: T) => (
           <div className="flex gap-2">
             {actions.map((action, index) => {

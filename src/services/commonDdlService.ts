@@ -25,6 +25,7 @@ const DDL_ENDPOINTS = {
   GP_MEMBERS: '/main/common-ddl/gram-panchayat-members',
   PROFILE: '/main/common-ddl/profile',
   PROFILE_IMAGE: '/main/common-ddl/profile-image',
+  CHANGE_PASSWORD: '/main/common-ddl/change-password',
 } as const;
 
 export const commonDdlService = {
@@ -169,6 +170,16 @@ export const commonDdlService = {
     const fd = new FormData();
     fd.append('file', file);
     return api.upload<{ profile_image: string }>(DDL_ENDPOINTS.PROFILE_IMAGE, fd);
+  },
+
+  /**
+   * Change the logged-in user's own password (verifies old password on the backend)
+   */
+  changeMyPassword: async (oldPassword: string, newPassword: string): Promise<ApiResponse> => {
+    return api.post(DDL_ENDPOINTS.CHANGE_PASSWORD, {
+      old_password: oldPassword,
+      new_password: newPassword,
+    });
   },
 };
 

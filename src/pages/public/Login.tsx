@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogIn, User, Lock, Users } from 'lucide-react';
+import { LogIn, Lock, Mail, Eye, EyeOff, ShieldCheck, Landmark, FileText, ArrowLeft } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import { useLoading } from '../../contexts/LoadingContext';
 import { authService, type ApiError } from '../../services';
@@ -20,6 +20,7 @@ const Login = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -185,104 +186,75 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-white dark:bg-gray-900">
+    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900">
       <ToastContainer />
 
-      {/* Left Side - Image/Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary-600 to-primary-800 items-center justify-center p-12">
-        <div className="max-w-md text-white">
-          <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-8">
-            <LogIn className="w-10 h-10" />
+      {/* Left Side - Branding with nature scene */}
+      <div className="relative hidden lg:flex lg:w-1/2 overflow-hidden">
+        {/* gradient + decorative scene */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-600 via-primary-700 to-emerald-600" />
+        <svg className="absolute bottom-0 left-0 w-full" viewBox="0 0 1200 300" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0,210 Q300,150 620,195 T1200,180 V300 H0 Z" fill="#ffffff" opacity="0.08" />
+          <path d="M0,250 Q360,190 760,240 T1200,230 V300 H0 Z" fill="#ffffff" opacity="0.10" />
+        </svg>
+        <div className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full bg-white/10" />
+        <div className="pointer-events-none absolute right-32 top-24 h-32 w-32 rounded-full bg-white/10" />
+
+        <div className="relative z-10 flex flex-col justify-center px-14 text-white">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/95 shadow-lg p-2">
+            <img src="/psm_logo1.png" alt="PSM" className="h-full w-full object-contain" />
           </div>
-          <h1 className="text-4xl font-bold mb-4">
-            Welcome Back
-          </h1>
-          <p className="text-primary-100 text-lg leading-relaxed">
-            Access your Gram Panchayat dashboard and manage your community's digital governance efficiently.
+          <h1 className="mt-8 text-4xl font-extrabold leading-tight">ग्रामपंचायत<br />डिजिटल प्रशासन</h1>
+          <p className="mt-4 max-w-md text-lg leading-relaxed text-primary-50/90">
+            मालमत्ता नोंदणी, कर आकारणी व वसुली — सर्व एका ठिकाणी, सुरक्षित आणि सोपे.
           </p>
-          <div className="mt-12 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <Users className="w-5 h-5" />
+
+          <div className="mt-12 space-y-5">
+            {[
+              { Icon: Landmark, text: 'मालमत्ता व कर व्यवस्थापन' },
+              { Icon: FileText, text: 'नमुना ८ / ९ व बिल अहवाल' },
+              { Icon: ShieldCheck, text: 'सुरक्षित लॉगिन व OTP पडताळणी' },
+            ].map(({ Icon, text }) => (
+              <div key={text} className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <span className="text-primary-50">{text}</span>
               </div>
-              <span className="text-primary-50">Role-based access control</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <Lock className="w-5 h-5" />
-              </div>
-              <span className="text-primary-50">Secure OTP verification</span>
-            </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Right Side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-6 md:p-12">
-        <div className="w-full max-w-lg">
-          {/* Logo for mobile */}
-          <div className="lg:hidden flex justify-center mb-6">
-            <div className="w-14 h-14 bg-primary-600 rounded-xl flex items-center justify-center">
-              <LogIn className="w-7 h-7 text-white" />
-            </div>
-          </div>
-
-          {/* Header */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-              {step === 'login' ? 'Welcome back' : 'Verify OTP'}
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {step === 'login'
-                ? 'Please enter your details to sign in'
-                : 'Enter the 6-digit code sent to your mobile'}
-            </p>
-          </div>
-
-          {step === 'login' ? (
-            <form onSubmit={handleLoginSubmit} className="space-y-6">
-              {/* Login As */}
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  <Users className="w-4 h-4 text-primary-600 dark:text-primary-400" />
-                  Login As
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, loginAs: 'grampanchayat' }))}
-                    className={`py-3 px-4 rounded-lg border-2 text-sm font-medium transition-all ${
-                      formData.loginAs === 'grampanchayat'
-                        ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 dark:border-primary-500'
-                        : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-gray-500'
-                    }`}
-                  >
-                    Grampanchayat
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, loginAs: 'bdo' }))}
-                    className={`py-3 px-4 rounded-lg border-2 text-sm font-medium transition-all ${
-                      formData.loginAs === 'bdo'
-                        ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 dark:border-primary-500'
-                        : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-gray-500'
-                    }`}
-                  >
-                    BDO
-                  </button>
-                </div>
+      {/* Right Side - Form */}
+      <div className="flex flex-1 items-center justify-center p-6 sm:p-10">
+        <div className="w-full max-w-md">
+          {/* Card */}
+          <div className="rounded-2xl border border-gray-100 bg-white p-7 shadow-xl dark:border-gray-700 dark:bg-gray-800 sm:p-9">
+            {/* Logo */}
+            <div className="mb-6 flex flex-col items-center text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-emerald-500 p-2 shadow-md">
+                <img src="/psm_logo1.png" alt="PSM" className="h-full w-full object-contain" />
               </div>
+              <h2 className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">
+                {step === 'login' ? 'पुन्हा स्वागत आहे' : 'OTP पडताळणी'}
+              </h2>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {step === 'login'
+                  ? 'लॉगिन करण्यासाठी तपशील भरा / Sign in to continue'
+                  : 'तुमच्या ईमेलवर पाठवलेला 6-अंकी कोड भरा'}
+              </p>
+            </div>
 
-              {/* Credentials */}
-              <div className="space-y-4">
+            {step === 'login' ? (
+              <form onSubmit={handleLoginSubmit} className="space-y-5">
+                {/* Email */}
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                    Email
+                  <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Email / Username / Mobile
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <User className="h-5 w-5 text-gray-400" />
-                    </div>
+                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                     <input
                       id="email"
                       type="text"
@@ -290,110 +262,119 @@ const Login = () => {
                       value={formData.email}
                       onChange={handleChange}
                       required
-                      className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                      placeholder="Enter your email"
+                      placeholder="ईमेल, युजरनेम किंवा मोबाइल"
+                      className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-10 pr-3 text-gray-900 transition placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     />
                   </div>
                 </div>
 
+                {/* Password */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
+                  <div className="mb-1.5 flex items-center justify-between">
                     <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Password
+                      Password / पासवर्ड
                     </label>
                     <Link
                       to="/forgot-password"
-                      className="text-sm font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
+                      tabIndex={-1}
+                      className="text-sm font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400"
                     >
-                      Forgot Password?
+                      Forgot?
                     </Link>
                   </div>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Lock className="h-5 w-5 text-gray-400" />
-                    </div>
+                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                     <input
                       id="password"
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
                       required
-                      className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                      placeholder="Enter password"
+                      placeholder="••••••••"
+                      className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-10 pr-11 text-gray-900 transition placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-200"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
                   </div>
                 </div>
-              </div>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isSubmitting ? 'Signing in...' : 'Sign in'}
-              </button>
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary-600 to-emerald-600 py-3 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Signing in...
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="h-4 w-4" />
+                      Sign in / लॉगिन
+                    </>
+                  )}
+                </button>
 
-              {/* Register Link */}
-              <div className="text-center">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Don't have an account?{' '}
-                  <Link
-                    to="/register"
-                    className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
-                  >
+                {/* Registration temporarily hidden (code kept for later) */}
+                <div className="hidden text-center text-sm text-gray-600 dark:text-gray-400">
+                  Don&apos;t have an account?{' '}
+                  <Link to="/register" className="font-semibold text-primary-600 hover:text-primary-500 dark:text-primary-400">
                     Register here
                   </Link>
-                </p>
-              </div>
-            </form>
-          ) : (
-            <form onSubmit={handleOtpSubmit} className="space-y-6">
-              {/* OTP Input */}
-              <div className="space-y-4">
-                <div className="flex justify-center gap-3">
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleOtpSubmit} className="space-y-6">
+                <div className="flex justify-center gap-2 sm:gap-3">
                   {otp.map((digit, index) => (
                     <input
                       key={index}
                       id={`otp-${index}`}
                       type="text"
+                      inputMode="numeric"
                       maxLength={1}
                       value={digit}
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
                       onPaste={handleOtpPaste}
-                      className="w-12 h-12 text-center text-lg font-semibold border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                      className="h-12 w-11 rounded-lg border border-gray-300 bg-white text-center text-lg font-bold text-gray-900 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:h-14 sm:w-12"
                     />
                   ))}
                 </div>
 
-                <div className="text-center">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Demo OTP: <span className="font-semibold text-primary-600 dark:text-primary-400">123456</span>
-                  </p>
-                </div>
-              </div>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary-600 to-emerald-600 py-3 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSubmitting ? 'Verifying...' : 'Verify OTP / पडताळणी'}
+                </button>
 
-              {/* Verify Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isSubmitting ? 'Verifying...' : 'Verify OTP'}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setStep('login')}
+                  className="flex w-full items-center justify-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <ArrowLeft className="h-4 w-4" /> Back to login
+                </button>
+              </form>
+            )}
+          </div>
 
-              {/* Back Button */}
-              <button
-                type="button"
-                onClick={() => setStep('login')}
-                className="w-full text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 font-medium"
-              >
-                ← Back to login
-              </button>
-            </form>
-          )}
+          {/* Secure note */}
+          <p className="mt-5 flex items-center justify-center gap-1.5 text-xs text-gray-400">
+            <ShieldCheck className="h-3.5 w-3.5" /> सुरक्षित व एन्क्रिप्टेड लॉगिन
+          </p>
         </div>
       </div>
     </div>

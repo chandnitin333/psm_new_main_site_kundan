@@ -16,6 +16,7 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
     shetrafalPurvPachimMeter: '',
     shetrafalUttarDakshinMeter: '',
     aakraniDar: '',
+    majla: '',
   });
 
   // Dynamic dropdown options from API

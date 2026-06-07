@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus, MapPin, User, Mail, Phone, Briefcase, Lock } from 'lucide-react';
+import { UserPlus, MapPin, User, Mail, Phone, Lock } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import { DISTRICTS, TALUKAS, GRAM_PANCHAYATS, GAT_GRAM_PANCHAYATS } from '../../assets/data/locations';
 import { DESIGNATIONS } from '../../constants';
