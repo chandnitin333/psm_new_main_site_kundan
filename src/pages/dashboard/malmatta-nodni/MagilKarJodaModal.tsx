@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Modal from '../../../components/common/Modal';
 import YearPicker from '../../../components/common/YearPicker';
-import { nodniService } from '../../../services';
+import { nodniService, commonDdlService } from '../../../services';
 import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
 import type { MagilKarJodaData, MagilKarJodaModalProps } from '../../../interfaces/dashboard/malmatta-nodni/MagilKarJodaModal.types';
@@ -166,6 +166,34 @@ const MagilKarJodaModal = ({ isOpen, onClose, onSave, nodniId, khatedharkacheNav
 
   const [existingRecordId, setExistingRecordId] = useState<number | null>(null);
 
+  // GP-wise per-tax-head दंड/सूट master (chalu + magil), fetched when the modal opens.
+  type HeadSet = Record<string, number>;
+  const dandSutRef = useRef<{ chalu: HeadSet; magil: HeadSet }>({ chalu: {}, magil: {} });
+
+  // Map each form row (ROW_GROUPS, same order) -> its dand_sut per-head DB key.
+  const HEAD_KEYS = [
+    'gruhkar_v_bhumikar_5', 'viz_v_divabatti_kar_5', 'aarogya_rakshan_kar_5',
+    'safae_kar_5', 'samanya_pani_kar_5', 'vishesh_pani_kar_5',
+  ];
+
+  // Auto-fill सूट/वाढ from the GP master based on the selected year:
+  //   year < current year (मागील) -> वाढ (+) = magil row's per-head %
+  //   year >= current year (चालू) -> सूट (-) = chalu row's per-head %
+  const applyDandSut = (data: MagilKarJodaData, year: string): MagilKarJodaData => {
+    const cur = new Date().getFullYear();
+    const y = parseInt(year) || cur;
+    const isMagil = y < cur;
+    const set = isMagil ? dandSutRef.current.magil : dandSutRef.current.chalu;
+    const d = { ...data } as unknown as Record<string, string>;
+    ROW_GROUPS.forEach(([, sut, vad], i) => {
+      const pct = Number(set[HEAD_KEYS[i]]) || 0;
+      const val = pct > 0 ? String(pct) : '';
+      if (isMagil) { d[vad] = val; d[sut] = ''; }
+      else { d[sut] = val; d[vad] = ''; }
+    });
+    return recalculate(d as unknown as MagilKarJodaData);
+  };
+
   const getInitialFormData = (): MagilKarJodaData => ({
     year: String(new Date().getFullYear()),
     toYear: String(new Date().getFullYear() + 1),
@@ -229,7 +257,9 @@ const MagilKarJodaModal = ({ isOpen, onClose, onSave, nodniId, khatedharkacheNav
           grandEkun: '',
         }));
       } else {
+        // No saved record for this year — auto-fill सूट/वाढ % from the GP master.
         setExistingRecordId(null);
+        setFormData(prev => applyDandSut(prev, year));
       }
     } catch {
       setExistingRecordId(null);
@@ -238,7 +268,7 @@ const MagilKarJodaModal = ({ isOpen, onClose, onSave, nodniId, khatedharkacheNav
     }
   };
 
-  // When modal opens, set default current year and check existing record
+  // When modal opens, load the GP दंड/सूट master, set default year, then check existing record
   useEffect(() => {
     if (isOpen && nodniId) {
       const currentYear = String(new Date().getFullYear());
@@ -248,7 +278,19 @@ const MagilKarJodaModal = ({ isOpen, onClose, onSave, nodniId, khatedharkacheNav
         toYear: String(new Date().getFullYear() + 1),
       });
       setExistingRecordId(null);
-      checkExistingRecord(currentYear);
+      (async () => {
+        try {
+          const [chaluRes, magilRes] = await Promise.all([
+            commonDdlService.getDandSut('chalu'),
+            commonDdlService.getDandSut('magil'),
+          ]);
+          dandSutRef.current = {
+            chalu: (chaluRes?.success && chaluRes.data ? chaluRes.data : {}) as HeadSet,
+            magil: (magilRes?.success && magilRes.data ? magilRes.data : {}) as HeadSet,
+          };
+        } catch { /* ignore — master optional */ }
+        checkExistingRecord(currentYear);
+      })();
     }
   }, [isOpen, nodniId]);
 

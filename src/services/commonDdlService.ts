@@ -26,6 +26,7 @@ const DDL_ENDPOINTS = {
   PROFILE: '/main/common-ddl/profile',
   PROFILE_IMAGE: '/main/common-ddl/profile-image',
   CHANGE_PASSWORD: '/main/common-ddl/change-password',
+  DAND_SUT: '/main/common-ddl/dand-sut',
 } as const;
 
 export const commonDdlService = {
@@ -180,6 +181,14 @@ export const commonDdlService = {
       old_password: oldPassword,
       new_password: newPassword,
     });
+  },
+
+  /**
+   * Per-tax-head 5% दंड/सूट values for the logged-in user's gram panchayat + kar_type
+   * ('chalu' | 'magil'), used by मागील कर जोडा form to auto-fill सूट / वाढ.
+   */
+  getDandSut: async (karType: 'chalu' | 'magil'): Promise<ApiResponse<Record<string, number>>> => {
+    return api.get(`${DDL_ENDPOINTS.DAND_SUT}?kar_type=${karType}`);
   },
 };
 
