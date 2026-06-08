@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
+import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
+import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
 
 /* नमुना ९ (multiple) — same demand-register layout as /namuna-9-1, one block per property/page.
    Filters via sessionStorage 'namuna9Params' from the Namuna 9 ahval page. */
@@ -17,7 +20,7 @@ const th = 'border border-black px-1 py-0.5 text-[10px] align-middle text-center
 const colW = [35, 110, 65, 60, 60, 55, 95, 50, 55, 45, 45, 55, 50, 95, 50, 50, 45, 45, 55, 55];
 const tableW = colW.reduce((a, b) => a + b, 0);
 
-const RecordBlock = ({ n, loc, cy }: { n: Row; loc: { district: string; taluka: string; gramPanchayat: string }; cy: number }) => {
+const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; taluka: string; gramPanchayat: string }; cy: number; qrUrl?: string }) => {
   const sj = (n.sillak_joda as Row) || {};
   const sjn = (k: string) => Number(sj[k] || 0);
   const gruhkar = sjn('gruhkar_v_bhumikar');
@@ -89,7 +92,14 @@ const RecordBlock = ({ n, loc, cy }: { n: Row; loc: { district: string; taluka: 
       <div className="flex justify-between text-sm mt-1 mb-0.5">
         <span>जिल्हा :- {loc.district}</span>
         <span>तालुका :- {loc.taluka}</span>
-        <span>ग्रामपंचायत :- {loc.gramPanchayat}</span>
+        <span className="relative">
+          {qrUrl && (
+            <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 2, zIndex: 10 }}>
+              <QRCodeSVG value={qrUrl} size={56} level="M" marginSize={0} />
+            </span>
+          )}
+          ग्रामपंचायत :- {loc.gramPanchayat}
+        </span>
       </div>
 
       <table className="table-fixed border-collapse" style={{ width: `${tableW}px` }}>
@@ -233,6 +243,8 @@ const Namuna9MultiReport = () => {
     if (params.year && !isNaN(Number(params.year))) setReportYear(Number(params.year));
     (async () => {
       try {
+        const pub = getPublicReportData<Row[]>();
+        if (pub) { setRecords(pub); return; }
         const res = await nodniService.getDharkachiYadi(params.ward, params.start, params.end, '', params.year);
         if (res.success) setRecords((res.data as Row[]) || []);
       } catch (e) {
@@ -242,6 +254,9 @@ const Namuna9MultiReport = () => {
       }
     })();
   }, []);
+
+  const shareParams = (() => { try { return JSON.parse(sessionStorage.getItem('namuna9Params') || '{}'); } catch { return {}; } })();
+  const qrUrl = useReportShareUrl({ reportType: 'namuna9', sessionKey: 'namuna9Params', params: shareParams, data: records, enabled: !isPublicReportMode() });
 
   return (
     <div className="n9m-report bg-white text-black p-4" style={{ colorScheme: 'light' }}>
@@ -282,7 +297,7 @@ const Namuna9MultiReport = () => {
               {loading ? 'लोड होत आहे...' : 'या निवडीसाठी माहिती उपलब्ध नाही'}
             </p>
           ) : (
-            records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} cy={reportYear} />)
+            records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} cy={reportYear} qrUrl={qrUrl} />)
           )}
         </div>
       </div>

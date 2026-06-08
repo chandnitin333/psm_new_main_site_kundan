@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
+import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
+import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
 
 /* Namuna 8 (नमुना ८) — tax assessment register print view.
    Opened in a new tab from the Print modal: /namuna-8-1?id=<nodni_id>.
@@ -40,6 +43,15 @@ const Namuna8Print = () => {
     document.body.classList.remove('dark');
     document.title = 'नमुना ८';
     const id = Number(new URLSearchParams(window.location.search).get('id'));
+    // Public (scanned-QR) mode: use the embedded snapshot instead of fetching (no ?id in URL).
+    const pub = getPublicReportData<Row>();
+    if (pub) {
+      setN(pub);
+      setLand((pub.khula_bhukhand_kar_aakarani as Row[]) || []);
+      setConstruction((pub.bandkamachi_kar_aakarani as Row[]) || []);
+      setManora((pub.manoryache_kar_aakarani as Row[]) || []);
+      return;
+    }
     if (!id) return;
     (async () => {
       try {
@@ -56,6 +68,9 @@ const Namuna8Print = () => {
       }
     })();
   }, []);
+
+  const __id = new URLSearchParams(window.location.search).get('id') || '';
+  const qrUrl = useReportShareUrl({ reportType: 'namuna8-single', sessionKey: undefined, params: { id: __id }, data: n, enabled: !isPublicReportMode() && !!n.anu_kramank });
 
   const td = 'border border-black px-1 py-0.5 text-[11px] align-middle text-center';
   const tdc = td;
@@ -158,7 +173,12 @@ const Namuna8Print = () => {
 
       {/* Whole report is a fixed-width "page": centered on wide screens, scrolls on narrow. */}
       <div className="n8-wrap overflow-x-auto">
-      <div className="n8-zoom mx-auto" style={{ width: `${tableW}px`, zoom }}>
+      <div className="n8-zoom mx-auto relative" style={{ width: `${tableW}px`, zoom }}>
+      {qrUrl && (
+        <div style={{ position: 'absolute', top: 16, right: 55 }}>
+          <QRCodeSVG value={qrUrl} size={52} level="M" marginSize={0} />
+        </div>
+      )}
       <div className="text-center">
         <p className="font-bold text-lg">नमुना ८</p>
         <p className="text-sm">

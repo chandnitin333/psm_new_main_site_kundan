@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Printer } from 'lucide-react';
 import { nodniService } from '../../../services';
+import { getPublicReportData } from '../../../utils/publicReport';
 
 /* गोषवारा नमुना ८ — same as old `get-namuna-8-ghosvara`.
    Aggregate summary: per tax type, count of properties + total amount. Filters via 'ghosvaraParams'. */
@@ -37,6 +38,8 @@ const Namuna8GhosvaraReport = () => {
     if (params.year && !isNaN(Number(params.year))) setCy(Number(params.year));
     (async () => {
       try {
+        const pub = getPublicReportData<Row[]>();
+        if (pub) { setRecords(pub); return; }
         const res = await nodniService.getDharkachiYadi(params.ward, params.start, params.end, '', params.year);
         if (res.success) setRecords((res.data as Row[]) || []);
       } catch (e) {
@@ -85,6 +88,7 @@ const Namuna8GhosvaraReport = () => {
   const round = (v: number) => Math.round(v).toString();
 
   const box = 'border border-black px-2 py-2 text-[12px] text-center flex items-center justify-center min-h-[40px]';
+
 
   return (
     <div className="ghos-report bg-white text-black p-4" style={{ colorScheme: 'light' }}>

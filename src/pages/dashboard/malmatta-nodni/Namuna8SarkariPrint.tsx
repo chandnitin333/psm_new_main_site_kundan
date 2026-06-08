@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
+import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
+import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
 
 /* सरकारी नमुना ८ (Sarkari Namuna 8) — exact old-app layout.
    Opened in a new tab from the Print modal: /namuna-8-sarkari-1?id=<nodni_id>.
@@ -37,6 +40,15 @@ const Namuna8SarkariPrint = () => {
     document.body.classList.remove('dark');
     document.title = 'नमुना ८ सरकारी';
     const id = Number(new URLSearchParams(window.location.search).get('id'));
+    // Public (scanned-QR) mode: use the embedded snapshot instead of fetching (no ?id in URL).
+    const pub = getPublicReportData<Row>();
+    if (pub) {
+      setN(pub);
+      setLand((pub.khula_bhukhand_kar_aakarani as Row[]) || []);
+      setCons((pub.bandkamachi_kar_aakarani as Row[]) || []);
+      setManora((pub.manoryache_kar_aakarani as Row[]) || []);
+      return;
+    }
     if (!id) return;
     (async () => {
       try {
@@ -53,6 +65,9 @@ const Namuna8SarkariPrint = () => {
       }
     })();
   }, []);
+
+  const __id = new URLSearchParams(window.location.search).get('id') || '';
+  const qrUrl = useReportShareUrl({ reportType: 'namuna8-sarkari-single', sessionKey: undefined, params: { id: __id }, data: n, enabled: !isPublicReportMode() && !!n.anu_kramank });
 
   // ---- formulas (same as नमुना ८) ----
   const sqmOf = (it: Row) => Number(it.ekun_shetrafal_choras_foot || 0) * 0.092903;
@@ -138,7 +153,12 @@ const Namuna8SarkariPrint = () => {
 
       {/* Fixed-width "page": centered on wide screens, scrolls on narrow — same as नमुना ८/९ */}
       <div className="n8s-wrap overflow-x-auto">
-      <div className="n8s-zoom mx-auto" style={{ width: `${tableW}px`, zoom }}>
+      <div className="n8s-zoom mx-auto relative" style={{ width: `${tableW}px`, zoom }}>
+        {qrUrl && (
+          <div style={{ position: 'absolute', top: 0, right: 55 }}>
+            <QRCodeSVG value={qrUrl} size={52} level="M" marginSize={0} />
+          </div>
+        )}
         <div className="text-center">
           <p className="font-bold text-lg">नमुना ८</p>
         </div>

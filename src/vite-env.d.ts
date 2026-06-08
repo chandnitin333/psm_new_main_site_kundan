@@ -7,6 +7,7 @@ interface ImportMetaEnv {
   readonly VITE_API_TIMEOUT: string;
   readonly VITE_APP_NAME: string;
   readonly VITE_APP_ENV: 'development' | 'staging' | 'production';
+  readonly VITE_PUBLIC_BASE_URL?: string;
 }
 
 interface ImportMeta {

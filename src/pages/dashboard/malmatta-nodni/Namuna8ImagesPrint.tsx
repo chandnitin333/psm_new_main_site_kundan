@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
 import config from '../../../config';
+import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
+import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
 
 /* नमुना ८ चित्रे (Namuna 8 with image) — exact old `get-namuna-8-images` layout.
    Opened from the Print modal: /namuna-8-images-1?id=<nodni_id>. Same full nodni record + property image. */
@@ -44,6 +47,20 @@ const Namuna8ImagesPrint = () => {
     document.body.classList.remove('dark');
     document.title = 'नमुना ८ चित्रे';
     const id = Number(new URLSearchParams(window.location.search).get('id'));
+    // Public (scanned-QR) mode: use the embedded snapshot instead of fetching (no ?id in URL).
+    const pub = getPublicReportData<Row>();
+    if (pub) {
+      setN(pub);
+      setLand((pub.khula_bhukhand_kar_aakarani as Row[]) || []);
+      setCons((pub.bandkamachi_kar_aakarani as Row[]) || []);
+      setManora((pub.manoryache_kar_aakarani as Row[]) || []);
+      const pimgs = (pub.images as Row[]) || [];
+      if (pimgs.length > 0 && pimgs[0].image_path) {
+        const backendBase = config.api.baseUrl.replace(/\/api$/, '');
+        setImgUrl(`${backendBase}/${pimgs[0].image_path}`);
+      }
+      return;
+    }
     if (!id) return;
     (async () => {
       try {
@@ -65,6 +82,9 @@ const Namuna8ImagesPrint = () => {
       }
     })();
   }, []);
+
+  const __id = new URLSearchParams(window.location.search).get('id') || '';
+  const qrUrl = useReportShareUrl({ reportType: 'namuna8-images-single', sessionKey: undefined, params: { id: __id }, data: n, enabled: !isPublicReportMode() && !!n.anu_kramank });
 
   // ---- formulas (same as नमुना ८) ----
   const sqmOf = (it: Row) => Number(it.ekun_shetrafal_choras_foot || 0) * 0.092903;
@@ -132,7 +152,12 @@ const Namuna8ImagesPrint = () => {
       </div>
 
       <div className="n8i-wrap overflow-x-auto">
-      <div className="n8i-zoom mx-auto" style={{ width: `${pageW}px`, zoom }}>
+      <div className="n8i-zoom mx-auto relative" style={{ width: `${pageW}px`, zoom }}>
+        {qrUrl && (
+          <div style={{ position: 'absolute', top: 16, right: 55 }}>
+            <QRCodeSVG value={qrUrl} size={52} level="M" marginSize={0} />
+          </div>
+        )}
         <div className="text-center">
           <p className="font-bold text-lg">नमुना ८</p>
           <p className="text-sm">

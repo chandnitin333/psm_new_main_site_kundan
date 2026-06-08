@@ -7,6 +7,7 @@ import Home from '../pages/public/Home';
 import About from '../pages/public/About';
 import Contact from '../pages/public/Contact';
 import Login from '../pages/public/Login';
+import PublicReportViewer from '../pages/public/PublicReportViewer';
 import Register from '../pages/public/Register';
 import ForgotPassword from '../pages/public/ForgotPassword';
 import ResetPassword from '../pages/public/ResetPassword';
@@ -87,6 +88,11 @@ export const createRouter = (handleLogout: () => void) =>
         { path: 'forgot-password', element: <ForgotPassword /> },
         { path: 'reset-password', element: <ResetPassword /> },
       ],
+    },
+    {
+      // PUBLIC scanned-QR report viewer (no login, no layout)
+      path: '/r/:token',
+      element: <PublicReportViewer />,
     },
     {
       path: '/nodni-form',

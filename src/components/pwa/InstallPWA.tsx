@@ -27,7 +27,9 @@ const isStandalone = () =>
 // We never want the install UI on those popup/report tabs.
 const isReportPopup = () => {
   try {
-    return typeof window !== 'undefined' && !!window.opener;
+    if (typeof window === 'undefined') return false;
+    // popup/report tabs opened via window.open, OR the public scanned-QR report route
+    return !!window.opener || window.location.pathname.startsWith('/r/');
   } catch {
     return false;
   }

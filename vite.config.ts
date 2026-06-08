@@ -4,6 +4,10 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // expose dev server on the LAN so a phone on the same Wi-Fi can open reports / scan QRs
+  server: {
+    host: true,
+  },
   plugins: [
     react(),
     VitePWA({

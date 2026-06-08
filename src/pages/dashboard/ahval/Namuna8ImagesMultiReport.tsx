@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
 import config from '../../../config';
+import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
+import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
 
 /* नमुना ८ चित्रे (multiple) — one नमुना-८ + image block per property/page.
    Filters via sessionStorage 'namuna8ImagesParams' from the Namuna 8 ahval page. */
@@ -31,7 +34,7 @@ const COLS = 29;
 const pageW = 1450;
 const backendBase = config.api.baseUrl.replace(/\/api$/, '');
 
-const RecordBlock = ({ n, loc, cy }: { n: Row; loc: { district: string; taluka: string; gramPanchayat: string }; cy: number }) => {
+const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; taluka: string; gramPanchayat: string }; cy: number; qrUrl?: string }) => {
   const land = (n.khula_bhukhand_kar_aakarani as Row[]) || [];
   const cons = (n.bandkamachi_kar_aakarani as Row[]) || [];
   const manora = (n.manoryache_kar_aakarani as Row[]) || [];
@@ -63,7 +66,14 @@ const RecordBlock = ({ n, loc, cy }: { n: Row; loc: { district: string; taluka: 
       <div className="flex justify-between text-sm mt-1 mb-1">
         <span>जिल्हा :- {loc.district}</span>
         <span>तालुका :- {loc.taluka}</span>
-        <span>ग्रामपंचायत :- {loc.gramPanchayat}</span>
+        <span className="relative">
+          {qrUrl && (
+            <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 2, zIndex: 10 }}>
+              <QRCodeSVG value={qrUrl} size={56} level="M" marginSize={0} />
+            </span>
+          )}
+          ग्रामपंचायत :- {loc.gramPanchayat}
+        </span>
       </div>
 
       <table className="table-fixed w-full border-collapse">
@@ -316,6 +326,8 @@ const Namuna8ImagesMultiReport = () => {
     if (params.year && !isNaN(Number(params.year))) setReportYear(Number(params.year));
     (async () => {
       try {
+        const pub = getPublicReportData<Row[]>();
+        if (pub) { setRecords(pub); return; }
         const res = await nodniService.getDharkachiYadi(params.ward, params.start, params.end, '', params.year);
         if (res.success) setRecords((res.data as Row[]) || []);
       } catch (e) {
@@ -325,6 +337,9 @@ const Namuna8ImagesMultiReport = () => {
       }
     })();
   }, []);
+
+  const shareParams = (() => { try { return JSON.parse(sessionStorage.getItem('namuna8ImagesParams') || '{}'); } catch { return {}; } })();
+  const qrUrl = useReportShareUrl({ reportType: 'namuna8-images', sessionKey: 'namuna8ImagesParams', params: shareParams, data: records, enabled: !isPublicReportMode() });
 
   return (
     <div className="n8im-report bg-white text-black p-4" style={{ colorScheme: 'light' }}>
@@ -365,7 +380,7 @@ const Namuna8ImagesMultiReport = () => {
               {loading ? 'लोड होत आहे...' : 'या निवडीसाठी माहिती उपलब्ध नाही'}
             </p>
           ) : (
-            records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} cy={reportYear} />)
+            records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} cy={reportYear} qrUrl={qrUrl} />)
           )}
         </div>
       </div>

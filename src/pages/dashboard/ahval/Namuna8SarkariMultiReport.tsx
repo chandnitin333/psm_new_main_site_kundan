@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
+import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
+import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
 
 /* सरकारी नमुना ८ (multiple) — same layout as /namuna-8-sarkari-1, one block per property/page.
    Filters via sessionStorage 'sarkari8Params' from the Namuna 8 ahval page. */
@@ -216,6 +219,8 @@ const Namuna8SarkariMultiReport = () => {
     }
     (async () => {
       try {
+        const pub = getPublicReportData<Row[]>();
+        if (pub) { setRecords(pub); return; }
         const res = await nodniService.getDharkachiYadi(params.ward, params.start, params.end, '', params.year);
         if (res.success) setRecords((res.data as Row[]) || []);
       } catch (e) {
@@ -225,6 +230,9 @@ const Namuna8SarkariMultiReport = () => {
       }
     })();
   }, []);
+
+  const shareParams = (() => { try { return JSON.parse(sessionStorage.getItem('sarkari8Params') || '{}'); } catch { return {}; } })();
+  const qrUrl = useReportShareUrl({ reportType: 'namuna8-sarkari', sessionKey: 'sarkari8Params', params: shareParams, data: records, enabled: !isPublicReportMode() });
 
   return (
     <div className="n8sm-report bg-white text-black p-4" style={{ colorScheme: 'light' }}>
@@ -265,7 +273,14 @@ const Namuna8SarkariMultiReport = () => {
               {loading ? 'लोड होत आहे...' : 'या निवडीसाठी माहिती उपलब्ध नाही'}
             </p>
           ) : (
-            records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} />)
+            <>
+              {qrUrl && (
+                <div className="flex justify-end mb-1">
+                  <QRCodeSVG value={qrUrl} size={64} level="M" marginSize={0} />
+                </div>
+              )}
+              {records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} />)}
+            </>
           )}
         </div>
       </div>

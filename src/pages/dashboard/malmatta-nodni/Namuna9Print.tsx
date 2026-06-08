@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
+import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
+import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
 
 /* Namuna 9 (नमुना ९) — tax DEMAND register (मागणी नोंदवही), exact old layout.
    Opened from the Print modal: /namuna-9-1?id=<nodni_id>.
@@ -36,6 +39,9 @@ const Namuna9Print = () => {
     document.body.classList.remove('dark');
     document.title = 'नमुना ९';
     const id = Number(new URLSearchParams(window.location.search).get('id'));
+    // Public (scanned-QR) mode: use the embedded snapshot instead of fetching (no ?id in URL).
+    const pub = getPublicReportData<Row>();
+    if (pub) { setN(pub); return; }
     if (!id) return;
     (async () => {
       try {
@@ -46,6 +52,9 @@ const Namuna9Print = () => {
       }
     })();
   }, []);
+
+  const __id = new URLSearchParams(window.location.search).get('id') || '';
+  const qrUrl = useReportShareUrl({ reportType: 'namuna9-single', sessionKey: undefined, params: { id: __id }, data: n, enabled: !isPublicReportMode() && !!n.anu_kramank });
 
   // All मागणी details come from nodni_sillak_joda (सिल्लक जोडा):
   //  चालू = base amount, 5% दंड = addition, 5% सूट = discount, एकूण = total (post 5%)
@@ -187,7 +196,12 @@ const Namuna9Print = () => {
       </div>
 
       <div className="n9-wrap overflow-x-auto">
-      <div className="n9-zoom mx-auto" style={{ width: `${tableW}px`, zoom }}>
+      <div className="n9-zoom mx-auto relative" style={{ width: `${tableW}px`, zoom }}>
+        {qrUrl && (
+          <div style={{ position: 'absolute', top: 16, right: 55 }}>
+            <QRCodeSVG value={qrUrl} size={52} level="M" marginSize={0} />
+          </div>
+        )}
         <div className="text-center">
           <p className="font-bold text-lg">नमुना ९</p>
           <p className="text-sm">सन {cy} - {cy + 1} या वर्षाची आकारणी केलेल्या कराची मागणी नोंदवही</p>

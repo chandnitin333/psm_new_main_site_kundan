@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
+import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
+import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
 
 /* नमुना ९ न्यू — same as old `get-namuna-9-new`. One row per property (खातेधारक-wise),
    मागणी/वसुली per-tax मागील/चालू/एकूण columns. Filters via sessionStorage 'namuna9NewParams'. */
@@ -120,6 +123,8 @@ const Namuna9NewMultiReport = () => {
     if (params.year && !isNaN(Number(params.year))) setCy(Number(params.year));
     (async () => {
       try {
+        const pub = getPublicReportData<Row[]>();
+        if (pub) { setRecords(pub); return; }
         const res = await nodniService.getDharkachiYadi(params.ward, params.start, params.end, '', params.year);
         if (res.success) setRecords((res.data as Row[]) || []);
       } catch (e) {
@@ -129,6 +134,9 @@ const Namuna9NewMultiReport = () => {
       }
     })();
   }, []);
+
+  const shareParams = (() => { try { return JSON.parse(sessionStorage.getItem('namuna9NewParams') || '{}'); } catch { return {}; } })();
+  const qrUrl = useReportShareUrl({ reportType: 'namuna9-new', sessionKey: 'namuna9NewParams', params: shareParams, data: records, enabled: !isPublicReportMode() });
 
   return (
     <div className="n9n-report bg-white text-black p-4" style={{ colorScheme: 'light' }}>
@@ -170,7 +178,14 @@ const Namuna9NewMultiReport = () => {
           <div className="flex justify-between text-sm mt-1 mb-1">
             <span>ग्रामपंचायत :- {loc.gramPanchayat}</span>
             <span>तहसील :- {loc.taluka}</span>
-            <span>जिल्हा :- {loc.district}</span>
+            <span className="relative">
+              {qrUrl && (
+                <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 0, zIndex: 10 }}>
+                  <QRCodeSVG value={qrUrl} size={52} level="M" marginSize={0} />
+                </span>
+              )}
+              जिल्हा :- {loc.district}
+            </span>
           </div>
 
           <table className="table-fixed border-collapse" style={{ width: `${tableW}px` }}>

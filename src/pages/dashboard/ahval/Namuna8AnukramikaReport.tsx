@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Printer } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
+import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
+import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
 
 /* नमुना ८ अनुक्रमणिका — same as old `namuna-8-anukramika-list`.
    Flat index table of properties. Filters via sessionStorage 'anukramikaParams'. */
@@ -38,6 +41,8 @@ const Namuna8AnukramikaReport = () => {
     setWard(params.ward || '');
     (async () => {
       try {
+        const pub = getPublicReportData<Row[]>();
+        if (pub) { setRecords(pub); return; }
         const res = await nodniService.getDharkachiYadi(params.ward, params.start, params.end, '', params.year);
         if (res.success) setRecords((res.data as Row[]) || []);
       } catch (e) {
@@ -50,6 +55,9 @@ const Namuna8AnukramikaReport = () => {
 
   const th = 'border border-black px-2 py-1 text-[12px] font-bold text-center bg-gray-100';
   const td = 'border border-black px-2 py-1 text-[12px] text-center align-middle';
+
+  const shareParams = (() => { try { return JSON.parse(sessionStorage.getItem('anukramikaParams') || '{}'); } catch { return {}; } })();
+  const qrUrl = useReportShareUrl({ reportType: 'namuna8-anukramika', sessionKey: 'anukramikaParams', params: shareParams, data: records, enabled: !isPublicReportMode() });
 
   return (
     <div className="anuk-report bg-white text-black p-4" style={{ colorScheme: 'light' }}>
@@ -80,7 +88,14 @@ const Namuna8AnukramikaReport = () => {
         <div className="flex justify-between text-sm mt-1 mb-2">
           <span>ग्रामपंचायत :- {loc.gramPanchayat}</span>
           <span>तहसील :- {loc.taluka}</span>
-          <span>जिल्हा :- {loc.district}</span>
+          <span className="relative">
+            {qrUrl && (
+              <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 2, zIndex: 10 }}>
+                <QRCodeSVG value={qrUrl} size={56} level="M" marginSize={0} />
+              </span>
+            )}
+            जिल्हा :- {loc.district}
+          </span>
         </div>
 
         <table className="w-full border-collapse">

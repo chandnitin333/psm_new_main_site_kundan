@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
+import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
+import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
 
 /* नमुना ८ नवीन आवृत्ती — नमुना ८ नियम ३२(१) कर आकारणी नोंदवही (वैयक्तिक असेसमेंट उतारा).
    Opened from the Print modal: /namuna-8-new-1?id=<nodni_id>. Same full nodni record source. */
@@ -37,6 +40,15 @@ const Namuna8NewPrint = () => {
     document.body.classList.remove('dark');
     document.title = 'नमुना ८ नवीन आवृत्ती';
     const id = Number(new URLSearchParams(window.location.search).get('id'));
+    // Public (scanned-QR) mode: use the embedded snapshot instead of fetching (no ?id in URL).
+    const pub = getPublicReportData<Row>();
+    if (pub) {
+      setN(pub);
+      setLand((pub.khula_bhukhand_kar_aakarani as Row[]) || []);
+      setCons((pub.bandkamachi_kar_aakarani as Row[]) || []);
+      setManora((pub.manoryache_kar_aakarani as Row[]) || []);
+      return;
+    }
     if (!id) return;
     (async () => {
       try {
@@ -53,6 +65,9 @@ const Namuna8NewPrint = () => {
       }
     })();
   }, []);
+
+  const __id = new URLSearchParams(window.location.search).get('id') || '';
+  const qrUrl = useReportShareUrl({ reportType: 'namuna8-new-single', sessionKey: undefined, params: { id: __id }, data: n, enabled: !isPublicReportMode() && !!n.anu_kramank });
 
   // ---- formulas (same as नमुना ८) ----
   const sqmOf = (it: Row) => Number(it.ekun_shetrafal_choras_foot || 0) * 0.092903;
@@ -149,13 +164,20 @@ const Namuna8NewPrint = () => {
       </div>
 
       <div className="n8n-wrap overflow-x-auto">
-      <div className="n8n-zoom mx-auto" style={{ width: `${tableW}px`, zoom }}>
+      <div className="n8n-zoom mx-auto relative" style={{ width: `${tableW}px`, zoom }}>
         <div className="text-center">
           <p className="font-bold text-base">नमुना ८ नियम ३२ (१)</p>
           <p className="text-sm">सन. {cy}-{cy + 1} साठी कर आकारणी नोंदवही (वैयक्तिक असेसमेंट उतारा पाहण्याकरीता)</p>
         </div>
         <div className="flex justify-between text-xs mt-1 mb-1">
-          <span>ग्रामपंचायत :- {loc.gramPanchayat}</span>
+          <span className="relative">
+            {qrUrl && (
+              <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 2, zIndex: 10 }}>
+                <QRCodeSVG value={qrUrl} size={44} level="M" marginSize={0} />
+              </span>
+            )}
+            ग्रामपंचायत :- {loc.gramPanchayat}
+          </span>
           <span>तालुका :- {loc.taluka}</span>
           <span>जिल्हा :- {loc.district}</span>
           <span>वार्ड नं. {s(n.ward_kramnak)}</span>

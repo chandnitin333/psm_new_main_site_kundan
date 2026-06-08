@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
+import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
+import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
 
 /* कराची मागणी पावती — मुंबई ग्रा.प. कायदा १९५९ कलम १२९(२).
    Same as old `magniche-bill-ward-report-129-2`. Two copies (left + right) per property.
@@ -47,10 +50,11 @@ const computeRows = (n: Row): { rows: TaxRow[]; tot: TaxRow } => {
 const td = 'border border-black px-1 py-0.5 text-[11px] align-middle text-center';
 
 const Receipt = ({
-  n, loc, cy, dates, bharna, copy,
+  n, loc, cy, dates, bharna, copy, qrUrl,
 }: {
   n: Row; loc: { district: string; taluka: string; gramPanchayat: string };
   cy: number; dates: { start: string; end: string }; bharna: string; copy: 'left' | 'right';
+  qrUrl?: string;
 }) => {
   const { rows, tot } = computeRows(n);
   return (
@@ -63,7 +67,14 @@ const Receipt = ({
       <div className="flex justify-between text-[11px] mt-1 mb-1">
         <span>ग्रामपंचायत :- {loc.gramPanchayat}</span>
         <span>जिल्हा :- {loc.district}</span>
-        <span>तालुका :- {loc.taluka}</span>
+        <span className="relative">
+          {qrUrl && (
+            <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 2, zIndex: 10 }}>
+              <QRCodeSVG value={qrUrl} size={50} level="M" marginSize={0} />
+            </span>
+          )}
+          तालुका :- {loc.taluka}
+        </span>
       </div>
 
       <table className="w-full table-fixed border-collapse">
@@ -192,6 +203,8 @@ const Bill129_2Report = () => {
     setBharna(p.bharna || '');
     (async () => {
       try {
+        const pub = getPublicReportData<Row[]>();
+        if (pub) { setRecords(pub); return; }
         const res = await nodniService.getDharkachiYadi(p.ward, p.start, p.end, '', p.year);
         if (res.success) setRecords((res.data as Row[]) || []);
       } catch (e) {
@@ -201,6 +214,14 @@ const Bill129_2Report = () => {
       }
     })();
   }, []);
+
+  const shareParams = (() => {
+    try { return JSON.parse(sessionStorage.getItem('bill129_2Params') || '{}'); } catch { return {}; }
+  })();
+  const qrUrl = useReportShareUrl({
+    reportType: 'bill-129-2', sessionKey: 'bill129_2Params',
+    params: shareParams, data: records, enabled: !isPublicReportMode(),
+  });
 
   return (
     <div className="bill2-report bg-white text-black p-4" style={{ colorScheme: 'light' }}>
@@ -233,8 +254,8 @@ const Bill129_2Report = () => {
         <div className="space-y-6">
           {records.map((n, i) => (
             <div key={i} className="bill2-page grid grid-cols-2 gap-0">
-              <Receipt n={n} loc={loc} cy={cy} dates={dates} bharna={bharna} copy="left" />
-              <Receipt n={n} loc={loc} cy={cy} dates={dates} bharna={bharna} copy="right" />
+              <Receipt n={n} loc={loc} cy={cy} dates={dates} bharna={bharna} copy="left" qrUrl={qrUrl} />
+              <Receipt n={n} loc={loc} cy={cy} dates={dates} bharna={bharna} copy="right" qrUrl={qrUrl} />
             </div>
           ))}
         </div>

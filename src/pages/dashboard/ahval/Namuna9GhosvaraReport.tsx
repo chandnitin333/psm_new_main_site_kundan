@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Printer } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
+import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
+import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
 
 /* गोषवारा नमुना ९ — same as old `get-namuna-9-ghosvara`.
    Per-tax मागील / चालू / एकुण / चालू खातेदार summary for a ward. Filters via 'namuna9GhosvaraParams'. */
@@ -41,6 +44,8 @@ const Namuna9GhosvaraReport = () => {
     if (params.year && !isNaN(Number(params.year))) setCy(Number(params.year));
     (async () => {
       try {
+        const pub = getPublicReportData<Row[]>();
+        if (pub) { setRecords(pub); return; }
         const res = await nodniService.getDharkachiYadi(params.ward, params.start, params.end, '', params.year);
         if (res.success) setRecords((res.data as Row[]) || []);
       } catch (e) {
@@ -116,6 +121,9 @@ const Namuna9GhosvaraReport = () => {
   const td = 'border border-black px-2 py-1 text-[12px] text-center align-middle';
   const tdL = 'border border-black px-2 py-1 text-[12px] text-left align-middle font-medium';
 
+  const shareParams = (() => { try { return JSON.parse(sessionStorage.getItem('namuna9GhosvaraParams') || '{}'); } catch { return {}; } })();
+  const qrUrl = useReportShareUrl({ reportType: 'namuna9-ghosvara', sessionKey: 'namuna9GhosvaraParams', params: shareParams, data: records, enabled: !isPublicReportMode() });
+
   const Cols = () => (
     <colgroup>
       <col style={{ width: '10%' }} />
@@ -168,7 +176,12 @@ const Namuna9GhosvaraReport = () => {
         </button>
       </div>
 
-      <div className="mx-auto" style={{ maxWidth: '1100px' }}>
+      <div className="mx-auto relative" style={{ maxWidth: '1100px' }}>
+        {qrUrl && (
+          <div style={{ position: 'absolute', top: 0, right: 18, zIndex: 10 }}>
+            <QRCodeSVG value={qrUrl} size={56} level="M" marginSize={0} />
+          </div>
+        )}
         <div className="text-center">
           <p className="font-bold text-lg">गोषवारा नमुना ९</p>
           <p className="text-sm">ग्रामपंचायत :- {loc.gramPanchayat} &nbsp; तहसील :- {loc.taluka} &nbsp; जिल्हा :- {loc.district}</p>
