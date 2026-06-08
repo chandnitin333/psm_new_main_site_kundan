@@ -54,7 +54,7 @@ const PaniReport = () => {
         html, body { background: #fff !important; }
         .pani-report { min-height: 100vh; background: #fff; }
         @media print {
-          @page { size: A4 portrait; margin: 8mm; }
+          @page { size: A4 portrait; margin: 20mm 8mm 8mm 8mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
           .pani-report { padding: 0 !important; min-height: 0; }

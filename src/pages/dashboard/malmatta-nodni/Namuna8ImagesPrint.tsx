@@ -107,7 +107,7 @@ const Namuna8ImagesPrint = () => {
         html, body { background: #fff !important; }
         .namuna8i-report { min-height: 100vh; background: #fff; }
         @media print {
-          @page { size: A4 landscape; margin: 8mm; }
+          @page { size: A4 landscape; margin: 24mm 4mm 8mm 16mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
           .namuna8i-report { zoom: 0.7; padding: 0 !important; min-height: 0; }

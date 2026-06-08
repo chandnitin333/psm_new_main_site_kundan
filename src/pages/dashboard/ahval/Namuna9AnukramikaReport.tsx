@@ -62,7 +62,7 @@ const Namuna9AnukramikaReport = () => {
         html, body { background: #fff !important; }
         .anuk9-report { min-height: 100vh; background: #fff; }
         @media print {
-          @page { size: A4 portrait; margin: 8mm; }
+          @page { size: A4 portrait; margin: 20mm 8mm 8mm 8mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
           .anuk9-report { padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }

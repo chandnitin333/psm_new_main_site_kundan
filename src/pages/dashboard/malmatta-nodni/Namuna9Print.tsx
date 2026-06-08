@@ -140,10 +140,11 @@ const Namuna9Print = () => {
         html, body { background: #fff !important; }
         .namuna9-report { min-height: 100vh; background: #fff; }
         @media print {
-          @page { size: A4 landscape; margin: 6mm; }
+          /* top right bottom left — more space at top & left, less at right */
+          @page { size: A4 landscape; margin: 24mm 4mm 8mm 16mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
-          .namuna9-report { zoom: 0.78; padding: 0 !important; min-height: 0; }
+          .namuna9-report { zoom: 0.85; padding: 0 !important; min-height: 0; }
           .n9-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
           .n9-zoom { zoom: 1 !important; }   /* ignore screen zoom while printing */
         }`}</style>

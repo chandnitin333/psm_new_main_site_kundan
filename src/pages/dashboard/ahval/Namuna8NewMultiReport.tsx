@@ -255,10 +255,10 @@ const Namuna8NewMultiReport = () => {
         .n8nm-report { min-height: 100vh; background: #fff; }
         .n8n-vert { writing-mode: vertical-rl; text-orientation: mixed; white-space: nowrap; }
         @media print {
-          @page { size: A4 landscape; margin: 6mm; }
+          @page { size: A4 landscape; margin: 24mm 4mm 8mm 12mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
-          .n8nm-report { zoom: 0.9; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .n8nm-report { zoom: 0.98; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .n8nm-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
           .n8nm-zoom { zoom: 1 !important; }   /* ignore screen zoom while printing */
           .n8nm-page { page-break-after: always; }

@@ -144,8 +144,8 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                     <button
                       className={`px-4 py-2 rounded-lg flex items-center gap-1 transition-colors border-b-2 ${
                         isActive(item.path) || item.subMenus.some(sub => isActive(sub.path))
-                          ? 'text-primary-600 dark:text-primary-500 border-primary-600 dark:border-primary-500 font-semibold'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border-transparent'
+                          ? 'text-primary-500 dark:text-primary-400 border-primary-500 dark:border-primary-400 font-semibold'
+                          : 'text-gray-900 dark:text-white font-medium hover:bg-gray-100 dark:hover:bg-gray-800 border-transparent'
                       }`}
                     >
                       {item.label}
@@ -174,8 +174,8 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                     to={item.path}
                     className={`px-4 py-2 rounded-lg transition-colors border-b-2 ${
                       isActive(item.path)
-                        ? 'text-primary-600 dark:text-primary-500 border-primary-600 dark:border-primary-500 font-semibold'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border-transparent'
+                        ? 'text-primary-500 dark:text-primary-400 border-primary-500 dark:border-primary-400 font-semibold'
+                        : 'text-gray-900 dark:text-white font-medium hover:bg-gray-100 dark:hover:bg-gray-800 border-transparent'
                     }`}
                   >
                     {item.label}
@@ -304,8 +304,8 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                       onClick={() => toggleDropdown(item.id)}
                       className={`w-full text-left px-4 py-2 rounded-lg flex items-center justify-between transition-colors border-l-4 ${
                         isActive(item.path) || item.subMenus.some(sub => isActive(sub.path))
-                          ? 'text-primary-600 dark:text-primary-500 border-primary-600 dark:border-primary-500 bg-primary-50 dark:bg-gray-800 font-semibold'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border-transparent'
+                          ? 'text-primary-500 dark:text-primary-400 border-primary-500 dark:border-primary-400 bg-primary-50 dark:bg-gray-800 font-semibold'
+                          : 'text-gray-900 dark:text-white font-medium hover:bg-gray-100 dark:hover:bg-gray-800 border-transparent'
                       }`}
                     >
                       {item.label}
@@ -324,7 +324,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                             onClick={() => setIsMobileMenuOpen(false)}
                             className={`block px-4 py-2 rounded-lg text-sm transition-colors border-l-4 ${
                               isActive(subItem.path)
-                                ? 'text-primary-600 dark:text-primary-500 border-primary-600 dark:border-primary-500 bg-primary-50 dark:bg-gray-800 font-semibold'
+                                ? 'text-primary-500 dark:text-primary-400 border-primary-500 dark:border-primary-400 bg-primary-50 dark:bg-gray-800 font-semibold'
                                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border-transparent'
                             }`}
                           >
@@ -340,8 +340,8 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`block px-4 py-2 rounded-lg transition-colors border-l-4 ${
                       isActive(item.path)
-                        ? 'text-primary-600 dark:text-primary-500 border-primary-600 dark:border-primary-500 bg-primary-50 dark:bg-gray-800 font-semibold'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border-transparent'
+                        ? 'text-primary-500 dark:text-primary-400 border-primary-500 dark:border-primary-400 bg-primary-50 dark:bg-gray-800 font-semibold'
+                        : 'text-gray-900 dark:text-white font-medium hover:bg-gray-100 dark:hover:bg-gray-800 border-transparent'
                     }`}
                   >
                     {item.label}

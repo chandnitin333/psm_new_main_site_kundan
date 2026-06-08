@@ -109,10 +109,11 @@ const Namuna8Print = () => {
         html, body { background: #fff !important; }
         .namuna8-report { min-height: 100vh; background: #fff; }
         @media print {
-          @page { size: A4 landscape; margin: 6mm; }
+          /* top right bottom left — more space at top & left, less at right */
+          @page { size: A4 landscape; margin: 24mm 4mm 8mm 16mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
-          .namuna8-report { zoom: 0.75; padding: 0 !important; min-height: 0; }   /* shrink wide tables to fit the page */
+          .namuna8-report { zoom: 0.85; padding: 0 !important; min-height: 0; }   /* shrink wide tables to fit the page */
           /* center the fixed-width tables/header/footer so left & right gaps are equal */
           .n8-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
           .n8-zoom { zoom: 1 !important; }   /* ignore screen zoom while printing */

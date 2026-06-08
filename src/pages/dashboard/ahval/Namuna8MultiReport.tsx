@@ -316,7 +316,7 @@ const Namuna8MultiReport = () => {
         html, body { background: #fff !important; }
         .n8m-report { min-height: 100vh; background: #fff; }
         @media print {
-          @page { size: A4 landscape; margin: 6mm; }
+          @page { size: A4 landscape; margin: 24mm 4mm 8mm 16mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
           .n8m-report { zoom: 0.75; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }

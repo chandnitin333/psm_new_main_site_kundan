@@ -336,7 +336,7 @@ const ImlaKarReport = () => {
         html, body { background: #fff !important; }
         .ik-report { min-height: 100vh; background: #fff; }
         @media print {
-          @page { size: A4 landscape; margin: 12mm; }
+          @page { size: A4 landscape; margin: 24mm 4mm 8mm 16mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
           .ik-report { zoom: 0.85; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }

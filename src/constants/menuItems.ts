@@ -44,25 +44,15 @@ export const DASHBOARD_MENU_ITEMS: MenuItem[] = [
   //   subMenus: []
   // },
   {
-    id: 'nodni-form',
-    label: 'Nodni Form',
+    id: 'nodni',
+    label: 'Nodni',
     path: '/nodni-form',
     icon: 'FileText',
-    subMenus: []
-  },
-  {
-    id: 'malmatta-nodni',
-    label: 'Malmatta Nodni',
-    path: '/malmatta-nodni',
-    icon: 'Building2',
-    subMenus: []
-  },
-  {
-    id: 'malmatta-ferfar',
-    label: 'Malmatta Ferfar',
-    path: '/malmatta-ferfar',
-    icon: 'RefreshCw',
-    subMenus: []
+    subMenus: [
+      { id: 'nodni-form', label: 'Nodni Form', path: '/nodni-form' },
+      { id: 'malmatta-nodni', label: 'Malmatta Nodni', path: '/malmatta-nodni' },
+      { id: 'malmatta-ferfar', label: 'Malmatta Ferfar', path: '/malmatta-ferfar' },
+    ]
   },
   {
     id: 'kar-aakarani',

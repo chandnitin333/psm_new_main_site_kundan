@@ -232,7 +232,7 @@ const Namuna8SarkariMultiReport = () => {
         html, body { background: #fff !important; }
         .n8sm-report { min-height: 100vh; background: #fff; }
         @media print {
-          @page { size: A4 landscape; margin: 8mm; }
+          @page { size: A4 landscape; margin: 24mm 4mm 8mm 16mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
           .n8sm-report { zoom: 0.85; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }

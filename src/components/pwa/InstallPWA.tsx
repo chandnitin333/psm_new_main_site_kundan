@@ -23,6 +23,16 @@ const isStandalone = () =>
   // iOS Safari
   (window.navigator as unknown as { standalone?: boolean }).standalone === true;
 
+// Reports/print pages open in a NEW tab via window.open() — those have window.opener set.
+// We never want the install UI on those popup/report tabs.
+const isReportPopup = () => {
+  try {
+    return typeof window !== 'undefined' && !!window.opener;
+  } catch {
+    return false;
+  }
+};
+
 const InstallPWA = () => {
   // initialise from the prompt captured early in index.html (may already be set)
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(
@@ -82,6 +92,9 @@ const InstallPWA = () => {
     // Fallback (iOS / browsers without the prompt) → manual instructions
     setShowHelp((v) => !v);
   };
+
+  // Never show install / update UI on report or print popup tabs
+  if (isReportPopup()) return null;
 
   return (
     <>
