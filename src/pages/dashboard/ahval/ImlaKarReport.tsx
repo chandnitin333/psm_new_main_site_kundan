@@ -53,7 +53,7 @@ const RecordBlock = ({ n, loc, cy }: { n: Row; loc: { district: string; taluka: 
           सन {cy}-{cy + 1} ते {cy + 3}-{cy + 4} या वर्षासाठी करास पात्र असलेल्या इमारती व जमिनी (खुला भूखंड) यांची कर आकारणी नोंदवही.
         </p>
       </div>
-      <div className="text-right text-sm font-bold mt-1">सदर नोंद ग्रामपंचायत नमुना ८ पान क्रमांक __{s(n.anu_kramank)}__ वरून घेण्यात आली</div>
+      <div className="text-center text-sm font-bold mt-1">सदर नोंद ग्रामपंचायत नमुना ८ पान क्रमांक __{s(n.anu_kramank)}__ वरून घेण्यात आली</div>
       <div className="flex justify-between text-sm mt-1 mb-1">
         <span>जिल्हा :- {loc.district}</span>
         <span>तालुका :- {loc.taluka}</span>
@@ -271,7 +271,7 @@ const RecordBlock = ({ n, loc, cy }: { n: Row; loc: { district: string; taluka: 
             <td className="border border-black px-1 py-1 text-[11px] font-bold text-center align-bottom" colSpan={4} rowSpan={2}>सचिव / सरपंच स्वाक्षरी</td>
           </tr>
           <tr>
-            <td className={`${td} text-left`} colSpan={16}>टीप : १) ह्या आकारणीचा अर्थ जागेवर मालकी हक्क नव्हे. २) हा नमुना ८ नाही.</td>
+            <td className={td} colSpan={16}>टीप : १) ह्या आकारणीचा अर्थ जागेवर मालकी हक्क नव्हे. २) हा नमुना ८ नाही.</td>
           </tr>
         </tbody>
       </table>

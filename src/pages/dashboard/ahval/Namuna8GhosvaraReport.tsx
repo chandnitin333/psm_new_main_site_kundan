@@ -92,7 +92,7 @@ const Namuna8GhosvaraReport = () => {
         html, body { background: #fff !important; }
         .ghos-report { min-height: 100vh; background: #fff; }
         @media print {
-          @page { size: A4 portrait; margin: 24mm 4mm 8mm 16mm; }
+          @page { size: A4 portrait; margin: 24mm 12mm 8mm 12mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
           .ghos-report { padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }

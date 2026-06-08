@@ -153,7 +153,7 @@ const Namuna9GhosvaraReport = () => {
         html, body { background: #fff !important; }
         .ng9-report { min-height: 100vh; background: #fff; }
         @media print {
-          @page { size: A4 portrait; margin: 24mm 4mm 8mm 16mm; }
+          @page { size: A4 portrait; margin: 24mm 8mm 8mm 8mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
           .ng9-report { padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
