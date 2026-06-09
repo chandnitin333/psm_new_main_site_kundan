@@ -6,6 +6,7 @@ import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '../../../utils/deleteConfirmation';
 import { ferfarService } from '../../../services';
+import { can } from '../../../utils/permissions';
 import type { MalmattaFerfarFormData, MalmattaFerfarRecord } from '../../../interfaces/dashboard/malmatta-ferfar/MalmattaFerfar.types';
 
 const MalmattaFerfar = () => {
@@ -180,6 +181,7 @@ const MalmattaFerfar = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             मालमत्ता फेरफार (Malmatta Ferfar)
           </h1>
+          {can('malmatta_ferfar', 'add') && (
           <button
             type="button"
             onClick={handleAddFerfar}
@@ -188,6 +190,7 @@ const MalmattaFerfar = () => {
             <Plus className="w-5 h-5" />
             फेरफार जोडा (Add Ferfar)
           </button>
+          )}
         </div>
 
         <form onSubmit={handleSearch} className="space-y-6">
@@ -426,6 +429,7 @@ const MalmattaFerfar = () => {
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <div className="flex items-center gap-2">
+                        {can('malmatta_ferfar', 'edit') && (
                         <button
                           type="button"
                           onClick={() => handleEdit(record)}
@@ -434,6 +438,8 @@ const MalmattaFerfar = () => {
                         >
                           <Edit2 className="w-5 h-5" />
                         </button>
+                        )}
+                        {can('malmatta_ferfar', 'delete') && (
                         <button
                           type="button"
                           onClick={() => handleDeleteClick(record.id)}
@@ -442,6 +448,8 @@ const MalmattaFerfar = () => {
                         >
                           <Trash2 className="w-5 h-5" />
                         </button>
+                        )}
+                        {can('malmatta_ferfar', 'pdf') && (
                         <button
                           type="button"
                           onClick={() => handlePDF(record)}
@@ -450,6 +458,7 @@ const MalmattaFerfar = () => {
                         >
                           <File className="w-5 h-5" />
                         </button>
+                        )}
                       </div>
                     </td>
                   </tr>

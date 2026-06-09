@@ -1,12 +1,16 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from '../../components/layout/Header';
 import Sidebar from '../../components/layout/Sidebar';
 import { DASHBOARD_MENU_ITEMS } from '../../constants/menuItems';
+import { filterMenuItems } from '../../utils/permissions';
 import type { DashboardLayoutProps } from '../../interfaces/dashboard/DashboardLayout.types';
 
 const DashboardLayout = ({ onLogout }: DashboardLayoutProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Show only the menus/submenus this user is allowed to access
+  const menuItems = useMemo(() => filterMenuItems(DASHBOARD_MENU_ITEMS), []);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -16,7 +20,7 @@ const DashboardLayout = ({ onLogout }: DashboardLayoutProps) => {
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header
         isAuthenticated={true}
-        menuItems={DASHBOARD_MENU_ITEMS}
+        menuItems={menuItems}
         onLogout={onLogout}
         onToggleSidebar={toggleSidebar}
       />
@@ -27,7 +31,7 @@ const DashboardLayout = ({ onLogout }: DashboardLayoutProps) => {
         <Sidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
-          menuItems={DASHBOARD_MENU_ITEMS}
+          menuItems={menuItems}
         />
 
         {/* Main Content */}

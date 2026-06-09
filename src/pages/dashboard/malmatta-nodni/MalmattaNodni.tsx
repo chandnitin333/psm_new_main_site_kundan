@@ -6,6 +6,7 @@ import PrintModal from './PrintModal';
 import ImageUploadModal from './ImageUploadModal';
 import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
+import { can } from '../../../utils/permissions';
 import { nodniService } from '../../../services';
 import { config } from '../../../config';
 import type { MalmattaRecord } from '../../../interfaces/dashboard/malmatta-nodni/MalmattaNodni.types';
@@ -486,6 +487,7 @@ const MalmattaNodni = () => {
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <div className="flex items-center gap-2">
+                          {can('malmatta_nodni', 'edit') && (
                           <button
                             type="button"
                             onClick={() => handleEdit(record)}
@@ -494,6 +496,8 @@ const MalmattaNodni = () => {
                           >
                             <Edit2 className="w-5 h-5" />
                           </button>
+                          )}
+                          {can('malmatta_nodni', 'delete') && (
                           <button
                             type="button"
                             onClick={() => handleDeleteClick(record.id)}
@@ -502,6 +506,8 @@ const MalmattaNodni = () => {
                           >
                             <Trash2 className="w-5 h-5" />
                           </button>
+                          )}
+                          {can('malmatta_nodni', 'print') && (
                           <button
                             type="button"
                             onClick={() => handlePrint(record)}
@@ -510,6 +516,8 @@ const MalmattaNodni = () => {
                           >
                             <Printer className="w-5 h-5" />
                           </button>
+                          )}
+                          {can('malmatta_nodni', 'image_upload') && (
                           <button
                             type="button"
                             onClick={() => handleImageUpload(record)}
@@ -518,6 +526,8 @@ const MalmattaNodni = () => {
                           >
                             <Image className="w-5 h-5" />
                           </button>
+                          )}
+                          {can('malmatta_nodni', 'magil_kar') && (
                           <button
                             type="button"
                             onClick={() => handleMagilKarJoda(record)}
@@ -526,6 +536,7 @@ const MalmattaNodni = () => {
                           >
                             <FileText className="w-5 h-5" />
                           </button>
+                          )}
                         </div>
                       </td>
                     </tr>

@@ -1,0 +1,96 @@
+/**
+ * Page-wise permission helpers for the user app.
+ *
+ * The logged-in user object (localStorage 'user') carries `page_permissions`:
+ *   { "<moduleKey>": ["view","edit",...], ... }
+ *
+ * Rule: if a user has NO permissions stored at all (empty / missing), we treat
+ * it as FULL ACCESS — this keeps pre-existing users and any account without an
+ * explicit permission set from being locked out. Enforcement only kicks in once
+ * the admin has actually assigned something.
+ */
+
+export type ActionKey =
+  | 'view' | 'add' | 'edit' | 'delete'
+  | 'report' | 'print' | 'pdf' | 'image_upload' | 'magil_kar';
+
+type PagePermissions = Record<string, ActionKey[]>;
+
+// Route path -> module key (must match admin's permissionModules keys)
+export const PATH_TO_MODULE: Record<string, string> = {
+  '/dashboard': 'dashboard',
+  '/nodni-form': 'nodni_form',
+  '/malmatta-nodni': 'malmatta_nodni',
+  '/malmatta-ferfar': 'malmatta_ferfar',
+  '/kar-aakarani': 'kar_aakarani',
+  '/vasuli': 'vasuli',
+  '/ahval/aadhar-list': 'ahval_aadhar_list',
+  '/ahval/mobile-list': 'ahval_mobile_list',
+  '/ahval/pani-list': 'ahval_pani_list',
+  '/ahval/shouchalay-list': 'ahval_shouchalay_list',
+  '/ahval/malmatta-durusti': 'ahval_malmatta_durusti',
+  '/ahval/namuna8': 'ahval_namuna8',
+  '/ahval/namuna9': 'ahval_namuna9',
+  '/ahval/bill-ward': 'ahval_bill_ward',
+  '/ahval/namuna10': 'ahval_namuna10',
+  '/ahval/imla-kar': 'ahval_imla_kar',
+};
+
+export const getPagePermissions = (): PagePermissions => {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const pp = user?.page_permissions;
+    return pp && typeof pp === 'object' ? (pp as PagePermissions) : {};
+  } catch {
+    return {};
+  }
+};
+
+// No explicit permissions at all -> full access (migration / safety)
+export const isFullAccess = (): boolean => {
+  const pp = getPagePermissions();
+  return !pp || Object.keys(pp).length === 0;
+};
+
+// Can the user open this module/page at all? (has any action OR full access)
+export const canModule = (moduleKey: string): boolean => {
+  if (isFullAccess()) return true;
+  const pp = getPagePermissions();
+  return Array.isArray(pp[moduleKey]) && pp[moduleKey].length > 0;
+};
+
+// Can the user perform a specific action on a module?
+export const can = (moduleKey: string, action: ActionKey): boolean => {
+  if (isFullAccess()) return true;
+  const pp = getPagePermissions();
+  return Array.isArray(pp[moduleKey]) && pp[moduleKey].includes(action);
+};
+
+// Module key for a route path (handles trailing segments under /ahval/*)
+export const moduleForPath = (path: string): string | undefined => PATH_TO_MODULE[path];
+
+interface MenuLike {
+  path?: string;
+  subMenus?: { path: string }[];
+}
+
+// Filter a menu tree to only the items/submenus the user can access.
+// Parent with submenus is kept only if at least one submenu is visible.
+export const filterMenuItems = <T extends MenuLike>(items: T[]): T[] => {
+  if (isFullAccess()) return items;
+  const result: T[] = [];
+  for (const item of items) {
+    const subs = item.subMenus || [];
+    if (subs.length > 0) {
+      const visibleSubs = subs.filter((s) => {
+        const m = moduleForPath(s.path);
+        return m ? canModule(m) : true;
+      });
+      if (visibleSubs.length > 0) result.push({ ...item, subMenus: visibleSubs });
+    } else {
+      const m = item.path ? moduleForPath(item.path) : undefined;
+      if (!m || canModule(m)) result.push(item);
+    }
+  }
+  return result;
+};

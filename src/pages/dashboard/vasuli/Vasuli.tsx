@@ -6,6 +6,7 @@ import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '../../../utils/deleteConfirmation';
 import { vasuliService, type VasuliListPayload } from '../../../services/vasuliService';
+import { can } from '../../../utils/permissions';
 import type { VasuliFormData, VasuliRecord } from '../../../interfaces/dashboard/vasuli/Vasuli.types';
 
 interface VasuliApiRecord {
@@ -219,6 +220,7 @@ const Vasuli = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             वसुली (Vasuli)
           </h1>
+          {can('vasuli', 'add') && (
           <button
             type="button"
             onClick={handleAddVasuli}
@@ -227,6 +229,7 @@ const Vasuli = () => {
             <Plus className="w-5 h-5" />
             वसुली जोडा (Add Vasuli)
           </button>
+          )}
         </div>
 
         <form onSubmit={handleSearch} className="space-y-6">
@@ -465,6 +468,7 @@ const Vasuli = () => {
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <div className="flex items-center gap-2">
+                      {can('vasuli', 'edit') && (
                       <button
                         type="button"
                         onClick={() => handleEdit(record)}
@@ -473,6 +477,8 @@ const Vasuli = () => {
                       >
                         <Edit2 className="w-5 h-5" />
                       </button>
+                      )}
+                      {can('vasuli', 'delete') && (
                       <button
                         type="button"
                         onClick={() => handleDeleteClick(index)}
@@ -481,6 +487,8 @@ const Vasuli = () => {
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
+                      )}
+                      {can('vasuli', 'view') && (
                       <button
                         type="button"
                         onClick={() => handleView(record)}
@@ -489,6 +497,7 @@ const Vasuli = () => {
                       >
                         <Eye className="w-5 h-5" />
                       </button>
+                      )}
                     </div>
                   </td>
                 </tr>
