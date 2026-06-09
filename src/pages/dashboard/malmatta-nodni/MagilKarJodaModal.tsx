@@ -16,14 +16,15 @@ const numericOnlyKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
 
 // TaxRow defined OUTSIDE the component to prevent remounting on every render
 // sut and vad are mutually exclusive: if one has value, other is disabled
+// NOTE: 5% सूट (-) and 5% वाढ (+) inputs are intentionally HIDDEN from the UI.
+// Their values are still kept in state, auto-filled from the दंड/सूट master, used in
+// the total calculation, and saved — they are simply not shown.
 const TaxRow = ({
   label,
   labelEn,
   amountName,
   amountValue,
-  sutName,
   sutValue,
-  vadName,
   vadValue,
   ekunValue,
   onChange,
@@ -39,11 +40,23 @@ const TaxRow = ({
   ekunValue: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) => {
-  const hasSut = sutValue !== '' && sutValue !== '0' && sutValue !== '0.00';
-  const hasVad = vadValue !== '' && vadValue !== '0' && vadValue !== '0.00';
+  // explanation tooltip — how this एकूण was computed (सूट or वाढ applied)
+  const amt = parseFloat(amountValue) || 0;
+  const sutP = parseFloat(sutValue) || 0;
+  const vadP = parseFloat(vadValue) || 0;
+  const discAmt = (sutP / 100) * amt;
+  const addAmt = (vadP / 100) * amt;
+  let tip: string;
+  if (sutP > 0) {
+    tip = `रक्कम ₹${amt} − ${sutP}% सूट (₹${discAmt.toFixed(2)}) = ₹${ekunValue || '0'}`;
+  } else if (vadP > 0) {
+    tip = `रक्कम ₹${amt} + ${vadP}% वाढ (₹${addAmt.toFixed(2)}) = ₹${ekunValue || '0'}`;
+  } else {
+    tip = `सूट / वाढ लागू नाही — एकूण = रक्कम ₹${amt}`;
+  }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
           {label} ({labelEn})
@@ -61,55 +74,20 @@ const TaxRow = ({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-          5% सूट (-) (Discount)
-        </label>
-        <input
-          type="number"
-          step="0.01"
-          name={sutName}
-          value={sutValue}
-          onChange={onChange}
-          onKeyDown={numericOnlyKeyDown}
-          disabled={hasVad}
-          className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white ${
-            hasVad
-              ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed opacity-50'
-              : 'focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700'
-          }`}
-          placeholder="5% सूट"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-          5% वाढ (+) (Addition)
-        </label>
-        <input
-          type="number"
-          step="0.01"
-          name={vadName}
-          value={vadValue}
-          onChange={onChange}
-          onKeyDown={numericOnlyKeyDown}
-          disabled={hasSut}
-          className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white ${
-            hasSut
-              ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed opacity-50'
-              : 'focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700'
-          }`}
-          placeholder="5% वाढ"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+        <label className="mb-1.5 flex items-center gap-1 text-sm font-medium text-gray-700 dark:text-gray-300">
           एकूण (Total)
+          <span className="group relative inline-flex items-center" title={tip}>
+            <span className="flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-primary-500 text-[10px] font-bold leading-none text-white">i</span>
+            <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1 w-max max-w-[240px] -translate-x-1/2 whitespace-normal rounded-md bg-gray-800 px-2.5 py-1.5 text-[11px] font-normal text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+              {tip}
+            </span>
+          </span>
         </label>
         <input
           type="text"
           value={ekunValue}
           readOnly
+          tabIndex={-1}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed font-semibold"
           placeholder="एकूण"
         />
@@ -442,6 +420,7 @@ const MagilKarJodaModal = ({ isOpen, onClose, onSave, nodniId, khatedharkacheNav
                 name="toYear"
                 value={formData.toYear}
                 readOnly
+                tabIndex={-1}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
                 placeholder="ते वर्ष"
               />
@@ -456,6 +435,7 @@ const MagilKarJodaModal = ({ isOpen, onClose, onSave, nodniId, khatedharkacheNav
                 name="khatedharkacheNav"
                 value={formData.khatedharkacheNav}
                 readOnly
+                tabIndex={-1}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
                 placeholder="खातेदाराचे नाव"
               />
@@ -470,12 +450,15 @@ const MagilKarJodaModal = ({ isOpen, onClose, onSave, nodniId, khatedharkacheNav
                 name="bhogwatdaracheNav"
                 value={formData.bhogwatdaracheNav}
                 readOnly
+                tabIndex={-1}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
                 placeholder="भोगवटदाराचे नाव"
               />
             </div>
           </div>
 
+          {/* Tax heads — two per row (each row shows 4 fields: amount + एकूण × 2) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-4">
           {/* Row 2 - गृहकर व भूमिकर */}
           <TaxRow
             label="गृहकर व भूमिकर" labelEn="House & Land Tax"
@@ -529,6 +512,7 @@ const MagilKarJodaModal = ({ isOpen, onClose, onSave, nodniId, khatedharkacheNav
             vadName="visheshPaniVad" vadValue={formData.visheshPaniVad}
             ekunValue={formData.visheshPaniEkun} onChange={handleInputChange}
           />
+          </div>
 
           {/* Row 8 - इतर फीस, नोटीस फीस, एकूण */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -573,6 +557,7 @@ const MagilKarJodaModal = ({ isOpen, onClose, onSave, nodniId, khatedharkacheNav
                 name="grandEkun"
                 value={formData.grandEkun}
                 readOnly
+                tabIndex={-1}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-primary-100 dark:bg-primary-900 text-gray-900 dark:text-white cursor-not-allowed font-bold text-lg"
                 placeholder="एकूण"
               />
@@ -581,6 +566,12 @@ const MagilKarJodaModal = ({ isOpen, onClose, onSave, nodniId, khatedharkacheNav
             <div>
               {/* Empty field for 4-column layout */}
             </div>
+          </div>
+
+          {/* Note */}
+          <div className="mt-2 flex items-start gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-800 dark:border-primary-800 dark:bg-primary-900/20 dark:text-primary-200">
+            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary-500 text-[10px] font-bold leading-none text-white">i</span>
+            <span>टीप : ग्रामपंचायतीचे निश्चित (fixed) वाढ व सूट आपोआप (automatically) लागू होतील.</span>
           </div>
         </div>
       </Modal>

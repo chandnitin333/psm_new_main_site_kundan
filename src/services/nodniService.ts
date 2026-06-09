@@ -13,6 +13,7 @@ const NODNI_ENDPOINTS = {
   DASHBOARD_COUNTS: '/main/nodni/dashboard-counts',
   DHARKACHI_YADI: '/main/nodni/dharkachi-yadi',
   TAX_LIST: '/main/nodni/tax-list',
+  NEXT_ANU_KRAMANK: '/main/nodni/next-anu-kramank',
   SEARCH: '/main/malmatta-nodni/search',
   FILTER: '/main/malmatta-nodni/filter',
   CHECK_SILLAK_JODA: '/main/malmatta-nodni/previous-tax/check-sillak-joda-exist',
@@ -29,6 +30,15 @@ export const nodniService = {
   /**
    * Create a new nodni record
    */
+  /**
+   * Ward-wise next अनु क्रमांक (last entry for the ward + 1)
+   */
+  getNextAnuKramank: async (
+    ward: string | number,
+  ): Promise<ApiResponse<{ next_anu_kramank: number; last_anu_kramank: number }>> => {
+    return api.get(`${NODNI_ENDPOINTS.NEXT_ANU_KRAMANK}?ward=${encodeURIComponent(String(ward))}`);
+  },
+
   create: async (payload: Record<string, unknown>): Promise<ApiResponse> => {
     return api.post(NODNI_ENDPOINTS.CREATE, payload);
   },

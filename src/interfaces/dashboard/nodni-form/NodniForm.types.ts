@@ -24,6 +24,7 @@ export interface NodniFormData {
   imaratMokli: string;
   dharmikEducation: string;
   shauryaPadak: string;
+  shaskiyaImarat: string;
   lambi: string;
   rundi: string;
   shetrafalChorasFoot: string;

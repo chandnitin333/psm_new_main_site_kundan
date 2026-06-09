@@ -206,6 +206,7 @@ const Bill129_1Report = () => {
         // Public (scanned-QR) mode: use the embedded snapshot instead of fetching.
         const pub = getPublicReportData<Row[]>();
         if (pub) { setRecords(pub); return; }
+        // Year-wise fetch: backend filters to properties having मागील कर for p.year.
         const res = await nodniService.getDharkachiYadi(p.ward, p.start, p.end, '', p.year);
         if (res.success) setRecords((res.data as Row[]) || []);
       } catch (e) {

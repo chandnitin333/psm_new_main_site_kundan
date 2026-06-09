@@ -106,6 +106,9 @@ const BillWard = () => {
     bharna: formData.bharna,
   });
   const fetchWardData = async (ward: string) => {
+    // Year-wise fetch (like every other ahval report): the backend applies a
+    // sillak_joda EXISTS(year) filter, so the bill only lists properties that
+    // have मागील कर recorded for the selected year.
     const res = await nodniService.getDharkachiYadi(ward, formData.start, formData.end, '', formData.year);
     return (res.success ? (res.data as Record<string, unknown>[]) : []) || [];
   };

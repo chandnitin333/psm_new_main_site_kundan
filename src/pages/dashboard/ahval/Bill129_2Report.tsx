@@ -205,6 +205,7 @@ const Bill129_2Report = () => {
       try {
         const pub = getPublicReportData<Row[]>();
         if (pub) { setRecords(pub); return; }
+        // Year-wise fetch: backend filters to properties having मागील कर for p.year.
         const res = await nodniService.getDharkachiYadi(p.ward, p.start, p.end, '', p.year);
         if (res.success) setRecords((res.data as Row[]) || []);
       } catch (e) {

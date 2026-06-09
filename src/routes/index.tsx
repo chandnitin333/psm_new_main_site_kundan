@@ -74,19 +74,26 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
+// Guest-only routes (home + auth pages). A logged-in user who lands here — via
+// the root URL or by typing the URL directly — is sent straight to the dashboard.
+const GuestRoute = ({ children }: ProtectedRouteProps) => {
+  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <>{children}</>;
+};
+
 export const createRouter = (handleLogout: () => void) =>
   createBrowserRouter([
     {
       path: '/',
       element: <PublicLayout />,
       children: [
-        { index: true, element: <Home /> },
+        { index: true, element: <GuestRoute><Home /></GuestRoute> },
         { path: 'about', element: <About /> },
         { path: 'contact', element: <Contact /> },
-        { path: 'login', element: <Login /> },
-        { path: 'register', element: <Register /> },
-        { path: 'forgot-password', element: <ForgotPassword /> },
-        { path: 'reset-password', element: <ResetPassword /> },
+        { path: 'login', element: <GuestRoute><Login /></GuestRoute> },
+        { path: 'register', element: <GuestRoute><Register /></GuestRoute> },
+        { path: 'forgot-password', element: <GuestRoute><ForgotPassword /></GuestRoute> },
+        { path: 'reset-password', element: <GuestRoute><ResetPassword /></GuestRoute> },
       ],
     },
     {

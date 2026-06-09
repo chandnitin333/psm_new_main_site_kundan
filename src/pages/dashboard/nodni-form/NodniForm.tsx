@@ -40,6 +40,9 @@ const NodniForm = () => {
   // Other Tax Calculation State - dynamic from API
   const [otherTaxes, setOtherTaxes] = useState<TaxItem[]>([]);
   const [taxLoading, setTaxLoading] = useState(false);
+  // Snapshot of otherTaxes taken just before "शासकीय इमारत = होय" zeroes them,
+  // so selecting नाही can restore their original selection + rates.
+  const otherTaxesBackupRef = useRef<TaxItem[] | null>(null);
 
   // Property Tax Calculation State
   const [propertyTax, setPropertyTax] = useState({
@@ -87,6 +90,7 @@ const NodniForm = () => {
     imaratMokli: '',
     dharmikEducation: '',
     shauryaPadak: '',
+    shaskiyaImarat: '',
     lambi: '',
     rundi: '',
     shetrafalChorasFoot: '',
@@ -95,20 +99,45 @@ const NodniForm = () => {
 
   // Ref for अनु क्रमांक input field
   const anuKramankInputRef = useRef<HTMLInputElement>(null);
+  // Ref for वॉर्ड क्र. input (now the first field — focused on load)
+  const wardInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-focus on अनु क्रमांक field when component loads with loader
+  // Auto-focus on वॉर्ड क्र. field when component loads with loader
+  // (ward is entered first; अनु क्रमांक then auto-fills ward-wise)
   useEffect(() => {
     document.title = 'Nodni Form - नोंदणी फॉर्म';
     const loadPage = async () => {
       showLoader('पृष्ठ लोड होत आहे... (Loading page...)');
       await new Promise(resolve => setTimeout(resolve, 800));
       hideLoader();
-      if (anuKramankInputRef.current) {
-        anuKramankInputRef.current.focus();
+      if (wardInputRef.current) {
+        wardInputRef.current.focus();
       }
     };
     loadPage();
   }, []);
+
+  // Ward-wise अनु क्रमांक auto-increment: when the user finishes entering the
+  // ward, fetch the ward's last anu_kramank and bind (last + 1). New records only.
+  const handleWardBlur = async () => {
+    if (editingId) return;                 // don't touch an existing record's number
+    const ward = (formData.wardNo || '').trim();
+    if (!ward) {
+      // Ward cleared -> clear the auto-filled अनु क्रमांक too
+      setFormData(prev => ({ ...prev, anuKramank: '' }));
+      return;
+    }
+    try {
+      const res = await nodniService.getNextAnuKramank(ward) as {
+        success: boolean; data?: { next_anu_kramank: number; last_anu_kramank: number };
+      };
+      if (res.success && res.data) {
+        setFormData(prev => ({ ...prev, anuKramank: String(res.data!.next_anu_kramank) }));
+      }
+    } catch {
+      /* ignore — leave anu kramank as-is on failure */
+    }
+  };
 
   // Populate form when edit data is passed via navigation state
   useEffect(() => {
@@ -186,6 +215,40 @@ const NodniForm = () => {
     if (name === 'shetrafalChorasFoot') {
       const chorasFoot = parseFloat(value) || 0;
       updated.shetrafalChorasMeter = chorasFoot ? (chorasFoot * 0.092903).toFixed(2) : '';
+    }
+
+    // शासकीय / सामाजिक-धार्मिक इमारत / सेवा निवृत्त अधिकारी:
+    //   होय -> सर्व कर निवडून दर ० करा (आधीची स्थिती जतन करून ठेवा)
+    //   नाही -> जतन केलेली आधीची स्थिती (निवड + दर) परत आणा
+    if (name === 'shaskiyaImarat') {
+      if (value === 'होय') {
+        // backup the current state (synchronously) once, then zero everything out
+        if (!otherTaxesBackupRef.current) {
+          otherTaxesBackupRef.current = otherTaxes.map(t => ({ ...t }));
+        }
+        setOtherTaxes(prev => prev.map(t => ({ ...t, selected: true, rate: '0' })));
+      } else {
+        // नाही -> restore the saved snapshot (capture ref synchronously first!)
+        const backup = otherTaxesBackupRef.current;
+        otherTaxesBackupRef.current = null;
+        if (backup) {
+          setOtherTaxes(backup.map(t => ({ ...t })));
+        }
+      }
+    }
+
+    // पाण्याची व्यवस्था -> auto-(de)select water tax checkboxes in इतर कर गणना:
+    //   हातपंप / विहीर / सार्वजनिक नळ -> सामान्य पाणी कर ✓ , विशेष पाणी कर ✗
+    //   घरी नळ                        -> विशेष पाणी कर ✓ , सामान्य पाणी कर ✗
+    //   नाही                          -> both ✗
+    if (name === 'panyachiVyavasta') {
+      const wantSamanya = ['हातपंप', 'विहीर', 'सार्वजनिक नळ'].includes(value);
+      const wantVishesh = value === 'घरी नळ';
+      setOtherTaxes(prev => prev.map(t => {
+        if (t.tax_name.includes('सामान्य पाणी')) return { ...t, selected: wantSamanya };
+        if (t.tax_name.includes('विशेष पाणी')) return { ...t, selected: wantVishesh };
+        return t;
+      }));
     }
 
     setFormData(updated);
@@ -473,6 +536,7 @@ const NodniForm = () => {
       imarat_kiva_mokdi_jaga: formData.imaratMokli,
       imarat_jamin_keval_dharmik_shekshink: formData.dharmikEducation,
       bhogvatdar_sarkarsasan_dalatil: formData.shauryaPadak,
+      shaskiy_samajik_sevanivrut_imarat: formData.shaskiyaImarat,
       // Area
       lambi: formData.lambi,
       rundi: formData.rundi,
@@ -633,6 +697,7 @@ const NodniForm = () => {
       imaratMokli: str(data.imarat_kiva_mokdi_jaga),
       dharmikEducation: str(data.imarat_jamin_keval_dharmik_shekshink),
       shauryaPadak: str(data.bhogvatdar_sarkarsasan_dalatil),
+      shaskiyaImarat: str(data.shaskiy_samajik_sevanivrut_imarat),
       lambi: str(data.lambi),
       rundi: str(data.rundi),
       shetrafalChorasFoot: str(data.shetrafal_choras_foot),
@@ -813,6 +878,7 @@ const NodniForm = () => {
       imaratMokli: '',
       dharmikEducation: '',
       shauryaPadak: '',
+      shaskiyaImarat: '',
       lambi: '',
       rundi: '',
       shetrafalChorasFoot: '',
@@ -852,6 +918,14 @@ const NodniForm = () => {
 
   return (
     <>
+      {/* Smaller, lighter placeholders across the whole nodni form */}
+      <style>{`
+        .nodni-form-scope input::placeholder,
+        .nodni-form-scope textarea::placeholder {
+          font-size: 0.7rem;
+          opacity: 0.8;
+        }
+      `}</style>
       <ToastContainer />
       <div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
@@ -859,7 +933,7 @@ const NodniForm = () => {
             नोंदणी फॉर्म (Nodni Form)
           </h1>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 nodni-form-scope">
           {/* Basic Information */}
           <div>
             {/* <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
@@ -868,16 +942,33 @@ const NodniForm = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                वॉर्ड क्र.
+                </label>
+                <input
+                  type="text"
+                  name="wardNo"
+                  value={formData.wardNo}
+                  onChange={handleInputChange}
+                  onBlur={handleWardBlur}
+                  ref={wardInputRef}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="वॉर्ड क्र."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   अनु क्रमांक
                 </label>
                 <input
                   type="text"
                   name="anuKramank"
                   value={formData.anuKramank}
-                  onChange={handleInputChange}
+                  readOnly
+                  tabIndex={-1}
                   ref={anuKramankInputRef}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="अनु क्रमांक"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
+                  placeholder="वॉर्ड निवडल्यावर आपोआप"
                 />
               </div>
 
@@ -892,20 +983,6 @@ const NodniForm = () => {
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="मालमत्ता नं"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                वॉर्ड क्र.
-                </label>
-                <input
-                  type="text"
-                  name="wardNo"
-                  value={formData.wardNo}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="वॉर्ड क्र."
                 />
               </div>
 
@@ -1159,7 +1236,7 @@ const NodniForm = () => {
                   पिण्याच्या पाण्याची व्यवस्था (Water Supply)
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                  {['hatpump', 'vihir', 'sarvjnik_nal', 'ghari_nal', 'No'].map((option) => (
+                  {['हातपंप', 'विहीर', 'सार्वजनिक नळ', 'घरी नळ', 'नाही'].map((option) => (
                     <label key={option} className="flex items-center space-x-2 cursor-pointer">
                       <input
                         type="radio"
@@ -1169,13 +1246,7 @@ const NodniForm = () => {
                         onChange={handleInputChange}
                         className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                       />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
-                        {option === 'hatpump' && 'हातपंप'}
-                        {option === 'vihir' && 'विहीर'}
-                        {option === 'sarvjnik_nal' && 'सार्वजनिक नळ'}
-                        {option === 'ghari_nal' && 'घरी नळ'}
-                        {option === 'No' && 'नाही'}
-                      </span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{option}</span>
                     </label>
                   ))}
                 </div>
@@ -1191,8 +1262,8 @@ const NodniForm = () => {
                     <input
                       type="radio"
                       name="souchalay"
-                      value="Yes"
-                      checked={formData.souchalay === 'Yes'}
+                      value="होय"
+                      checked={formData.souchalay === 'होय'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
@@ -1202,8 +1273,8 @@ const NodniForm = () => {
                     <input
                       type="radio"
                       name="souchalay"
-                      value="No"
-                      checked={formData.souchalay === 'No'}
+                      value="नाही"
+                      checked={formData.souchalay === 'नाही'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
@@ -1214,16 +1285,29 @@ const NodniForm = () => {
 
               {/* Commercial Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  वाणिज्य प्रकार (Commercial Type)
-                </label>
+                <div className="mb-2 flex items-center gap-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    वाणिज्य प्रकार (Commercial Type)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, vanijyaPrakar: '' }))}
+                    title="निवड रद्द करा (Reset)"
+                    className="inline-flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-0.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    रद्द करा
+                  </button>
+                </div>
                 <div className="flex gap-6">
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
                       type="radio"
                       name="vanijyaPrakar"
-                      value="audogyik"
-                      checked={formData.vanijyaPrakar === 'audogyik'}
+                      value="औद्योगिक"
+                      checked={formData.vanijyaPrakar === 'औद्योगिक'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
@@ -1233,12 +1317,12 @@ const NodniForm = () => {
                     <input
                       type="radio"
                       name="vanijyaPrakar"
-                      value="manora"
-                      checked={formData.vanijyaPrakar === 'manora'}
+                      value="मनोरा"
+                      checked={formData.vanijyaPrakar === 'मनोरा'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">मनोरंजन (Entertainment)</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">मनोरा (Tower)</span>
                   </label>
                 </div>
               </div>
@@ -1249,7 +1333,7 @@ const NodniForm = () => {
                   मिलकत प्रकार (Property Type)
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {['adhikrut', 'imlakar', 'gharkul', 'ghar_kar'].map((option) => (
+                  {['अधिकृत', 'इमलाकार', 'घरकुल', 'घर कर लावायचे'].map((option) => (
                     <label key={option} className="flex items-center space-x-2 cursor-pointer">
                       <input
                         type="radio"
@@ -1260,10 +1344,7 @@ const NodniForm = () => {
                         className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                       />
                       <span className="text-sm text-gray-700 dark:text-gray-300">
-                        {option === 'adhikrut' && 'अधिकृत'}
-                        {option === 'imlakar' && 'इमलाकार'}
-                        {option === 'gharkul' && 'घरकुल'}
-                        {option === 'ghar_kar' && 'घर कर लावायचे'}
+                        {option}
                       </span>
                     </label>
                   ))}
@@ -1280,8 +1361,8 @@ const NodniForm = () => {
                     <input
                       type="radio"
                       name="imaratMokli"
-                      value="Yes"
-                      checked={formData.imaratMokli === 'Yes'}
+                      value="होय"
+                      checked={formData.imaratMokli === 'होय'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
@@ -1291,8 +1372,8 @@ const NodniForm = () => {
                     <input
                       type="radio"
                       name="imaratMokli"
-                      value="No"
-                      checked={formData.imaratMokli === 'No'}
+                      value="नाही"
+                      checked={formData.imaratMokli === 'नाही'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
@@ -1311,8 +1392,8 @@ const NodniForm = () => {
                     <input
                       type="radio"
                       name="dharmikEducation"
-                      value="Yes"
-                      checked={formData.dharmikEducation === 'Yes'}
+                      value="होय"
+                      checked={formData.dharmikEducation === 'होय'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
@@ -1322,8 +1403,8 @@ const NodniForm = () => {
                     <input
                       type="radio"
                       name="dharmikEducation"
-                      value="No"
-                      checked={formData.dharmikEducation === 'No'}
+                      value="नाही"
+                      checked={formData.dharmikEducation === 'नाही'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
@@ -1343,8 +1424,8 @@ const NodniForm = () => {
                     <input
                       type="radio"
                       name="shauryaPadak"
-                      value="Yes"
-                      checked={formData.shauryaPadak === 'Yes'}
+                      value="होय"
+                      checked={formData.shauryaPadak === 'होय'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
@@ -1354,8 +1435,40 @@ const NodniForm = () => {
                     <input
                       type="radio"
                       name="shauryaPadak"
-                      value="No"
-                      checked={formData.shauryaPadak === 'No'}
+                      value="नाही"
+                      checked={formData.shauryaPadak === 'नाही'}
+                      onChange={handleInputChange}
+                      className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">नाही (No)</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Govt / social-religious buildings / retired army officer (tax-exempt) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  शासकीय इमारती व जागा / सामाजिक व धार्मिक इमारती व जागा / सेनेतील सेवा निवृत्त अधिकारी आहे का?
+                  <span className="text-xs text-gray-500 dark:text-gray-400"> (होय असल्यास सर्व कर ० दराने आकारले जातील)</span>
+                </label>
+                <div className="flex gap-6">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="shaskiyaImarat"
+                      value="होय"
+                      checked={formData.shaskiyaImarat === 'होय'}
+                      onChange={handleInputChange}
+                      className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">होय (Yes)</span>
+                  </label>
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="shaskiyaImarat"
+                      value="नाही"
+                      checked={formData.shaskiyaImarat === 'नाही'}
                       onChange={handleInputChange}
                       className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />

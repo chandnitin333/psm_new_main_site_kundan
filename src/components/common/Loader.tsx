@@ -7,14 +7,28 @@ export interface LoaderProps {
   color?: string;
 }
 
-const LOADER_COLOR = '#F59C0C';
-
 const Loader = ({
   text = 'Loading...',
   type = 'spinner',
   size = 'medium',
 }: LoaderProps) => {
   const [dots, setDots] = useState('');
+
+  // Theme-aware colors: light theme -> gray (visible on light bg),
+  // dark theme -> white. Tracks the `dark` class on <html>.
+  const [isDark, setIsDark] = useState(
+    () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+  );
+  useEffect(() => {
+    const el = document.documentElement;
+    const obs = new MutationObserver(() => setIsDark(el.classList.contains('dark')));
+    obs.observe(el, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
+
+  // Main loader color + the faint "track" used by ring/spinner styles
+  const LOADER_COLOR = isDark ? '#ffffff' : '#4b5563';   // white (dark) / gray-600 (light)
+  const TRACK_COLOR = isDark ? '#4b5563' : '#e5e7eb';    // gray-600 (dark) / gray-200 (light)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -38,7 +52,7 @@ const Loader = ({
         return (
           <div
             className="rounded-full animate-spin"
-            style={{ width: px, height: px, border: '4px solid #e5e7eb', borderTopColor: LOADER_COLOR }}
+            style={{ width: px, height: px, border: `4px solid ${TRACK_COLOR}`, borderTopColor: LOADER_COLOR }}
           />
         );
 
@@ -134,7 +148,7 @@ const Loader = ({
       case 'dual-ring':
         return (
           <div className="relative" style={{ width: px, height: px }}>
-            <div className="absolute inset-0 rounded-full" style={{ border: '4px solid #e5e7eb' }} />
+            <div className="absolute inset-0 rounded-full" style={{ border: `4px solid ${TRACK_COLOR}` }} />
             <div className="absolute inset-0 rounded-full animate-spin" style={{ border: '4px solid transparent', borderTopColor: LOADER_COLOR, borderLeftColor: LOADER_COLOR }} />
           </div>
         );
@@ -143,7 +157,7 @@ const Loader = ({
         return (
           <div
             className="rounded-full animate-spin"
-            style={{ width: px, height: px, border: '4px solid #e5e7eb', borderTopColor: LOADER_COLOR }}
+            style={{ width: px, height: px, border: `4px solid ${TRACK_COLOR}`, borderTopColor: LOADER_COLOR }}
           />
         );
     }
