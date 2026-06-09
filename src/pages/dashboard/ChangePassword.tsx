@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Lock, Eye, EyeOff, Save, X, ShieldCheck, KeyRound, Check } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import { commonDdlService } from '../../services/commonDdlService';
+import { trackAction } from '../../utils/tracker';
 import type { PasswordData } from '../../interfaces/dashboard/ChangePassword.types';
 
 /** Live password-strength score (0–4) + label/colour */
@@ -127,6 +128,7 @@ const ChangePassword = () => {
     try {
       const res = await commonDdlService.changeMyPassword(oldPassword, newPassword);
       if (res?.success) {
+        trackAction('पासवर्ड बदलला (Password changed)', { page: '/change-password' });
         toast.success('पासवर्ड यशस्वीरित्या बदलला! / Password changed successfully!');
         setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
       } else {

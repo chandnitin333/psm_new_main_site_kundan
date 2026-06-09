@@ -4,6 +4,7 @@ import YearPicker from '../../../components/common/YearPicker';
 import { nodniService, commonDdlService } from '../../../services';
 import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
+import { trackAction } from '../../../utils/tracker';
 import type { MagilKarJodaData, MagilKarJodaModalProps } from '../../../interfaces/dashboard/malmatta-nodni/MagilKarJodaModal.types';
 
 // Allow only numbers, decimal point, backspace, delete, tab, arrows, home, end
@@ -250,6 +251,10 @@ const MagilKarJodaModal = ({ isOpen, onClose, onSave, nodniId, khatedharkacheNav
   useEffect(() => {
     if (isOpen && nodniId) {
       const currentYear = String(new Date().getFullYear());
+      trackAction(
+        `मागील कर जोडा (Add Previous Tax) modal उघडला होता — खातेदार: ${khatedharkacheNav || '-'}`,
+        { nodni_id: nodniId, khatedar: khatedharkacheNav, page: '/malmatta-nodni' }
+      );
       setFormData({
         ...getInitialFormData(),
         year: currentYear,
@@ -345,13 +350,28 @@ const MagilKarJodaModal = ({ isOpen, onClose, onSave, nodniId, khatedharkacheNav
       }
 
       if (res.success) {
+        trackAction(
+          existingRecordId
+            ? `मागील कर जोडा मध्ये डेटा बदलून "जतन करा" बटणावर click करून अद्यतनित केला — खातेदार: ${formData.khatedharkacheNav || '-'}, वर्ष: ${formData.year}, एकूण: ₹${formData.grandEkun || 0}`
+            : `मागील कर जोडा मध्ये नवीन डेटा भरून "जतन करा" बटणावर click करून जतन केला — खातेदार: ${formData.khatedharkacheNav || '-'}, वर्ष: ${formData.year}, एकूण: ₹${formData.grandEkun || 0}`,
+          {
+            nodni_id: nodniId,
+            mode: existingRecordId ? 'update' : 'create',
+            year: formData.year,
+            khatedar: formData.khatedharkacheNav,
+            grand_total: formData.grandEkun,
+          }
+        );
         toast.success(
           existingRecordId
             ? 'मागील कर यशस्वीरित्या अद्यतनित केले (Previous tax updated successfully)'
             : 'मागील कर यशस्वीरित्या जतन केले (Previous tax saved successfully)'
         );
         onSave(formData);
-        handleCancel();
+        // reset + close WITHOUT firing a "modal closed" event (save already tracked)
+        setFormData(getInitialFormData());
+        setExistingRecordId(null);
+        onClose();
       } else {
         toast.error('जतन करताना त्रुटी (Error saving record)');
       }
@@ -363,6 +383,10 @@ const MagilKarJodaModal = ({ isOpen, onClose, onSave, nodniId, khatedharkacheNav
   };
 
   const handleCancel = () => {
+    trackAction(
+      `मागील कर जोडा modal बंद केला होता — खातेदार: ${formData.khatedharkacheNav || '-'}`,
+      { nodni_id: nodniId, khatedar: formData.khatedharkacheNav, page: '/malmatta-nodni' }
+    );
     setFormData(getInitialFormData());
     setExistingRecordId(null);
     onClose();

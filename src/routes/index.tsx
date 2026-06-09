@@ -444,6 +444,12 @@ export const createRouter = (handleLogout: () => void) =>
       ],
     },
     {
+      // When maintenance is OFF, the leftover /maintenance URL (set during
+      // maintenance) should send the user to home — not 404.
+      path: '/maintenance',
+      element: <Navigate to="/" replace />,
+    },
+    {
       path: '*',
       element: <NotFound />,
     },

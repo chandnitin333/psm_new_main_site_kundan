@@ -6,6 +6,7 @@ import {
 import { useToast } from '../../hooks/useToast';
 import { commonDdlService } from '../../services/commonDdlService';
 import { config } from '../../config';
+import { trackAction } from '../../utils/tracker';
 
 const backendBase = config.api.baseUrl.replace(/\/api$/, '');
 
@@ -157,6 +158,7 @@ const Profile = () => {
       if (res?.success && savedPath) {
         setImgError(false);
         setProfileImage(`${backendBase}/${savedPath}?t=${Date.now()}`);
+        trackAction('प्रोफाइल फोटो अपडेट केला (Profile photo updated)', { page: '/profile' });
         toast.success('प्रोफाइल फोटो यशस्वीरित्या अपडेट केला! / Profile picture updated!');
       } else {
         throw new Error(res?.message || 'upload failed');

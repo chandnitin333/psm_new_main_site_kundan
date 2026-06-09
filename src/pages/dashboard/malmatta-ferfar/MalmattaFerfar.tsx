@@ -7,6 +7,7 @@ import { useLoading } from '../../../contexts/LoadingContext';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '../../../utils/deleteConfirmation';
 import { ferfarService } from '../../../services';
 import { can } from '../../../utils/permissions';
+import { trackAction } from '../../../utils/tracker';
 import type { MalmattaFerfarFormData, MalmattaFerfarRecord } from '../../../interfaces/dashboard/malmatta-ferfar/MalmattaFerfar.types';
 
 const MalmattaFerfar = () => {
@@ -152,6 +153,10 @@ const MalmattaFerfar = () => {
       try {
         const response = await ferfarService.delete(deleteConfirmation.index);
         if (response.success) {
+          trackAction(
+            `मालमत्ता फेरफार रेकॉर्ड हटवला (Delete) — id: ${deleteConfirmation.index}`,
+            { mode: 'delete', ferfar_id: deleteConfirmation.index, page: '/malmatta-ferfar' }
+          );
           await fetchRecords(currentPage);
           toast.success('रेकॉर्ड यशस्वीरित्या हटविला (Record deleted successfully)');
         } else {

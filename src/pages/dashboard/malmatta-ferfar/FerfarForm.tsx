@@ -10,6 +10,7 @@ import { commonDdlService } from '../../../services/commonDdlService';
 import { authService } from '../../../services/authService';
 import { nodniService } from '../../../services/nodniService';
 import { ferfarService } from '../../../services/ferfarService';
+import { trackAction } from '../../../utils/tracker';
 import type { FerfarFormData } from '../../../interfaces/dashboard/malmatta-ferfar/FerfarForm.types';
 
 const FerfarForm = () => {
@@ -211,10 +212,18 @@ const FerfarForm = () => {
 
       if (isEdit && editRecord?.id) {
         await ferfarService.update(editRecord.id, payload);
+        trackAction(
+          `मालमत्ता फेरफार रेकॉर्ड मध्ये डेटा बदलून अद्यतनित (Update) केला — अनु क्रमांक: ${formData.anuKramank || '-'}, वॉर्ड क्र.: ${formData.wardNo || '-'}, नाव लिहून घेणारा: ${formData.navLihunGhenara || '-'}`,
+          { page: '/malmatta-ferfar/ferfar-form', mode: 'update', anu_kramank: formData.anuKramank, ward: formData.wardNo }
+        );
         hideLoader();
         toast.success('फेरफार यशस्वीरित्या अद्यतनित केले (Ferfar updated successfully)');
       } else {
         await ferfarService.create(payload);
+        trackAction(
+          `मालमत्ता फेरफार मध्ये नवीन रेकॉर्ड तयार (Create) केला — अनु क्रमांक: ${formData.anuKramank || '-'}, वॉर्ड क्र.: ${formData.wardNo || '-'}, नाव लिहून घेणारा: ${formData.navLihunGhenara || '-'}`,
+          { page: '/malmatta-ferfar/ferfar-form', mode: 'create', anu_kramank: formData.anuKramank, ward: formData.wardNo }
+        );
         hideLoader();
         toast.success('फेरफार यशस्वीरित्या जतन केले (Ferfar saved successfully)');
       }

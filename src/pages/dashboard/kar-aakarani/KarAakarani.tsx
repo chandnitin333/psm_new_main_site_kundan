@@ -6,6 +6,7 @@ import KarAakaraniTable from './KarAakaraniTable';
 import { Select2, type Select2Option } from '../../../components/common';
 import { karAakaraniService } from '../../../services/karAakaraniService';
 import { commonDdlService } from '../../../services/commonDdlService';
+import { trackAction } from '../../../utils/tracker';
 import {
   EMPTY_TOTALS,
   type KarAakaraniRecord,
@@ -149,6 +150,10 @@ const KarAakarani = () => {
   const handleKarAakarani = async (e: React.FormEvent) => {
     e.preventDefault();
     const filters = { wardNo: formData.wardNo, year: formData.year, toYear: formData.toYear };
+    trackAction(
+      `कर आकारणी अहवाल पाहिला — निवड: वॉर्ड क्र.: ${filters.wardNo || 'सर्व'}, वर्ष: ${filters.year || '-'} ते ${filters.toYear || '-'}`,
+      { page: '/kar-aakarani', ...filters }
+    );
     setAppliedFilters(filters);
     await fetchRecords(filters, 1, true);
   };

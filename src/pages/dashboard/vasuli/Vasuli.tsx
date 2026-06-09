@@ -7,6 +7,7 @@ import { useLoading } from '../../../contexts/LoadingContext';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '../../../utils/deleteConfirmation';
 import { vasuliService, type VasuliListPayload } from '../../../services/vasuliService';
 import { can } from '../../../utils/permissions';
+import { trackAction } from '../../../utils/tracker';
 import type { VasuliFormData, VasuliRecord } from '../../../interfaces/dashboard/vasuli/Vasuli.types';
 
 interface VasuliApiRecord {
@@ -183,6 +184,10 @@ const Vasuli = () => {
     try {
       const res = await vasuliService.delete(record.id);
       if (res.success) {
+        trackAction(
+          `वसुली रेकॉर्ड हटवला (Delete) — खातेदार: ${(record as any).khatedarkacheNav || (record as any).ghar_malkache_nav || '-'}, id: ${record.id}`,
+          { mode: 'delete', vasuli_id: record.id, page: '/vasuli' }
+        );
         toast.success('रेकॉर्ड यशस्वीरित्या हटविला (Record deleted successfully)');
         // Reload current page with active filters
         await fetchRecords(pagination.current_page, filtersRef.current);

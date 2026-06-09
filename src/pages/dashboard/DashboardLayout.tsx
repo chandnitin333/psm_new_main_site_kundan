@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from '../../components/layout/Header';
 import Sidebar from '../../components/layout/Sidebar';
+import PageTracker from '../../components/PageTracker';
 import { DASHBOARD_MENU_ITEMS } from '../../constants/menuItems';
 import { filterMenuItems } from '../../utils/permissions';
 import type { DashboardLayoutProps } from '../../interfaces/dashboard/DashboardLayout.types';
@@ -18,6 +19,7 @@ const DashboardLayout = ({ onLogout }: DashboardLayoutProps) => {
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
+      <PageTracker />
       <Header
         isAuthenticated={true}
         menuItems={menuItems}

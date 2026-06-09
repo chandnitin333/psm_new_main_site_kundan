@@ -8,6 +8,7 @@ import BandkamTable from './BandkamTable';
 import ManoryachTable from './ManoryachTable';
 import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
+import { trackAction } from '../../../utils/tracker';
 import type { NodniFormData } from '../../../interfaces/dashboard/nodni-form/NodniForm.types';
 import { authService, nodniService } from '../../../services';
 
@@ -809,6 +810,10 @@ const NodniForm = () => {
           return;
         }
         nodniId = editingId;
+        trackAction(
+          `नोंदणी फॉर्म मध्ये डेटा बदलून अद्यतनित (Update) केला — खातेदार: ${formData.gharMalkacheNav || '-'}, अनु क्रमांक: ${formData.anuKramank || '-'}, वॉर्ड: ${formData.wardNo || '-'}`,
+          { mode: 'update', nodni_id: nodniId, khatedar: formData.gharMalkacheNav, anu_kramank: formData.anuKramank, ward: formData.wardNo, page: '/nodni-form' }
+        );
         hideLoader();
         toast.success('नोंदणी यशस्वीरित्या अद्यतन केली (Nodni updated successfully)');
         setTimeout(() => {
@@ -838,6 +843,10 @@ const NodniForm = () => {
           await nodniService.createManoryache(buildManoryachePayload(record, nodniId));
         }
 
+        trackAction(
+          `नोंदणी फॉर्म मध्ये नवीन नोंदणी तयार (Create) केली — खातेदार: ${formData.gharMalkacheNav || '-'}, अनु क्रमांक: ${formData.anuKramank || '-'}, वॉर्ड: ${formData.wardNo || '-'}`,
+          { mode: 'create', nodni_id: nodniId, khatedar: formData.gharMalkacheNav, anu_kramank: formData.anuKramank, ward: formData.wardNo, page: '/nodni-form' }
+        );
         hideLoader();
         toast.success('नोंदणी यशस्वीरित्या जतन केली (Nodni saved successfully)');
       }

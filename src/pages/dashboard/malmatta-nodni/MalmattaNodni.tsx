@@ -7,6 +7,7 @@ import ImageUploadModal from './ImageUploadModal';
 import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
 import { can } from '../../../utils/permissions';
+import { trackAction } from '../../../utils/tracker';
 import { nodniService } from '../../../services';
 import { config } from '../../../config';
 import type { MalmattaRecord } from '../../../interfaces/dashboard/malmatta-nodni/MalmattaNodni.types';
@@ -149,6 +150,10 @@ const MalmattaNodni = () => {
 
   // Handle Edit - Fetch full details and redirect to Nodni Form
   const handleEdit = async (record: MalmattaRecord) => {
+    trackAction(
+      `मालमत्ता नोंदणी रेकॉर्ड संपादनासाठी उघडली — खातेदार: ${(record as any).ghar_malkache_nav || '-'}, अनु क्रमांक: ${(record as any).anu_kramank || '-'}, वॉर्ड क्र.: ${(record as any).ward_kramnak || '-'}`,
+      { page: '/malmatta-nodni', action: 'edit_open', nodni_id: record.id }
+    );
     showLoader('संपादित करत आहे... (Editing...)');
     try {
       const res = await nodniService.getById(record.id) as { success: boolean; data?: Record<string, unknown> };
@@ -174,7 +179,12 @@ const MalmattaNodni = () => {
     if (deleteConfirmation.id === null) return;
     try {
       showLoader('हटवत आहे... (Deleting...)');
+      const delRec = records.find((r: any) => r.id === deleteConfirmation.id) as any;
       await nodniService.delete(deleteConfirmation.id);
+      trackAction(
+        `मालमत्ता नोंदणी रेकॉर्ड हटवला (Delete) — खातेदार: ${delRec?.ghar_malkache_nav || '-'}, अनु क्रमांक: ${delRec?.anu_kramank || '-'}, वॉर्ड क्र.: ${delRec?.ward_kramnak || '-'}`,
+        { mode: 'delete', nodni_id: deleteConfirmation.id, page: '/malmatta-nodni' }
+      );
       hideLoader();
       setDeleteConfirmation({ show: false, id: null });
       toast.success('रेकॉर्ड यशस्वीरित्या हटविला (Record deleted successfully)');
@@ -193,6 +203,10 @@ const MalmattaNodni = () => {
 
   // Handle Print - Open print modal
   const handlePrint = async (record: MalmattaRecord) => {
+    trackAction(
+      `मालमत्ता नोंदणी प्रिंट/पावती उघडली — खातेदार: ${(record as any).ghar_malkache_nav || '-'}, अनु क्रमांक: ${(record as any).anu_kramank || '-'}`,
+      { page: '/malmatta-nodni', action: 'print_open', nodni_id: record.id }
+    );
     showLoader('प्रिंट करत आहे... (Printing...)');
     await new Promise(resolve => setTimeout(resolve, 500));
     hideLoader();
@@ -217,6 +231,10 @@ const MalmattaNodni = () => {
 
   // Handle Image Upload - Open modal
   const handleImageUpload = async (record: MalmattaRecord) => {
+    trackAction(
+      `मालमत्ता नोंदणी फोटो अपलोड उघडले — खातेदार: ${(record as any).ghar_malkache_nav || '-'}, अनु क्रमांक: ${(record as any).anu_kramank || '-'}`,
+      { page: '/malmatta-nodni', action: 'image_open', nodni_id: record.id }
+    );
     setSelectedRecord(record);
     setExistingImageUrl(null);
     try {

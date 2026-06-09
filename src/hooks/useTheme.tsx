@@ -30,7 +30,15 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+    setTheme((prev) => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      const label = next === 'dark' ? 'डार्क (Dark)' : 'लाइट (Light)';
+      // lazy import to avoid circular deps at module load
+      import('../utils/tracker').then(({ trackAction }) =>
+        trackAction(`थीम बदलली — ${label} मोड`, { theme: next, page: window.location.pathname })
+      );
+      return next;
+    });
   };
 
   return (

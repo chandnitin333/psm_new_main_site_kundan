@@ -8,6 +8,15 @@
   }
 }
 
+/* When the scheduled-maintenance banner (42px) is shown, shift the fixed
+   header + sidebar down so nothing is hidden behind it. Removed automatically
+   when the banner unmounts. */
+body.maint-banner-on header.fixed { top: 42px !important; }
+body.maint-banner-on .fixed.top-16 {
+  top: calc(4rem + 42px) !important;
+  height: calc(100vh - 4rem - 42px) !important;
+}
+
 /* Smaller, lighter placeholders across the whole app (matches nodni form) */
 input::placeholder,
 textarea::placeholder {

@@ -7,6 +7,7 @@ import YearPicker from '../../../components/common/YearPicker';
 import DatePicker from '../../../components/common/DatePicker';
 import type { VasuliFormData } from '../../../interfaces/dashboard/vasuli/VasuliForm.types';
 import { vasuliService, type VasuliAutofillResponse, type VasuliTaxHeads } from '../../../services/vasuliService';
+import { trackAction } from '../../../utils/tracker';
 
 const VasuliForm = () => {
   const navigate = useNavigate();
@@ -491,6 +492,12 @@ const VasuliForm = () => {
         : await vasuliService.create(payload);
 
       if (res.success) {
+        trackAction(
+          isEdit
+            ? `वसुली रेकॉर्ड मध्ये डेटा बदलून अद्यतनित (Update) केला — खातेदार: ${(formData as any).khatedharkacheNav || '-'}, अनु क्रमांक: ${formData.anuKramank || '-'}, वॉर्ड क्र.: ${formData.wardKramank || '-'}, वर्ष: ${formData.year || '-'}`
+            : `वसुली मध्ये नवीन रेकॉर्ड तयार (Create) केला — खातेदार: ${(formData as any).khatedharkacheNav || '-'}, अनु क्रमांक: ${formData.anuKramank || '-'}, वॉर्ड क्र.: ${formData.wardKramank || '-'}, वर्ष: ${formData.year || '-'}`,
+          { page: '/vasuli/vasuli-form', mode: isEdit ? 'update' : 'create', anu_kramank: formData.anuKramank, ward: formData.wardKramank, year: formData.year }
+        );
         toast.success(
           isEdit
             ? 'वसुली यशस्वीरित्या अद्यतनित केली (Vasuli updated successfully)'
