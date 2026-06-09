@@ -250,7 +250,7 @@ const MalmattaFerfar = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                प्रभाग क्रमांक
+                वॉर्ड क्र.
               </label>
               <input
                 type="text"
@@ -258,7 +258,7 @@ const MalmattaFerfar = () => {
                 value={formData.wardKramank}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                placeholder="प्रभाग क्रमांक"
+                placeholder="वॉर्ड क्र."
               />
             </div>
 
@@ -362,31 +362,31 @@ const MalmattaFerfar = () => {
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                  Sr.No.
+                  अ. क्र.
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                  Anu Kramank
+                  अनु क्रमांक
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                  Milkat Kramank
+                  मिळकत क्रमांक
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                  Ward No.
+                  वॉर्ड क्र.
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                  Khasara Kramank
+                  खसरा क्रमांक
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                  Khatedharkache Nav
+                  खातेदाराचे नाव
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                  Bhogwatdarache Nav
+                  भोगवटदाराचे नाव
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                  Year
+                  वर्ष
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                  Kriya
+                  क्रिया
                 </th>
               </tr>
             </thead>

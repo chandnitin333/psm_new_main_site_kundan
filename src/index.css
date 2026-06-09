@@ -8,6 +8,13 @@
   }
 }
 
+/* Smaller, lighter placeholders across the whole app (matches nodni form) */
+input::placeholder,
+textarea::placeholder {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }

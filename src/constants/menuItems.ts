@@ -31,7 +31,7 @@ export const PUBLIC_MENU_ITEMS: MenuItem[] = [
 export const DASHBOARD_MENU_ITEMS: MenuItem[] = [
   {
     id: 'dashboard',
-    label: 'Dashboard',
+    label: 'डॅशबोर्ड',
     path: '/dashboard',
     icon: 'Home',
     subMenus: []
@@ -45,45 +45,45 @@ export const DASHBOARD_MENU_ITEMS: MenuItem[] = [
   // },
   {
     id: 'nodni',
-    label: 'Nodni',
+    label: 'नोंदणी',
     path: '/nodni-form',
     icon: 'FileText',
     subMenus: [
-      { id: 'nodni-form', label: 'Nodni Form', path: '/nodni-form' },
-      { id: 'malmatta-nodni', label: 'Malmatta Nodni', path: '/malmatta-nodni' },
-      { id: 'malmatta-ferfar', label: 'Malmatta Ferfar', path: '/malmatta-ferfar' },
+      { id: 'nodni-form', label: 'नोंदणी फॉर्म', path: '/nodni-form' },
+      { id: 'malmatta-nodni', label: 'मालमत्ता नोंदणी', path: '/malmatta-nodni' },
+      { id: 'malmatta-ferfar', label: 'मालमत्ता फेरफार', path: '/malmatta-ferfar' },
     ]
   },
   {
     id: 'kar-aakarani',
-    label: 'Kar Aakarani',
+    label: 'कर आकारणी',
     path: '/kar-aakarani',
     icon: 'DollarSign',
     subMenus: []
   },
   {
     id: 'vasuli',
-    label: 'Vasuli',
+    label: 'वसुली',
     path: '/vasuli',
     icon: 'FileCheck',
     subMenus: []
   },
   {
     id: 'ahval',
-    label: 'Ahval',
+    label: 'अहवाल',
     path: '/ahval',
     icon: 'BarChart3',
     subMenus: [
-      { id: 'ahval-aadhar-list', label: 'Aadhar List Show', path: '/ahval/aadhar-list' },
-      { id: 'ahval-mobile-list', label: 'Mobile Number List', path: '/ahval/mobile-list' },
-      { id: 'ahval-pani-list', label: 'Pinyache Pani List', path: '/ahval/pani-list' },
-      { id: 'ahval-shouchalay-list', label: 'Shouchalay List', path: '/ahval/shouchalay-list' },
-      { id: 'ahval-malmatta-durusti', label: 'Malmatta Durusti Yadi', path: '/ahval/malmatta-durusti' },
-      { id: 'ahval-namuna8', label: 'Namuna 8', path: '/ahval/namuna8' },
-      { id: 'ahval-namuna9', label: 'Namuna 9', path: '/ahval/namuna9' },
-      { id: 'ahval-bill-ward', label: 'Karanchya Magniche Bill Ward New', path: '/ahval/bill-ward' },
-      { id: 'ahval-namuna10', label: 'Namuna 10', path: '/ahval/namuna10' },
-      { id: 'ahval-imla-kar', label: 'Imla Kar', path: '/ahval/imla-kar' }
+      { id: 'ahval-aadhar-list', label: 'आधार यादी', path: '/ahval/aadhar-list' },
+      { id: 'ahval-mobile-list', label: 'मोबाईल क्रमांक यादी', path: '/ahval/mobile-list' },
+      { id: 'ahval-pani-list', label: 'पिण्याचे पाणी यादी', path: '/ahval/pani-list' },
+      { id: 'ahval-shouchalay-list', label: 'शौचालय यादी', path: '/ahval/shouchalay-list' },
+      { id: 'ahval-malmatta-durusti', label: 'मालमत्ता दुरुस्ती यादी', path: '/ahval/malmatta-durusti' },
+      { id: 'ahval-namuna8', label: 'नमुना ८', path: '/ahval/namuna8' },
+      { id: 'ahval-namuna9', label: 'नमुना ९', path: '/ahval/namuna9' },
+      { id: 'ahval-bill-ward', label: 'करांच्या मागणीचे बिल (प्रभाग)', path: '/ahval/bill-ward' },
+      { id: 'ahval-namuna10', label: 'नमुना १०', path: '/ahval/namuna10' },
+      { id: 'ahval-imla-kar', label: 'इमला कर', path: '/ahval/imla-kar' }
     ]
   }
 ];

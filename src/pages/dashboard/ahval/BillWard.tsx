@@ -141,7 +141,7 @@ const BillWard = () => {
   const columns: Column<BillWardRecord>[] = [
     {
       key: 'wardKramank',
-      label: 'प्रभाग क्रमांक',
+      label: 'वॉर्ड क्र.',
       sortable: true,
       width: '200px',
     },

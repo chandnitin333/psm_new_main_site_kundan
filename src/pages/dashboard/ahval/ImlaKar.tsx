@@ -178,7 +178,7 @@ const ImlaKar = () => {
             {/* Ward Number Dropdown */}
             <div>
               <Select2
-                label="प्रभाग क्रमांक"
+                label="वॉर्ड क्र."
                 options={wardOptions}
                 value={formData.wardNo}
                 onChange={(value) =>

@@ -86,7 +86,7 @@ const Namuna9 = () => {
     }
     // घोषवारा -> ward is compulsory
     if (formData.namuna === 'namuna9_ghoshwara_new' && !formData.wardNo) {
-      toast.error('कृपया प्रभाग क्रमांक निवडा (Ward is required for घोषवारा)');
+      toast.error('कृपया वॉर्ड क्र. निवडा (Ward is required for घोषवारा)');
       return;
     }
     const target = reportMap[formData.namuna];
@@ -148,7 +148,7 @@ const Namuna9 = () => {
             {/* Ward Number Dropdown */}
             <div>
               <Select2
-                label="प्रभाग क्रमांक"
+                label="वॉर्ड क्र."
                 options={wardOptions}
                 value={formData.wardNo}
                 onChange={(value) =>

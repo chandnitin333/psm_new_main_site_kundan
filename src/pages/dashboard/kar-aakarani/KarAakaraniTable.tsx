@@ -26,20 +26,20 @@ const KarAakaraniTable = ({ records, totals, pagination, onPageChange }: KarAaka
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
               {[
-                'Dr. No.',
-                'Year',
-                'To Year',
-                'Ward No',
-                'Khatedarkache Nav',
-                'Gruhkar V Bhumikar',
-                'Viz/Divabattikar',
-                'Aarogya Rakshan Kar',
-                'Safae Kar',
-                'Samanya Pani Kar',
-                'Vishesh Pani Kar',
-                'Ekun Magil Baki',
-                'Ekun Imarat Kar',
-                'Ekun',
+                'अ. क्र.',
+                'वर्ष',
+                'ते वर्ष',
+                'वॉर्ड क्र.',
+                'खातेदाराचे नाव',
+                'गृहकर व भूमिकर',
+                'विज / दिवाबत्ती कर',
+                'आरोग्य रक्षण कर',
+                'सफाई कर',
+                'सामान्य पाणी कर',
+                'विशेष पाणी कर',
+                'एकूण मागील बाकी',
+                'एकूण इमारत कर',
+                'एकूण',
               ].map((heading) => (
                 <th
                   key={heading}

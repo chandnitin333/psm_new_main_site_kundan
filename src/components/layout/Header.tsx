@@ -221,7 +221,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       <Home className="w-4 h-4" />
-                      Dashboard
+                      डॅशबोर्ड
                     </Link>
                     <Link
                       to="/profile"
@@ -229,7 +229,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       <UserCircle className="w-4 h-4" />
-                      Profile
+                      प्रोफाइल
                     </Link>
                     <Link
                       to="/dashboard/help"
@@ -237,7 +237,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       <HelpCircle className="w-4 h-4" />
-                      Help
+                      मदत
                     </Link>
                     <Link
                       to="/change-password"
@@ -245,7 +245,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       <Lock className="w-4 h-4" />
-                      Change Password
+                      पासवर्ड बदला
                     </Link>
                     <Link
                       to="/dashboard/settings"
@@ -253,7 +253,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       <Settings className="w-4 h-4" />
-                      Settings
+                      सेटिंग्ज
                     </Link>
                     {onLogout && (
                       <button
@@ -264,7 +264,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-t border-gray-200 dark:border-gray-700 mt-1"
                       >
                         <LogOut className="w-4 h-4" />
-                        Logout
+                        लॉग आऊट
                       </button>
                     )}
                   </div>
@@ -358,7 +358,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   >
                     <Home className="w-4 h-4" />
-                    Dashboard
+                    डॅशबोर्ड
                   </Link>
                   <Link
                     to="/profile"
@@ -366,7 +366,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   >
                     <UserCircle className="w-4 h-4" />
-                    Profile
+                    प्रोफाइल
                   </Link>
                   <Link
                     to="/dashboard/help"
@@ -374,7 +374,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   >
                     <HelpCircle className="w-4 h-4" />
-                    Help
+                    मदत
                   </Link>
                   <Link
                     to="/change-password"
@@ -382,7 +382,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   >
                     <Lock className="w-4 h-4" />
-                    Change Password
+                    पासवर्ड बदला
                   </Link>
                   <Link
                     to="/dashboard/settings"
@@ -390,7 +390,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   >
                     <Settings className="w-4 h-4" />
-                    Settings
+                    सेटिंग्ज
                   </Link>
                   {onLogout && (
                     <button
@@ -401,7 +401,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                       className="w-full flex items-center gap-2 px-4 py-2 rounded-lg text-red-600 dark:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors mt-2"
                     >
                       <LogOut className="w-4 h-4" />
-                      Logout
+                      लॉग आऊट
                     </button>
                   )}
                 </div>
