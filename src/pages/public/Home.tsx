@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Sk, SkLines } from '../../components/common/Skeleton';
 import Carousel from '../../components/common/Carousel';
 import Marquee from '../../components/common/Marquee';
 import TeamCard from '../../components/common/TeamCard';
@@ -56,6 +58,7 @@ const Home = () => {
 
   // Whole page content (managed from admin → Website Content)
   const [sections, setSections] = useState<CmsSection[] | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     document.title = 'Home - होम';
@@ -64,7 +67,8 @@ const Home = () => {
         const data = (res?.data || []) as CmsSection[];
         if (Array.isArray(data) && data.length) setSections(data);
       })
-      .catch(() => { /* fall back to static defaults below */ });
+      .catch(() => { /* fall back to static defaults below */ })
+      .finally(() => setLoaded(true));
   }, []);
 
   const sec = (key: string): CmsSection | undefined =>
@@ -129,6 +133,25 @@ const Home = () => {
     : (GALLERY_IMAGES as GalleryImg[]);
   const galleryTitle = gallerySec?.heading || 'Gallery';
 
+  // ---- Info boxes: Documents / Special Events / Schemes ----
+  const docsSec = sec('documents');
+  const documents = docsSec?.items?.length
+    ? docsSec.items.map((it) => ({ title: it.heading || '', link: it.link || '' }))
+    : DOCUMENTS_POINTS.map((t) => ({ title: t, link: '' }));
+  const docsTitle = docsSec?.heading || 'Documents';
+
+  const eventsSec = sec('special_events');
+  const events = eventsSec?.items?.length
+    ? eventsSec.items.map((it) => ({ title: it.heading || '', link: it.link || '' }))
+    : SPECIAL_EVENTS_POINTS.map((t) => ({ title: t, link: '' }));
+  const eventsTitle = eventsSec?.heading || 'Special Events';
+
+  const schemesSec = sec('schemes');
+  const schemes = schemesSec?.items?.length
+    ? schemesSec.items.map((it) => ({ title: it.heading || '', link: it.link || '#' }))
+    : SCHEMES;
+  const schemesTitle = schemesSec?.heading || 'Schemes';
+
   const indexOfLastImage = currentPage * imagesPerPage;
   const indexOfFirstImage = indexOfLastImage - imagesPerPage;
   const currentImages = galleryImages.slice(indexOfFirstImage, indexOfLastImage);
@@ -148,6 +171,61 @@ const Home = () => {
     setPreviewImages([]);
   };
 
+  // skeleton while CMS content loads (avoids static→dynamic blink)
+  if (!loaded) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-900">
+        <Sk className="w-full h-[400px] md:h-[500px] rounded-none" />
+        <div className="py-3"><Sk className="h-5 w-full max-w-3xl mx-auto" /></div>
+        {/* About row */}
+        <section className="py-12">
+          <div className="container mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+            <Sk className="w-full h-72 rounded-2xl" />
+            <div>
+              <Sk className="h-4 w-40 mb-4" />
+              <Sk className="h-8 w-3/4 mb-5" />
+              <SkLines lines={4} />
+              <Sk className="h-12 w-44 mt-6 rounded-xl" />
+            </div>
+          </div>
+        </section>
+        {/* Info cards */}
+        <section className="py-8">
+          <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                <Sk className="h-6 w-32 mb-4" />
+                <SkLines lines={5} />
+              </div>
+            ))}
+          </div>
+        </section>
+        {/* Card row (partners/team) */}
+        <section className="py-8">
+          <div className="container mx-auto px-4">
+            <Sk className="h-8 w-56 mx-auto mb-8" />
+            <div className="flex gap-8 justify-center flex-wrap">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Sk key={i} className="w-64 h-44 rounded-lg" />
+              ))}
+            </div>
+          </div>
+        </section>
+        {/* Gallery grid */}
+        <section className="py-8">
+          <div className="container mx-auto px-4">
+            <Sk className="h-8 w-40 mx-auto mb-8" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Sk key={i} className="w-full aspect-video rounded-lg" />
+              ))}
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       {/* Carousel */}
@@ -164,36 +242,32 @@ const Home = () => {
         </section>
       )}
 
-      {/* Team Section */}
-      {team.length > 0 && (
-        <section className="py-16 bg-white dark:bg-gray-900">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
-              {teamTitle}
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-              {team.map((member) => (
-                <TeamCard key={member.id} name={member.name} profession={member.profession} image={member.image} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* About Us Section */}
-      <section className="py-16 bg-white dark:bg-gray-900">
+      <section className="py-12 bg-gradient-to-b from-gray-50 to-white dark:from-gray-800/40 dark:to-gray-900">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col lg:flex-row gap-8 items-start">
-            <div className="lg:w-[40%]">
-              <img
-                src={aboutImage}
-                alt="About Us"
-                className="w-full rounded-lg shadow-lg object-cover"
-                style={{ height: '100%', minHeight: '300px', maxHeight: '400px' }}
-              />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+            {/* Image with decorative accent frame */}
+            <div className="relative">
+              <div className="absolute -top-4 -left-4 w-24 h-24 bg-primary-600/10 rounded-2xl hidden sm:block" />
+              <div className="absolute -bottom-4 -right-4 w-28 h-28 bg-primary-600/10 rounded-2xl hidden sm:block" />
+              <div className="relative overflow-hidden rounded-2xl shadow-2xl ring-1 ring-black/5">
+                <img
+                  src={aboutImage}
+                  alt="About Us"
+                  className="w-full object-cover transition-transform duration-500 hover:scale-105"
+                  style={{ height: '100%', minHeight: '320px', maxHeight: '420px' }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+              </div>
             </div>
-            <div className="lg:w-[60%]">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+
+            {/* Text */}
+            <div>
+              <span className="inline-flex items-center gap-2 text-sm font-semibold tracking-wide uppercase text-primary-600 dark:text-primary-400 mb-3">
+                <span className="w-8 h-0.5 bg-primary-600 dark:bg-primary-400" />
+                आमच्याबद्दल / About Us
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-5 leading-tight">
                 {aboutTitle}
               </h2>
               {aboutBody ? (
@@ -211,11 +285,23 @@ const Home = () => {
                   </p>
                 </>
               )}
+
+              {/* Feature highlights */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-7">
+                {['पारदर्शक कारभार', 'डिजिटल सेवा', 'जलद नागरिक सुविधा', 'विश्वासार्ह व्यवस्थापन'].map((f) => (
+                  <div key={f} className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                    <CheckCircle2 className="w-5 h-5 text-primary-600 dark:text-primary-400 flex-shrink-0" />
+                    <span className="text-sm font-medium">{f}</span>
+                  </div>
+                ))}
+              </div>
+
               <a
                 href="/about"
-                className="inline-block px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors shadow-md hover:shadow-lg"
+                className="group inline-flex items-center gap-2 px-7 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-600/25 hover:shadow-xl hover:-translate-y-0.5"
               >
-                Read More
+                अधिक वाचा / Read More
+                <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
               </a>
             </div>
           </div>
@@ -223,19 +309,23 @@ const Home = () => {
       </section>
 
       {/* Information Boxes */}
-      <section className="py-16 bg-white dark:bg-gray-900">
+      <section className="py-8 bg-white dark:bg-gray-900">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Documents */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-200 dark:border-gray-700">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                Documents
+                {docsTitle}
               </h3>
               <ul className="space-y-2">
-                {DOCUMENTS_POINTS.map((point, index) => (
+                {documents.map((d, index) => (
                   <li key={index} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
                     <span className="w-2 h-2 bg-primary-600 rounded-full mt-2 flex-shrink-0" />
-                    <span>{point}</span>
+                    {d.link ? (
+                      <a href={d.link} className="no-underline text-inherit cursor-pointer hover:text-primary-600 dark:hover:text-primary-400">{d.title}</a>
+                    ) : (
+                      <span>{d.title}</span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -244,13 +334,17 @@ const Home = () => {
             {/* Special Events */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-200 dark:border-gray-700">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                Special Events
+                {eventsTitle}
               </h3>
               <ul className="space-y-2">
-                {SPECIAL_EVENTS_POINTS.map((point, index) => (
+                {events.map((d, index) => (
                   <li key={index} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
                     <span className="w-2 h-2 bg-primary-600 rounded-full mt-2 flex-shrink-0" />
-                    <span>{point}</span>
+                    {d.link ? (
+                      <a href={d.link} className="no-underline text-inherit cursor-pointer hover:text-primary-600 dark:hover:text-primary-400">{d.title}</a>
+                    ) : (
+                      <span>{d.title}</span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -259,15 +353,15 @@ const Home = () => {
             {/* Schemes */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-200 dark:border-gray-700">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                Schemes
+                {schemesTitle}
               </h3>
               <ul className="space-y-2">
-                {SCHEMES.map((scheme, index) => (
+                {schemes.map((scheme, index) => (
                   <li key={index} className="flex items-start gap-2">
                     <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0" />
                     <a
                       href={scheme.link}
-                      className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                      className="no-underline text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium"
                     >
                       {scheme.title}
                     </a>
@@ -281,9 +375,9 @@ const Home = () => {
 
       {/* Partners */}
       {partners.length > 0 && (
-        <section className="py-16 bg-white dark:bg-gray-900">
+        <section className="py-8 bg-white dark:bg-gray-900">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
+            <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-8">
               {partnersTitle}
             </h2>
             <PartnerCarousel partners={partners} />
@@ -291,11 +385,27 @@ const Home = () => {
         </section>
       )}
 
+      {/* Team Section */}
+      {team.length > 0 && (
+        <section className="py-8 bg-white dark:bg-gray-900">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-8">
+              {teamTitle}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              {team.map((member) => (
+                <TeamCard key={member.id} name={member.name} profession={member.profession} image={member.image} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Gallery */}
       {galleryImages.length > 0 && (
-        <section id="gallery" className="py-16 bg-white dark:bg-gray-900">
+        <section id="gallery" className="py-8 bg-white dark:bg-gray-900">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
+            <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-8">
               {galleryTitle}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">

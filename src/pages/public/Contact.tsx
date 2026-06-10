@@ -3,13 +3,77 @@ import { Mail, Phone, MapPin, Send } from 'lucide-react';
 import { CONTACT_PERSONS } from '../../constants';
 import type { ContactFormData } from '../../interfaces';
 import { useToast } from '../../hooks/useToast';
+import { api } from '../../services/api';
+import { Sk, SkLines } from '../../components/common/Skeleton';
+
+// ---- CMS types ----
+interface CmsItem {
+  id: number;
+  image: string | null;
+  heading: string | null;
+  sub_heading: string | null;
+  body: string | null;
+  link: string | null;
+  seq: number;
+}
+interface CmsSection {
+  id: number;
+  section_key: string;
+  type: string;
+  heading: string | null;
+  sub_heading: string | null;
+  body: string | null;
+  image: string | null;
+  seq: number;
+  items: CmsItem[];
+}
+
+// icons cycled across the contact-info items (not stored in CMS)
+const INFO_ICONS = [MapPin, Phone, Mail];
 
 const Contact = () => {
   const { toast, ToastContainer } = useToast();
+  const [sections, setSections] = useState<CmsSection[] | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     document.title = 'Contact Us - संपर्क करा';
+    api.get<CmsSection[]>('/public/page/contact')
+      .then((res) => {
+        const data = (res?.data || []) as CmsSection[];
+        if (Array.isArray(data) && data.length) setSections(data);
+      })
+      .catch(() => { /* fall back to static defaults */ })
+      .finally(() => setLoaded(true));
   }, []);
+
+  const sec = (key: string) => sections?.find((s) => s.section_key === key);
+
+  // header
+  const headerSec = sec('header');
+  const pageTitle = headerSec?.heading || 'Contact Us';
+  const pageSub = headerSec?.sub_heading || "We'd love to hear from you. Get in touch with us.";
+
+  // contact info
+  const infoSec = sec('contact_info');
+  const infoItems = infoSec?.items?.length
+    ? infoSec.items.map((it) => ({ label: it.heading || '', details: it.body || '' }))
+    : [
+        { label: 'Office Address', details: '123 Village Road, District Office\nMaharashtra, India - 411001' },
+        { label: 'Phone', details: '+91 98765 43210\n+91 98765 43211' },
+        { label: 'Email', details: 'info@grampanchayat.gov.in\nsupport@grampanchayat.gov.in' },
+      ];
+  const infoTitle = infoSec?.heading || 'Contact Information';
+
+  // key personnel
+  const personnelSec = sec('personnel');
+  const personnel = personnelSec?.items?.length
+    ? personnelSec.items.map((it) => ({
+        id: String(it.id), name: it.heading || '', profession: it.sub_heading || '',
+        contact: it.body || '', email: it.link || '',
+      }))
+    : CONTACT_PERSONS;
+  const personnelTitle = personnelSec?.heading || 'Key Personnel';
   const [formData, setFormData] = useState<ContactFormData>({
     name: '',
     email: '',
@@ -49,13 +113,22 @@ const Contact = () => {
       <ToastContainer />
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-            Contact Us
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400">
-            We'd love to hear from you. Get in touch with us.
-          </p>
+        <div className="text-center mb-12 flex flex-col items-center">
+          {loaded ? (
+            <>
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+                {pageTitle}
+              </h1>
+              <p className="text-lg text-gray-600 dark:text-gray-400">
+                {pageSub}
+              </p>
+            </>
+          ) : (
+            <>
+              <Sk className="h-10 w-72 mb-4" />
+              <Sk className="h-5 w-96 max-w-full" />
+            </>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
@@ -158,60 +231,55 @@ const Contact = () => {
           </div>
 
           {/* Contact Information */}
+          {!loaded ? (
+            <div className="space-y-6">
+              {Array.from({ length: 2 }).map((_, c) => (
+                <div key={c} className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+                  <Sk className="h-7 w-48 mb-6" />
+                  <div className="space-y-4">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="flex items-start gap-4">
+                        <Sk className="h-6 w-6 rounded-full flex-shrink-0" />
+                        <div className="flex-1"><SkLines lines={2} /></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
           <div className="space-y-6">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-                Contact Information
+                {infoTitle}
               </h2>
               <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <MapPin className="w-6 h-6 text-primary-600 flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-                      Office Address
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      123 Village Road, District Office<br />
-                      Maharashtra, India - 411001
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <Phone className="w-6 h-6 text-primary-600 flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-                      Phone
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      +91 98765 43210<br />
-                      +91 98765 43211
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <Mail className="w-6 h-6 text-primary-600 flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-                      Email
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      info@grampanchayat.gov.in<br />
-                      support@grampanchayat.gov.in
-                    </p>
-                  </div>
-                </div>
+                {infoItems.map((info, index) => {
+                  const Icon = INFO_ICONS[index % INFO_ICONS.length];
+                  return (
+                    <div key={index} className="flex items-start gap-4">
+                      <Icon className="w-6 h-6 text-primary-600 flex-shrink-0 mt-1" />
+                      <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
+                          {info.label}
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-400 whitespace-pre-line">
+                          {info.details}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             {/* Key Personnel */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-                Key Personnel
+                {personnelTitle}
               </h2>
               <div className="space-y-6">
-                {CONTACT_PERSONS.map((person) => (
+                {personnel.map((person) => (
                   <div key={person.id} className="border-b border-gray-200 dark:border-gray-700 pb-6 last:border-0 last:pb-0">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
                       {person.name}
@@ -239,6 +307,7 @@ const Contact = () => {
               </div>
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>

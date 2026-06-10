@@ -12,6 +12,7 @@ interface PartnerCarouselProps {
 
 const PartnerCarousel = ({ partners }: PartnerCarouselProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pausedRef = useRef(false);
 
   useEffect(() => {
     const scrollContainer = scrollRef.current;
@@ -21,11 +22,17 @@ const PartnerCarousel = ({ partners }: PartnerCarouselProps) => {
     let scrollPosition = 0;
 
     const scroll = () => {
-      scrollPosition += 1;
-      if (scrollPosition >= scrollContainer.scrollWidth / 2) {
-        scrollPosition = 0;
+      // pause auto-scroll while hovered
+      if (!pausedRef.current) {
+        scrollPosition += 1;
+        if (scrollPosition >= scrollContainer.scrollWidth / 2) {
+          scrollPosition = 0;
+        }
+        scrollContainer.scrollLeft = scrollPosition;
+      } else {
+        // keep position in sync if user is hovering
+        scrollPosition = scrollContainer.scrollLeft;
       }
-      scrollContainer.scrollLeft = scrollPosition;
       animationFrameId = requestAnimationFrame(scroll);
     };
 
@@ -42,17 +49,26 @@ const PartnerCarousel = ({ partners }: PartnerCarouselProps) => {
         ref={scrollRef}
         className="flex gap-8 items-center overflow-x-hidden scrollbar-hide"
         style={{ scrollBehavior: 'auto' }}
+        onMouseEnter={() => { pausedRef.current = true; }}
+        onMouseLeave={() => { pausedRef.current = false; }}
       >
         {[...partners, ...partners, ...partners].map((partner, index) => (
           <div
             key={`${partner.id}-${index}`}
-            className="flex-shrink-0 bg-white dark:bg-gray-700 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 flex items-center justify-center w-48 h-24"
+            className="relative flex-shrink-0 bg-white dark:bg-gray-700 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden w-64 h-44"
           >
             <img
               src={partner.logo}
               alt={partner.name}
-              className="max-w-full max-h-full object-contain"
+              className="w-full h-full object-cover"
             />
+            {partner.name && (
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2">
+                <span className="block text-white text-sm font-semibold truncate text-center drop-shadow">
+                  {partner.name}
+                </span>
+              </div>
+            )}
           </div>
         ))}
       </div>

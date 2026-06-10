@@ -4,6 +4,18 @@ import { LogIn, Lock, Mail, Eye, EyeOff, ShieldCheck, Landmark, FileText, ArrowL
 import { useToast } from '../../hooks/useToast';
 import { useLoading } from '../../contexts/LoadingContext';
 import { authService, type ApiError } from '../../services';
+import { api } from '../../services/api';
+import { getCmsIcon } from '../../utils/cmsIcons';
+
+// fallback icons cycled when an item has no icon chosen in admin
+const FEATURE_ICONS = [Landmark, FileText, ShieldCheck];
+interface LoginCmsSection {
+  section_key: string;
+  heading: string | null;
+  sub_heading: string | null;
+  items: { id: number; heading: string | null; icon: string | null }[];
+}
+interface Feature { text: string; icon: string | null }
 
 type LoginRole = 'grampanchayat' | 'bdo';
 
@@ -21,6 +33,37 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+
+  // dynamic left-panel content (managed from admin → Website Content → Login Page)
+  const [brand, setBrand] = useState<{ title: string; subtitle: string; features: Feature[] } | null>(null);
+
+  useEffect(() => {
+    api.get<LoginCmsSection[]>('/public/page/login')
+      .then((res) => {
+        const data = (res?.data || []) as LoginCmsSection[];
+        if (!Array.isArray(data) || !data.length) return;
+        const hero = data.find((s) => s.section_key === 'hero');
+        const feat = data.find((s) => s.section_key === 'features');
+        setBrand({
+          title: hero?.heading || '',
+          subtitle: hero?.sub_heading || '',
+          features: (feat?.items || [])
+            .map((i) => ({ text: i.heading || '', icon: i.icon }))
+            .filter((f) => f.text),
+        });
+      })
+      .catch(() => { /* fall back to static defaults */ });
+  }, []);
+
+  const brandTitle = brand?.title || 'ग्रामपंचायत\nडिजिटल प्रशासन';
+  const brandSubtitle = brand?.subtitle || 'मालमत्ता नोंदणी, कर आकारणी व वसुली — सर्व एका ठिकाणी, सुरक्षित आणि सोपे.';
+  const brandFeatures: Feature[] = brand?.features?.length
+    ? brand.features
+    : [
+        { text: 'मालमत्ता व कर व्यवस्थापन', icon: 'Landmark' },
+        { text: 'नमुना ८ / ९ व बिल अहवाल', icon: 'FileText' },
+        { text: 'सुरक्षित लॉगिन व OTP पडताळणी', icon: 'ShieldCheck' },
+      ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -204,24 +247,27 @@ const Login = () => {
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/95 shadow-lg p-2">
             <img src="/psm_logo1.png" alt="PSM" className="h-full w-full object-contain" />
           </div>
-          <h1 className="mt-8 text-4xl font-extrabold leading-tight">ग्रामपंचायत<br />डिजिटल प्रशासन</h1>
+          <h1 className="mt-8 text-4xl font-extrabold leading-tight">
+            {brandTitle.split('\n').map((line, i) => (
+              <span key={i}>{i > 0 && <br />}{line}</span>
+            ))}
+          </h1>
           <p className="mt-4 max-w-md text-lg leading-relaxed text-primary-50/90">
-            मालमत्ता नोंदणी, कर आकारणी व वसुली — सर्व एका ठिकाणी, सुरक्षित आणि सोपे.
+            {brandSubtitle}
           </p>
 
           <div className="mt-12 space-y-5">
-            {[
-              { Icon: Landmark, text: 'मालमत्ता व कर व्यवस्थापन' },
-              { Icon: FileText, text: 'नमुना ८ / ९ व बिल अहवाल' },
-              { Icon: ShieldCheck, text: 'सुरक्षित लॉगिन व OTP पडताळणी' },
-            ].map(({ Icon, text }) => (
-              <div key={text} className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
-                  <Icon className="h-5 w-5" />
+            {brandFeatures.map((feature, index) => {
+              const Icon = getCmsIcon(feature.icon) || FEATURE_ICONS[index % FEATURE_ICONS.length];
+              return (
+                <div key={index} className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <span className="text-primary-50">{feature.text}</span>
                 </div>
-                <span className="text-primary-50">{text}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
