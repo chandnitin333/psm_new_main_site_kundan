@@ -6,6 +6,15 @@
   body {
     @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200;
   }
+  /* Mobile safety: never allow stray horizontal scroll / content overflow */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+  /* break very long words/links (e.g. emails, URLs) instead of overflowing */
+  p, span, a, h1, h2, h3, h4, li, td {
+    overflow-wrap: break-word;
+  }
 }
 
 /* When the scheduled-maintenance banner (42px) is shown, shift the fixed

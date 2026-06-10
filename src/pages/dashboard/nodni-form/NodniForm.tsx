@@ -1496,7 +1496,7 @@ const NodniForm = () => {
             <div className="space-y-4">
               {/* Lambi * Rundi = Shetrafal Row */}
               <div className="flex flex-wrap items-end gap-3">
-                <div className="flex-1 min-w-[150px]">
+                <div className="flex-1 min-w-[140px]">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                     लांबी (Lambi) *
                   </label>
@@ -1510,11 +1510,11 @@ const NodniForm = () => {
                   />
                 </div>
 
-                <div className="flex items-center h-10 text-2xl font-bold text-gray-700 dark:text-gray-300 pb-1">
+                <div className="hidden sm:flex items-center h-10 text-2xl font-bold text-gray-700 dark:text-gray-300 pb-1">
                   ×
                 </div>
 
-                <div className="flex-1 min-w-[150px]">
+                <div className="flex-1 min-w-[140px]">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                     रुंदी (Rundi) *
                   </label>
@@ -1528,11 +1528,11 @@ const NodniForm = () => {
                   />
                 </div>
 
-                <div className="flex items-center h-10 text-2xl font-bold text-gray-700 dark:text-gray-300 pb-1">
+                <div className="hidden sm:flex items-center h-10 text-2xl font-bold text-gray-700 dark:text-gray-300 pb-1">
                   =
                 </div>
 
-                <div className="flex-1 min-w-[150px]">
+                <div className="flex-1 min-w-[140px]">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                     क्षेत्रफळ चौरस फूट (Shetrafal Choras Foot)
                   </label>
@@ -1546,7 +1546,7 @@ const NodniForm = () => {
                   />
                 </div>
 
-                <div className="flex-1 min-w-[150px]">
+                <div className="flex-1 min-w-[140px]">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                     क्षेत्रफळ चौरस मीटर (Shetrafal Choras Meter)
                   </label>
