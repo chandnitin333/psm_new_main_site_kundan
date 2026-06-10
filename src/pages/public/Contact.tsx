@@ -5,6 +5,7 @@ import type { ContactFormData } from '../../interfaces';
 import { useToast } from '../../hooks/useToast';
 import { api } from '../../services/api';
 import { Sk, SkLines } from '../../components/common/Skeleton';
+import RichTextEditor from '../../components/common/RichTextEditor';
 
 // ---- CMS types ----
 interface CmsItem {
@@ -92,20 +93,28 @@ const Contact = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      toast.success('Message sent successfully! We will get back to you soon.');
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: ''
-      });
+    // require a non-empty message (strip HTML tags to check)
+    const plainMsg = formData.message.replace(/<[^>]+>/g, '').trim();
+    if (!plainMsg) {
+      toast.error('Please type your message.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await api.post('/public/contact-message', formData);
+      if (res?.success) {
+        toast.success('Message sent successfully! We will get back to you soon.');
+        setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+      } else {
+        toast.error(res?.message || 'Failed to send message. Please try again.');
+      }
+    } catch {
+      toast.error('Failed to send message. Please try again.');
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -202,13 +211,9 @@ const Contact = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Message
                 </label>
-                <textarea
-                  name="message"
+                <RichTextEditor
                   value={formData.message}
-                  onChange={handleChange}
-                  required
-                  rows={5}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white resize-none"
+                  onChange={(html) => setFormData((prev) => ({ ...prev, message: html }))}
                   placeholder="Type your message here..."
                 />
               </div>

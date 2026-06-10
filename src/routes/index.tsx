@@ -7,6 +7,7 @@ import Home from '../pages/public/Home';
 import About from '../pages/public/About';
 import Contact from '../pages/public/Contact';
 import Login from '../pages/public/Login';
+import Partners from '../pages/public/Partners';
 import LegalPage from '../pages/public/LegalPage';
 import PublicReportViewer from '../pages/public/PublicReportViewer';
 import Register from '../pages/public/Register';
@@ -91,6 +92,7 @@ export const createRouter = (handleLogout: () => void) =>
         { index: true, element: <GuestRoute><Home /></GuestRoute> },
         { path: 'about', element: <About /> },
         { path: 'contact', element: <Contact /> },
+        { path: 'partners', element: <Partners /> },
         { path: 'terms', element: <LegalPage pageKey="terms" fallbackTitle="Terms of Service" /> },
         { path: 'privacy', element: <LegalPage pageKey="privacy" fallbackTitle="Privacy Policy" /> },
         { path: 'disclaimer', element: <LegalPage pageKey="disclaimer" fallbackTitle="Disclaimer" /> },
