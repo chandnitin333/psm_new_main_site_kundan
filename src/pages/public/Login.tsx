@@ -215,13 +215,13 @@ const Login = () => {
         }, 1000);
       } else {
         toast.error(response.message || 'OTP verification failed. Please try again.');
-        setOtp(['', '', '', '', '', '']);
+        // keep the entered OTP so the user can correct it instead of re-typing all 6
         document.getElementById('otp-0')?.focus();
       }
     } catch (error) {
       const apiError = error as ApiError;
       toast.error(apiError.message || 'OTP verification failed. Please try again.');
-      setOtp(['', '', '', '', '', '']);
+      // keep the entered OTP so the user can correct it
       document.getElementById('otp-0')?.focus();
     } finally {
       setIsSubmitting(false);
