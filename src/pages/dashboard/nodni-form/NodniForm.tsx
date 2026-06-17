@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Upload, X } from 'lucide-react';
+import { config } from '../../../config';
 import KhulaBhukhandModal from './KhulaBhukhandModal';
 import BandkamModal from './BandkamModal';
 import ManoryachModal from './ManoryachModal';
@@ -26,6 +28,12 @@ const NodniForm = () => {
   const { showLoader, hideLoader } = useLoading();
   const [editingId, setEditingId] = useState<number | null>(null);
   const editApiDataRef = useRef<Record<string, any> | null>(null);
+
+  // Optional image (uploaded AFTER the nodni is saved, using its id)
+  const [nodniImageFile, setNodniImageFile] = useState<File | null>(null);
+  const [nodniImagePreview, setNodniImagePreview] = useState<string | null>(null);
+  const [existingNodniImageUrl, setExistingNodniImageUrl] = useState<string | null>(null);
+  const nodniImageInputRef = useRef<HTMLInputElement>(null);
   const [isKhulaBhukhandModalOpen, setIsKhulaBhukhandModalOpen] = useState(false);
   const [isBandkamModalOpen, setIsBandkamModalOpen] = useState(false);
   const [isManoryachModalOpen, setIsManoryachModalOpen] = useState(false);
@@ -147,6 +155,17 @@ const NodniForm = () => {
       setEditingId(editData.id);
       editApiDataRef.current = editData;
       populateFormFromEditData(editData);
+      // show the currently-saved image (if any) for this nodni
+      (async () => {
+        try {
+          const res = await nodniService.getImagesByNodni(editData.id);
+          const imgs = (res?.data as any[]) || [];
+          if (imgs.length > 0) {
+            const base = config.api.baseUrl.replace(/\/api$/, '');
+            setExistingNodniImageUrl(`${base}/${imgs[0].image_path}`);
+          }
+        } catch { /* ignore */ }
+      })();
     }
   }, [location.state]);
 
@@ -787,6 +806,25 @@ const NodniForm = () => {
     }
   };
 
+  const handleNodniImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('कृपया फक्त इमेज फाइल निवडा (Please select only image files)');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => setNodniImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+    setNodniImageFile(file);
+  };
+
+  const removeNodniImage = () => {
+    setNodniImageFile(null);
+    setNodniImagePreview(null);
+    if (nodniImageInputRef.current) nodniImageInputRef.current.value = '';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -810,6 +848,11 @@ const NodniForm = () => {
           return;
         }
         nodniId = editingId;
+        // optional: upload/replace image using the nodni id
+        if (nodniImageFile) {
+          try { await nodniService.uploadImage(nodniId, nodniImageFile); }
+          catch { toast.error('इमेज अपलोड अयशस्वी (Image upload failed)'); }
+        }
         trackAction(
           `नोंदणी फॉर्म मध्ये डेटा बदलून अद्यतनित (Update) केला — खातेदार: ${formData.gharMalkacheNav || '-'}, अनु क्रमांक: ${formData.anuKramank || '-'}, वॉर्ड: ${formData.wardNo || '-'}`,
           { mode: 'update', nodni_id: nodniId, khatedar: formData.gharMalkacheNav, anu_kramank: formData.anuKramank, ward: formData.wardNo, page: '/nodni-form' }
@@ -841,6 +884,12 @@ const NodniForm = () => {
         }
         for (const record of manoryachRecords) {
           await nodniService.createManoryache(buildManoryachePayload(record, nodniId));
+        }
+
+        // optional: upload image using the freshly-created nodni id
+        if (nodniImageFile) {
+          try { await nodniService.uploadImage(nodniId, nodniImageFile); }
+          catch { toast.error('इमेज अपलोड अयशस्वी (Image upload failed)'); }
         }
 
         trackAction(
@@ -903,6 +952,12 @@ const NodniForm = () => {
     setOtherTaxes(prev => prev.map(t => ({ ...t, selected: false })));
     setEditingId(null);
     editApiDataRef.current = null;
+
+    // Reset optional image
+    setNodniImageFile(null);
+    setNodniImagePreview(null);
+    setExistingNodniImageUrl(null);
+    if (nodniImageInputRef.current) nodniImageInputRef.current.value = '';
 
     // Reset property tax
     setPropertyTax({
@@ -1881,6 +1936,65 @@ const NodniForm = () => {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 placeholder="Enter remarks..."
               />
+            </div>
+          </div>
+
+          {/* Image Upload (optional) — uploaded after the nodni is saved, via its id */}
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+              इमेज अपलोड (Image Upload) <span className="text-sm font-normal text-gray-500 dark:text-gray-400">— वैकल्पिक (optional)</span>
+            </h2>
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  type="file"
+                  ref={nodniImageInputRef}
+                  accept="image/*"
+                  onChange={handleNodniImageSelect}
+                  className="hidden"
+                  id="nodni-image-upload"
+                />
+                <label
+                  htmlFor="nodni-image-upload"
+                  className="flex items-center gap-2 px-4 py-2 bg-[rgb(106,115,55)] text-white rounded-lg hover:bg-[rgb(86,95,35)] transition-colors cursor-pointer font-medium"
+                >
+                  <Upload className="w-5 h-5" />
+                  इमेज निवडा (Choose Image)
+                </label>
+                {nodniImageFile && (
+                  <span className="text-sm text-gray-700 dark:text-gray-300 break-all">{nodniImageFile.name}</span>
+                )}
+              </div>
+
+              {/* New selected image preview */}
+              {nodniImagePreview && (
+                <div className="relative max-w-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">इमेज पूर्वावलोकन (Preview)</label>
+                    <button
+                      type="button"
+                      onClick={removeNodniImage}
+                      className="flex items-center gap-1 px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      <X className="w-4 h-4" /> काढा (Remove)
+                    </button>
+                  </div>
+                  <div className="border-2 border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                    <img src={nodniImagePreview} alt="Preview" className="w-full h-auto object-contain" />
+                  </div>
+                </div>
+              )}
+
+              {/* Existing saved image (edit mode) — shown until a new one is chosen */}
+              {!nodniImagePreview && existingNodniImageUrl && (
+                <div className="max-w-xs">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">सध्याची इमेज (Current Image)</label>
+                  <div className="border-2 border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                    <img src={existingNodniImageUrl} alt="Current" className="w-full h-auto object-contain" />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">नवीन इमेज निवडल्यास ही बदलली जाईल.</p>
+                </div>
+              )}
             </div>
           </div>
 

@@ -12,6 +12,9 @@ const VASULI_ENDPOINTS = {
   UPDATE: (id: number) => `/main/vasuli/${id}`,
   DELETE: (id: number) => `/main/vasuli/${id}`,
   STATS: '/main/vasuli/stats',
+  PAYMENTS: (vasuliId: number) => `/main/vasuli/${vasuliId}/payments`,
+  PAYMENT_DELETE: (paymentId: number) => `/main/vasuli/payments/${paymentId}`,
+  PAYMENT_IMAGE_UPLOAD: '/main/vasuli/payment-image/upload',
 } as const;
 
 export interface VasuliListPayload {
@@ -116,6 +119,29 @@ export const vasuliService = {
    */
   getStats: async (): Promise<ApiResponse> => {
     return api.get(VASULI_ENDPOINTS.STATS);
+  },
+
+  /** List all payment entries for a vasuli */
+  listPayments: async (vasuliId: number): Promise<ApiResponse> => {
+    return api.get(VASULI_ENDPOINTS.PAYMENTS(vasuliId));
+  },
+
+  /** Add one payment entry to a vasuli */
+  addPayment: async (vasuliId: number, payment: Record<string, unknown>): Promise<ApiResponse> => {
+    return api.post(VASULI_ENDPOINTS.PAYMENTS(vasuliId), payment);
+  },
+
+  /** Delete a payment entry */
+  deletePayment: async (paymentId: number): Promise<ApiResponse> => {
+    return api.delete(VASULI_ENDPOINTS.PAYMENT_DELETE(paymentId));
+  },
+
+  /** Attach a proof image to a specific payment entry */
+  uploadPaymentImage: async (paymentId: number, imageFile: File): Promise<ApiResponse> => {
+    const formData = new FormData();
+    formData.append('payment_id', String(paymentId));
+    formData.append('image', imageFile);
+    return api.upload(VASULI_ENDPOINTS.PAYMENT_IMAGE_UPLOAD, formData);
   },
 };
 

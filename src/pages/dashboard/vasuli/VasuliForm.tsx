@@ -8,6 +8,7 @@ import DatePicker from '../../../components/common/DatePicker';
 import type { VasuliFormData } from '../../../interfaces/dashboard/vasuli/VasuliForm.types';
 import { vasuliService, type VasuliAutofillResponse, type VasuliTaxHeads } from '../../../services/vasuliService';
 import { trackAction } from '../../../utils/tracker';
+import { config } from '../../../config';
 
 const VasuliForm = () => {
   const navigate = useNavigate();
@@ -18,6 +19,20 @@ const VasuliForm = () => {
 
   const isEdit = location.state?.isEdit || false;
   const existingRecord = location.state?.record;
+
+  // payments (a vasuli can have many partial payments — add + view only)
+  const [savedVasuliId, setSavedVasuliId] = useState<number | null>(null);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [addingPayment, setAddingPayment] = useState(false);
+  const localPayIdRef = useRef(-1);
+  const currentVasuliId = existingRecord?.id ? Number(existingRecord.id) : savedVasuliId;
+
+  const loadPayments = async (vid: number) => {
+    try {
+      const res = await vasuliService.listPayments(vid);
+      if (res.success) setPayments((res.data as any[]) || []);
+    } catch { /* ignore */ }
+  };
 
   const [formData, setFormData] = useState<VasuliFormData>({
     nodniId: '',
@@ -192,7 +207,13 @@ const VasuliForm = () => {
             etarFeeChalu: str(r.chalu_etar_fee),
             etarFeeJama: str(r.jama_keleli_rakkam_etar_fee),
             etarFeeShillak: str(r.sillak_etar_fee),
+
+            billBookNumber: str(r.bill_book_number),
+            pavtiNumber: str(r.pavti_number),
           }));
+          // load all payment entries for this vasuli
+          if ((r.payments as any[])?.length) setPayments(r.payments as any[]);
+          else loadPayments(Number(existingRecord.id));
         } else {
           toast.error(res.message || 'रेकॉर्ड लोड करण्यात अयशस्वी (Failed to load record)');
         }
@@ -273,6 +294,102 @@ const VasuliForm = () => {
     } else {
       setFormData(prev => ({ ...prev, paymentImage: null, paymentImagePreview: '' }));
     }
+  };
+
+  const clearPaymentBlock = () => setFormData(prev => ({
+    ...prev, paymentType: '', cashAmount: '', chequeNumber: '', chequeAmount: '',
+    chequeDate: '', chequeBankName: '', ddNumber: '', ddAmount: '', ddDate: '', ddBankName: '',
+    onlineProvider: '', onlineAmount: '', onlineTransactionId: '', paymentImage: null, paymentImagePreview: '',
+  }));
+
+  const buildPaymentObj = () => {
+    const t = (v: string) => (v === '' ? null : v);
+    return {
+      nodni_id: formData.nodniId ? Number(formData.nodniId) : null,
+      payment_type: t(formData.paymentType),
+      cash_amount: t(formData.cashAmount),
+      cheque_number: t(formData.chequeNumber),
+      cheque_amount: t(formData.chequeAmount),
+      cheque_date: t(formData.chequeDate),
+      cheque_bank_name: t(formData.chequeBankName),
+      dd_number: t(formData.ddNumber),
+      dd_amount: t(formData.ddAmount),
+      dd_date: t(formData.ddDate),
+      dd_bank_name: t(formData.ddBankName),
+      online_provider: t(formData.onlineProvider),
+      online_amount: t(formData.onlineAmount),
+      online_transaction_id: t(formData.onlineTransactionId),
+    };
+  };
+
+  // Add ONE payment entry. If the vasuli isn't saved yet (first-time/new form),
+  // the payment is QUEUED locally and saved automatically when the vasuli is saved.
+  const handleAddPayment = async () => {
+    if (!formData.paymentType) {
+      toast.error('पेमेंट प्रकार निवडा (Select payment type)');
+      return;
+    }
+    const payment = buildPaymentObj();
+
+    // not saved yet -> queue locally (will be flushed on vasuli save)
+    if (!currentVasuliId) {
+      setPayments(prev => [...prev, {
+        id: localPayIdRef.current--,
+        _local: true,
+        _file: formData.paymentImage || null,
+        ...payment,
+      }]);
+      clearPaymentBlock();
+      toast.success('पेमेंट जोडले — वसुली जतन केल्यावर साठवले जाईल (Queued; saved on vasuli save)');
+      return;
+    }
+
+    // vasuli exists -> save immediately
+    setAddingPayment(true);
+    showLoader('पेमेंट जोडत आहे... (Adding payment...)');
+    try {
+      const res = await vasuliService.addPayment(currentVasuliId, payment);
+      if (res.success) {
+        const pid = Number((res.data as any)?.id);
+        if (formData.paymentImage && pid) {
+          try { await vasuliService.uploadPaymentImage(pid, formData.paymentImage as File); }
+          catch { toast.error('पेमेंट इमेज अपलोड अयशस्वी (Payment image upload failed)'); }
+        }
+        await loadPayments(currentVasuliId);
+        clearPaymentBlock();
+        toast.success('पेमेंट जोडले (Payment added)');
+      } else {
+        toast.error(res.message || 'पेमेंट जोडता आले नाही (Failed to add payment)');
+      }
+    } catch (err) {
+      toast.error((err as { message?: string })?.message || 'काहीतरी चूक झाली (Something went wrong)');
+    } finally {
+      hideLoader();
+      setAddingPayment(false);
+    }
+  };
+
+  // flush locally-queued payments after the vasuli gets an id
+  const flushLocalPayments = async (vid: number) => {
+    const locals = payments.filter((p: any) => p._local);
+    for (const lp of locals) {
+      try {
+        const res = await vasuliService.addPayment(vid, lp);
+        const pid = Number((res.data as any)?.id);
+        if (lp._file && pid) {
+          try { await vasuliService.uploadPaymentImage(pid, lp._file as File); } catch { /* ignore */ }
+        }
+      } catch { /* ignore individual failure */ }
+    }
+    await loadPayments(vid);
+  };
+
+  // amount actually paid in a payment row (depends on its type)
+  const paymentAmount = (p: any): number => Number(
+    p.cash_amount || p.cheque_amount || p.dd_amount || p.online_amount || 0
+  );
+  const PAYMENT_TYPE_LABEL: Record<string, string> = {
+    cash: 'रोख', cheque: 'चेक', dd: 'डीडी', online: 'ऑनलाइन',
   };
 
   // Auto-fill property + previous/current tax when anu_kramank + ward are entered
@@ -434,6 +551,8 @@ const VasuliForm = () => {
       khatedharkache_nav: formData.khatedharkacheNav,
       bhogwatdarache_nav: formData.bhogwatdaracheNav,
       patta_address: formData.patta,
+      bill_book_number: txt(formData.billBookNumber),
+      pavti_number: txt(formData.pavtiNumber),
 
       magil_gruhkar_v_bhumikar: num(formData.gruhkarMagil),
       chalu_gruhkar_v_bhumikar: num(formData.gruhkarChalu),
@@ -487,23 +606,29 @@ const VasuliForm = () => {
 
     showLoader('वसुली जतन करत आहे... (Saving vasuli...)');
     try {
-      const res = isEdit && existingRecord?.id
-        ? await vasuliService.update(Number(existingRecord.id), payload)
+      // if the vasuli already exists (edit, or created earlier in this session) -> update
+      const vid = (isEdit && existingRecord?.id) ? Number(existingRecord.id) : savedVasuliId;
+      const res = vid
+        ? await vasuliService.update(vid, payload)
         : await vasuliService.create(payload);
 
       if (res.success) {
+        const savedId = vid ?? Number((res.data as any)?.id);
+
         trackAction(
           isEdit
             ? `वसुली रेकॉर्ड मध्ये डेटा बदलून अद्यतनित (Update) केला — खातेदार: ${(formData as any).khatedharkacheNav || '-'}, अनु क्रमांक: ${formData.anuKramank || '-'}, वॉर्ड क्र.: ${formData.wardKramank || '-'}, वर्ष: ${formData.year || '-'}`
             : `वसुली मध्ये नवीन रेकॉर्ड तयार (Create) केला — खातेदार: ${(formData as any).khatedharkacheNav || '-'}, अनु क्रमांक: ${formData.anuKramank || '-'}, वॉर्ड क्र.: ${formData.wardKramank || '-'}, वर्ष: ${formData.year || '-'}`,
           { page: '/vasuli/vasuli-form', mode: isEdit ? 'update' : 'create', anu_kramank: formData.anuKramank, ward: formData.wardKramank, year: formData.year }
         );
-        toast.success(
-          isEdit
-            ? 'वसुली यशस्वीरित्या अद्यतनित केली (Vasuli updated successfully)'
-            : 'वसुली यशस्वीरित्या जतन केली (Vasuli saved successfully)'
-        );
-        setTimeout(() => navigate('/vasuli'), 1500);
+        if (isEdit) {
+          toast.success('वसुली यशस्वीरित्या अद्यतनित केली (Vasuli updated successfully)');
+          setTimeout(() => navigate('/vasuli'), 1500);
+        } else {
+          // stay on page; persist any locally-queued payments against the new id
+          if (savedId) { setSavedVasuliId(savedId); await flushLocalPayments(savedId); }
+          toast.success('वसुली जतन झाली. आता खाली पेमेंट जोडू शकता. (Saved — payments stored; add more below)');
+        }
       } else {
         toast.error(res.message || 'वसुली जतन करण्यात अयशस्वी (Failed to save vasuli)');
       }
@@ -1533,7 +1658,77 @@ const VasuliForm = () => {
                   </div>
                 </div>
               )}
+
+              {/* Add this payment entry (multiple partial payments allowed) */}
+              <div className="mt-4 flex flex-col items-start gap-2">
+                <button
+                  type="button"
+                  onClick={handleAddPayment}
+                  disabled={addingPayment}
+                  className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                >
+                  ➕ पेमेंट जोडा (Add Payment)
+                </button>
+                {!currentVasuliId && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    जोडलेली पेमेंट्स खाली यादीत दिसतील व वसुली जतन करताच साठवली जातील. (Added payments show below and are stored when you save the vasuli.)
+                  </p>
+                )}
+              </div>
             </div>
+
+            {/* Payments list (view only) — all partial payments against this vasuli */}
+            {(currentVasuliId || payments.length > 0) && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 pb-2 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-2">
+                  <span>केलेली पेमेंट्स (Payments)</span>
+                  <span className="text-sm font-normal text-gray-600 dark:text-gray-300">
+                    एकूण भरणा: <strong className="text-emerald-600 dark:text-emerald-400">₹{payments.reduce((s, p) => s + paymentAmount(p), 0).toFixed(2)}</strong>
+                  </span>
+                </h3>
+                {payments.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 py-3">अद्याप कोणतेही पेमेंट नाही.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <thead className="bg-gray-100 dark:bg-gray-700/50">
+                        <tr>
+                          <th className="px-3 py-2 text-left">#</th>
+                          <th className="px-3 py-2 text-left">प्रकार</th>
+                          <th className="px-3 py-2 text-right">रक्कम (₹)</th>
+                          <th className="px-3 py-2 text-left">तपशील</th>
+                          <th className="px-3 py-2 text-left">दिनांक</th>
+                          <th className="px-3 py-2 text-left">इमेज</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {payments.map((p, i) => {
+                          const ref = p.cheque_number || p.dd_number || p.online_transaction_id || p.online_provider || '-';
+                          const date = p.cheque_date || p.dd_date || '';
+                          const imgUrl = p.payment_image ? `${config.api.baseUrl.replace(/\/api$/, '')}/${p.payment_image}` : '';
+                          return (
+                            <tr key={p.id} className="border-t border-gray-200 dark:border-gray-700">
+                              <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{i + 1}</td>
+                              <td className="px-3 py-2 text-gray-900 dark:text-white">{PAYMENT_TYPE_LABEL[p.payment_type] || p.payment_type || '-'}</td>
+                              <td className="px-3 py-2 text-right font-semibold text-gray-900 dark:text-white">{paymentAmount(p).toFixed(2)}</td>
+                              <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{ref}</td>
+                              <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{date ? String(date).slice(0, 10) : '-'}</td>
+                              <td className="px-3 py-2">
+                                {imgUrl ? (
+                                  <a href={imgUrl} target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline">पहा</a>
+                                ) : (p._local && p._file) ? (
+                                  <span className="text-gray-500 dark:text-gray-400">निवडली</span>
+                                ) : '-'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Buttons - Centered */}
             <div className="flex justify-center gap-4">
