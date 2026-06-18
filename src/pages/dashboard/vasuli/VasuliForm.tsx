@@ -10,6 +10,34 @@ import { vasuliService, type VasuliAutofillResponse, type VasuliTaxHeads } from 
 import { trackAction } from '../../../utils/tracker';
 import { config } from '../../../config';
 
+// Map a saved vasuli DB record -> form fields (when an existing vasuli for the year
+// is found, so the form shows that record's values instead of fresh nodni data).
+const _s = (v: unknown) => (v === null || v === undefined ? '' : String(v));
+const _d = (v: unknown) => {
+  if (!v) return '';
+  const raw = String(v);
+  let d = new Date(raw);
+  if (isNaN(d.getTime())) { const part = raw.split(/[ T]/)[0]; d = new Date(part); if (isNaN(d.getTime())) return part; }
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+const vasuliToFormPatch = (r: Record<string, any>) => ({
+  nodniId: _s(r.nodni_id), year: _s(r.year), toYear: _s(r.to_year),
+  anuKramank: _s(r.anu_kramank), malmattaKramank: _s(r.malmatta_number), wardKramank: _s(r.ward_number),
+  plotKramank: _s(r.plot_number), khasaraKramank: _s(r.khasara_kramank), surveyKramank: _s(r.survey_number),
+  khatedharkacheNav: _s(r.khatedharkache_nav), bhogwatdaracheNav: _s(r.bhogwatdarache_nav), patta: _s(r.patta_address),
+  gruhkarMagil: _s(r.magil_gruhkar_v_bhumikar), gruhkarChalu: _s(r.chalu_gruhkar_v_bhumikar), gruhkarJama: _s(r.jama_keleli_rakkam_gruhkar_v_bhumikar), gruhkarShillak: _s(r.sillak_gruhkar_v_bhumikar),
+  vizMagil: _s(r.magil_viz_divabatti_kar), vizChalu: _s(r.chalu_viz_divabatti_kar), vizJama: _s(r.jama_keleli_rakkam_viz_divabatti_kar), vizShillak: _s(r.sillak_viz_divabatti_kar),
+  aarogyaMagil: _s(r.magil_aarogya_rakshan_kar), aarogyaChalu: _s(r.chalu_aarogya_rakshan_kar), aarogyaJama: _s(r.jama_kelili_rakkam_aarogya_rakshan_kar), aarogyaShillak: _s(r.sillak_aarogya_rakshan_kar),
+  safaeMagil: _s(r.magil_safae_kar), safaeChalu: _s(r.chalu_safae_kar), safaeJama: _s(r.jama_keleli_rakkam_safae_kar), safaeShillak: _s(r.sillak_safae_kar),
+  gruhkarPavtiDate: _d(r.gruhkar_v_bhumikar_pavti_date),
+  samanyaPaniMagil: _s(r.magil_samanya_pani_kar), samanyaPaniChalu: _s(r.chalu_samanya_pani_kar), samanyaPaniJama: _s(r.jama_keleli_rakkam_samanya_pani_kar), samanyaPaniShillak: _s(r.sillak_samanya_pani_kar),
+  visheshPaniMagil: _s(r.magil_vishesh_pani_kar), visheshPaniChalu: _s(r.chalu_vishesh_pani_kar), visheshPaniJama: _s(r.jama_keleli_rakkam_vishesh_pani_kar), visheshPaniShillak: _s(r.sillak_vishesh_pani_kar),
+  paniPavtiDate: _d(r.pani_kar_pavti_v_date),
+  noticeFeeMagil: _s(r.magil_notice_fee), noticeFeeChalu: _s(r.chalu_notice_fee), noticeFeeJama: _s(r.jama_keleli_rakkam_notice_fee), noticeFeeShillak: _s(r.sillak_noticie_fee),
+  etarFeeMagil: _s(r.magil_etar_fee), etarFeeChalu: _s(r.chalu_etar_fee), etarFeeJama: _s(r.jama_keleli_rakkam_etar_fee), etarFeeShillak: _s(r.sillak_etar_fee),
+  billBookNumber: _s(r.bill_book_number), pavtiNumber: _s(r.pavti_number),
+});
+
 const VasuliForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -268,6 +296,10 @@ const VasuliForm = () => {
 
   const handleYearChange = (year: string) => {
     setFormData(prev => ({ ...prev, year }));
+    // if anu + ward already entered, re-fetch nodni data for the newly selected year
+    if (formData.anuKramank.trim() && formData.wardKramank.trim() && year) {
+      handleAutofill(year);
+    }
   };
 
   const handleDateChange = (name: string) => (value: string) => {
@@ -393,17 +425,34 @@ const VasuliForm = () => {
   };
 
   // Auto-fill property + previous/current tax when anu_kramank + ward are entered
-  const handleAutofill = async () => {
+  const handleAutofill = async (yearArg?: string) => {
     const anu = formData.anuKramank.trim();
     const ward = formData.wardKramank.trim();
+    const year = ((yearArg ?? formData.year) || '').toString().trim();
     if (!anu || !ward) return;
 
     showLoader('माहिती मिळवत आहे... (Fetching data...)');
     try {
+      // 1) Existing vasuli for this year? -> load it (with its payments)
+      const fr = await vasuliService.findByYear(anu, ward, year);
+      const fd = fr?.data as any;
+      if (fr?.success && fd?.found && fd?.vasuli) {
+        const rec = fd.vasuli;
+        setFormData(prev => ({ ...prev, ...vasuliToFormPatch(rec) }));
+        setSavedVasuliId(Number(rec.id));
+        setPayments(rec.payments || []);
+        toast.success('या वर्षाची वसुली आधीच आहे — ती लोड केली (Existing vasuli loaded)');
+        return;
+      }
+
+      // not found -> fresh entry: clear any previously loaded vasuli id + payments
+      if (!isEdit) { setSavedVasuliId(null); setPayments([]); }
+
+      // 2) Otherwise fetch fresh from nodni
       const res = await vasuliService.autofill({
         anu_kramank: anu,
         ward_number: ward,
-        year: formData.year,
+        year,
       });
 
       const data = res.data as VasuliAutofillResponse | undefined;
@@ -797,7 +846,7 @@ const VasuliForm = () => {
                   name="wardKramank"
                   value={formData.wardKramank}
                   onChange={handleInputChange}
-                  onBlur={handleAutofill}
+                  onBlur={() => handleAutofill()}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
@@ -1736,7 +1785,7 @@ const VasuliForm = () => {
                 type="submit"
                 className="px-8 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors font-medium"
               >
-                {isEdit ? 'बदल करा (Update)' : 'जतन करा (Save)'}
+                {(isEdit || currentVasuliId) ? 'बदल करा (Update)' : 'जतन करा (Save)'}
               </button>
               <button
                 type="button"

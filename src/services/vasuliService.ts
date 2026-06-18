@@ -12,6 +12,7 @@ const VASULI_ENDPOINTS = {
   UPDATE: (id: number) => `/main/vasuli/${id}`,
   DELETE: (id: number) => `/main/vasuli/${id}`,
   STATS: '/main/vasuli/stats',
+  FIND: '/main/vasuli/find',
   PAYMENTS: (vasuliId: number) => `/main/vasuli/${vasuliId}/payments`,
   PAYMENT_DELETE: (paymentId: number) => `/main/vasuli/payments/${paymentId}`,
   PAYMENT_IMAGE_UPLOAD: '/main/vasuli/payment-image/upload',
@@ -119,6 +120,12 @@ export const vasuliService = {
    */
   getStats: async (): Promise<ApiResponse> => {
     return api.get(VASULI_ENDPOINTS.STATS);
+  },
+
+  /** Find an existing vasuli for anu_kramank + ward + year (returns {found, vasuli}) */
+  findByYear: async (anuKramank: string, wardNumber: string, year: string): Promise<ApiResponse> => {
+    const qs = new URLSearchParams({ anu_kramank: anuKramank, ward_number: wardNumber, year }).toString();
+    return api.get(`${VASULI_ENDPOINTS.FIND}?${qs}`);
   },
 
   /** List all payment entries for a vasuli */
