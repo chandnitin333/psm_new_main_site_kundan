@@ -11,7 +11,7 @@ interface KarAakaraniTableProps {
   onPageChange: (page: number) => void;
 }
 
-const fmt = (value: number) => (Number(value) || 0).toFixed(2);
+const fmt = (value: number) => String(Math.round(Number(value) || 0));
 
 const KarAakaraniTable = ({ records, totals, pagination, onPageChange }: KarAakaraniTableProps) => {
   const { current_page, per_page, total_records, total_pages } = pagination;
@@ -65,15 +65,15 @@ const KarAakaraniTable = ({ records, totals, pagination, onPageChange }: KarAaka
                   <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{record.toYear}</td>
                   <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{record.wardNo}</td>
                   <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{record.khatedarkacheNav}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹ {record.gruhkarVBhumikar}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹ {record.vizDivabattikar}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹ {record.aarogyaRakshanKar}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹ {record.safaeKar}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹ {record.samanyaPaniKar}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹ {record.visheshPaniKar}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹ {record.ekunMagilBaki}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹ {record.ekunImaratKar}</td>
-                  <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100">₹ {record.ekun}</td>
+                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹ {fmt(Number(record.gruhkarVBhumikar))}</td>
+                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹ {fmt(Number(record.vizDivabattikar))}</td>
+                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹ {fmt(Number(record.aarogyaRakshanKar))}</td>
+                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹ {fmt(Number(record.safaeKar))}</td>
+                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹ {fmt(Number(record.samanyaPaniKar))}</td>
+                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹ {fmt(Number(record.visheshPaniKar))}</td>
+                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹ {fmt(Number(record.ekunMagilBaki))}</td>
+                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹ {fmt(Number(record.ekunImaratKar))}</td>
+                  <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100">₹ {fmt(Number(record.ekun))}</td>
                 </tr>
               ))
             )}

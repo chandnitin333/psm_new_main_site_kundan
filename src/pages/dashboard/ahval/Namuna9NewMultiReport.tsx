@@ -42,7 +42,8 @@ const RecordBlock = ({ n }: { n: Row }) => {
     const c = cur(mKey);
     const d = pcPrev(dandKey);
     const su = num(sj[sutKey]);
-    return m + (m * d) / 100 + (c - (c * su) / 100);
+    // round each component (same as 129 बिल / Namuna9 multi) so totals match everywhere
+    return Math.round(m) + Math.round((m * d) / 100) + Math.round(c) - Math.round((c * su) / 100);
   };
   const gMagil = prev('gruhkar_v_bhumikar'), gChalu = cur('gruhkar_v_bhumikar');
   const gDand = pcPrev('5_percent_addition_gvb');

@@ -14,11 +14,6 @@ const f = (v: unknown) => {
   const num = Number(v);
   return isNaN(num) ? String(v) : Math.round(num).toString();
 };
-const f2 = (v: unknown) => {
-  if (v === null || v === undefined || v === '') return '';
-  const num = Number(v);
-  return isNaN(num) ? String(v) : num.toFixed(2);
-};
 
 const sqmOf = (it: Row) => Number(it.ekun_shetrafal_choras_foot || 0) * 0.092903;
 const landBhandvali = (it: Row) => sqmOf(it) * Number(it.jaminiche_varshik_mulya || 0);
@@ -135,12 +130,12 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
             <td className={td} colSpan={3}>वोटर</td>
           </tr>
           <tr>
-            <td className={td}>{s(n.lambi)}</td>
-            <td className={td}>{s(n.rundi)}</td>
-            <td className={td} colSpan={2}>{s(n.shetrafal_choras_foot)}</td>
-            <td className={td} colSpan={2}>{s(n.shetrafal_choras_meter)}</td>
-            <td className={td} colSpan={2}>{s(n.urvarit_khali_jaga_choras_foot)}</td>
-            <td className={td} colSpan={2}>{f2(Number(n.urvarit_khali_jaga_choras_foot || 0) * 0.092903)}</td>
+            <td className={td}>{f(n.lambi)}</td>
+            <td className={td}>{f(n.rundi)}</td>
+            <td className={td} colSpan={2}>{f(n.shetrafal_choras_foot)}</td>
+            <td className={td} colSpan={2}>{f(n.shetrafal_choras_meter)}</td>
+            <td className={td} colSpan={2}>{f(n.urvarit_khali_jaga_choras_foot)}</td>
+            <td className={td} colSpan={2}>{f(Number(n.urvarit_khali_jaga_choras_foot || 0) * 0.092903)}</td>
             <td className={td} colSpan={2}>{s(n.mobile_number)}</td>
             <td className={td} colSpan={3}>{s(n.aadahar_card_number)}</td>
             <td className={td} colSpan={4}>{s(n.matdar_card_number)}</td>
@@ -174,16 +169,16 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
               <td className={td}>एकूण जागा</td>
               <td className={td}>&nbsp;</td>
               <td className={td}>&nbsp;</td>
-              <td className={td}>{s(it.shetrafal_purv_paschim_foot)}</td>
-              <td className={td}>{s(it.shetrafal_uttar_dakshin_foot)}</td>
-              <td className={td}>{s(it.ekun_shetrafal_choras_foot)}</td>
-              <td className={td}>{f2(sqmOf(it))}</td>
-              <td className={td}>{s(it.jaminiche_varshik_mulya)}</td>
+              <td className={td}>{f(it.shetrafal_purv_paschim_foot)}</td>
+              <td className={td}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
+              <td className={td}>{f(it.ekun_shetrafal_choras_foot)}</td>
+              <td className={td}>{f(sqmOf(it))}</td>
+              <td className={td}>{f(it.jaminiche_varshik_mulya)}</td>
               <td className={td}>&nbsp;</td>
               <td className={td}>&nbsp;</td>
               <td className={td}>{f(landBhandvali(it))}</td>
               <td className={td}>{s(it.aakarani_dar)}</td>
-              <td className={td}>{f2(landBhandvali(it) / 1000)}</td>
+              <td className={td}>{f(landBhandvali(it) / 1000)}</td>
               <td className={td} colSpan={4}>{f(landBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
             </tr>
           ))}
@@ -196,16 +191,16 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
               <td className={td}>{s(it.vapar_prakar)}</td>
               <td className={td}>{s(it.bandkam_majla_name)}</td>
               <td className={td}>{s(it.vayoman)}</td>
-              <td className={td}>{s(it.shetrafal_purv_paschim_foot)}</td>
-              <td className={td}>{s(it.shetrafal_uttar_dakshin_foot)}</td>
-              <td className={td}>{s(it.ekun_shetrafal_choras_foot)}</td>
-              <td className={td}>{f2(sqmOf(it))}</td>
-              <td className={td}>{s(it.imaratiche_varshik_mulya)}</td>
+              <td className={td}>{f(it.shetrafal_purv_paschim_foot)}</td>
+              <td className={td}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
+              <td className={td}>{f(it.ekun_shetrafal_choras_foot)}</td>
+              <td className={td}>{f(sqmOf(it))}</td>
+              <td className={td}>{f(it.imaratiche_varshik_mulya)}</td>
               <td className={td}>{s(it.ghasara_dar)}</td>
               <td className={td}>{s(it.bharank)}</td>
               <td className={td}>{f(consBhandvali(it))}</td>
               <td className={td}>{s(it.aakarani_dar)}</td>
-              <td className={td}>{f2(consBhandvali(it) / 1000)}</td>
+              <td className={td}>{f(consBhandvali(it) / 1000)}</td>
               <td className={td} colSpan={4}>{f(consBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
             </tr>
           ))}
@@ -218,10 +213,10 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
               <td className={td}>{s(it.vapar_prakar)}</td>
               <td className={td}>{s(it.manoryache_bhag_name)}</td>
               <td className={td}>&nbsp;</td>
-              <td className={td}>{s(it.shetrafal_purv_paschim_foot)}</td>
-              <td className={td}>{s(it.shetrafal_uttar_dakshin_foot)}</td>
-              <td className={td}>{s(it.ekun_shetrafal_choras_foot)}</td>
-              <td className={td}>{f2(sqmOf(it))}</td>
+              <td className={td}>{f(it.shetrafal_purv_paschim_foot)}</td>
+              <td className={td}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
+              <td className={td}>{f(it.ekun_shetrafal_choras_foot)}</td>
+              <td className={td}>{f(sqmOf(it))}</td>
               <td className={td}>&nbsp;</td>
               <td className={td}>&nbsp;</td>
               <td className={td}>&nbsp;</td>

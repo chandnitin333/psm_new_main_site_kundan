@@ -13,6 +13,7 @@ const VASULI_ENDPOINTS = {
   DELETE: (id: number) => `/main/vasuli/${id}`,
   STATS: '/main/vasuli/stats',
   FIND: '/main/vasuli/find',
+  GP_PAYMENT_INFO: '/main/vasuli/gp-payment-info',
   PAYMENTS: (vasuliId: number) => `/main/vasuli/${vasuliId}/payments`,
   PAYMENT_DELETE: (paymentId: number) => `/main/vasuli/payments/${paymentId}`,
   PAYMENT_IMAGE_UPLOAD: '/main/vasuli/payment-image/upload',
@@ -122,6 +123,11 @@ export const vasuliService = {
     return api.get(VASULI_ENDPOINTS.STATS);
   },
 
+  /** Current user's GP payment details (QR scanners + bank/UPI for ghar & pani) */
+  getGpPaymentInfo: async (): Promise<ApiResponse> => {
+    return api.get(VASULI_ENDPOINTS.GP_PAYMENT_INFO);
+  },
+
   /** Find an existing vasuli for anu_kramank + ward + year (returns {found, vasuli}) */
   findByYear: async (anuKramank: string, wardNumber: string, year: string): Promise<ApiResponse> => {
     const qs = new URLSearchParams({ anu_kramank: anuKramank, ward_number: wardNumber, year }).toString();
@@ -143,11 +149,12 @@ export const vasuliService = {
     return api.delete(VASULI_ENDPOINTS.PAYMENT_DELETE(paymentId));
   },
 
-  /** Attach a proof image to a specific payment entry */
-  uploadPaymentImage: async (paymentId: number, imageFile: File): Promise<ApiResponse> => {
+  /** Attach a proof image to a payment — field: 'ghar' | 'pani' (default legacy) */
+  uploadPaymentImage: async (paymentId: number, imageFile: File, field?: 'ghar' | 'pani'): Promise<ApiResponse> => {
     const formData = new FormData();
     formData.append('payment_id', String(paymentId));
     formData.append('image', imageFile);
+    if (field) formData.append('field', field);
     return api.upload(VASULI_ENDPOINTS.PAYMENT_IMAGE_UPLOAD, formData);
   },
 };

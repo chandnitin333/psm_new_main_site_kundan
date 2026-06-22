@@ -12,7 +12,7 @@ const s = (v: unknown) => (v === null || v === undefined ? '' : String(v));
 const f = (v: unknown) => {
   if (v === null || v === undefined || v === '') return '';
   const num = Number(v);
-  return isNaN(num) ? String(v) : num.toFixed(2);
+  return isNaN(num) ? String(v) : Math.round(num).toString();
 };
 
 const Namuna8NewPrint = () => {
@@ -107,9 +107,9 @@ const Namuna8NewPrint = () => {
   const sumW = [sumBase, sumBase, sumBase, sumBase, sumBase, tableW - sumBase * 5];
 
   const area = (it: Row) => (
-    <>{f(sqmOf(it))}<br />( {s(it.ekun_shetrafal_choras_foot)} चौ,फू )</>
+    <>{f(sqmOf(it))}<br />( {f(it.ekun_shetrafal_choras_foot)} चौ,फू )</>
   );
-  const dims = (it: Row) => `( लांबी ${s(it.shetrafal_purv_paschim_foot)} x रुंदी ${s(it.shetrafal_uttar_dakshin_foot)} )`;
+  const dims = (it: Row) => `( लांबी ${f(it.shetrafal_purv_paschim_foot)} x रुंदी ${f(it.shetrafal_uttar_dakshin_foot)} )`;
 
   return (
     <div className="namuna8n-report bg-white text-black p-4" style={{ colorScheme: 'light' }}>
@@ -239,7 +239,7 @@ const Namuna8NewPrint = () => {
                 <td className={tdL}>{s(it.malmatteche_varnan_name)}</td>
                 <td className={td} />
                 <td className={td}>{area(it)}</td>
-                <td className={tdv}>{s(it.jaminiche_varshik_mulya)}</td>
+                <td className={tdv}>{f(it.jaminiche_varshik_mulya)}</td>
                 <td className={td} />
                 <td className={td} />
                 <td className={td} />
@@ -263,7 +263,7 @@ const Namuna8NewPrint = () => {
                 <td className={td}>{area(it)}</td>
                 <td className={td} />
                 <td className={td} />
-                <td className={tdv}>{s(it.imaratiche_varshik_mulya)}</td>
+                <td className={tdv}>{f(it.imaratiche_varshik_mulya)}</td>
                 <td className={tdv}>{s(it.ghasara_dar)}</td>
                 <td className={tdv}>{s(it.bharank)}</td>
                 <td className={tdv}>{f(consBhandvali(it))}</td>

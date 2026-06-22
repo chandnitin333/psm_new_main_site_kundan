@@ -12,7 +12,7 @@ const s = (v: unknown) => (v === null || v === undefined ? '' : String(v));
 const f = (v: unknown) => {
   if (v === null || v === undefined || v === '') return '';
   const num = Number(v);
-  return isNaN(num) ? String(v) : num.toFixed(2);
+  return isNaN(num) ? String(v) : Math.round(num).toString();
 };
 
 const sqmOf = (it: Row) => Number(it.ekun_shetrafal_choras_foot || 0) * 0.092903;
@@ -118,10 +118,10 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
             <td className={tdc} colSpan={3}>वोटर कार्ड</td>
           </tr>
           <tr>
-            <td className={tdc}>{s(n.lambi)}</td><td className={tdc}>{s(n.rundi)}</td>
-            <td className={tdc} colSpan={2}>{s(n.shetrafal_choras_foot)}</td>
-            <td className={tdc} colSpan={2}>{s(n.shetrafal_choras_meter)}</td>
-            <td className={tdc} colSpan={2}>{s(n.urvarit_khali_jaga_choras_foot)}</td>
+            <td className={tdc}>{f(n.lambi)}</td><td className={tdc}>{f(n.rundi)}</td>
+            <td className={tdc} colSpan={2}>{f(n.shetrafal_choras_foot)}</td>
+            <td className={tdc} colSpan={2}>{f(n.shetrafal_choras_meter)}</td>
+            <td className={tdc} colSpan={2}>{f(n.urvarit_khali_jaga_choras_foot)}</td>
             <td className={tdc} colSpan={2}>{s(n.mobile_number)}</td>
             <td className={tdc} colSpan={3}>{s(n.aadahar_card_number)}</td>
             <td className={tdc} colSpan={3}>{s(n.matdar_card_number)}</td>
@@ -158,11 +158,11 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
               <td className={tdc}>एकूण जागा</td>
               <td className={tdc}></td>
               <td className={tdc}></td>
-              <td className={tdc}>{s(it.shetrafal_purv_paschim_foot)}</td>
-              <td className={tdc}>{s(it.shetrafal_uttar_dakshin_foot)}</td>
-              <td className={tdc}>{s(it.ekun_shetrafal_choras_foot)}</td>
+              <td className={tdc}>{f(it.shetrafal_purv_paschim_foot)}</td>
+              <td className={tdc}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
+              <td className={tdc}>{f(it.ekun_shetrafal_choras_foot)}</td>
               <td className={tdc}>{f(sqmOf(it))}</td>
-              <td className={tdc}>{s(it.jaminiche_varshik_mulya)}</td>
+              <td className={tdc}>{f(it.jaminiche_varshik_mulya)}</td>
               <td className={tdc}></td>
               <td className={tdc}></td>
               <td className={tdc}>{f(landBhandvali(it))}</td>
@@ -178,11 +178,11 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
               <td className={tdc}>{s(it.vapar_prakar)}</td>
               <td className={tdc}>{s(it.bandkam_majla_name)}</td>
               <td className={tdc}>{s(it.vayoman)}</td>
-              <td className={tdc}>{s(it.shetrafal_purv_paschim_foot)}</td>
-              <td className={tdc}>{s(it.shetrafal_uttar_dakshin_foot)}</td>
-              <td className={tdc}>{s(it.ekun_shetrafal_choras_foot)}</td>
+              <td className={tdc}>{f(it.shetrafal_purv_paschim_foot)}</td>
+              <td className={tdc}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
+              <td className={tdc}>{f(it.ekun_shetrafal_choras_foot)}</td>
               <td className={tdc}>{f(sqmOf(it))}</td>
-              <td className={tdc}>{s(it.imaratiche_varshik_mulya)}</td>
+              <td className={tdc}>{f(it.imaratiche_varshik_mulya)}</td>
               <td className={tdc}>{s(it.ghasara_dar)}</td>
               <td className={tdc}>{s(it.bharank)}</td>
               <td className={tdc}>{f(consBhandvali(it))}</td>
@@ -198,9 +198,9 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
               <td className={tdc}>{s(it.vapar_prakar)}</td>
               <td className={tdc}>{s(it.manoryache_bhag_name)}</td>
               <td className={tdc}></td>
-              <td className={tdc}>{s(it.shetrafal_purv_paschim_foot)}</td>
-              <td className={tdc}>{s(it.shetrafal_uttar_dakshin_foot)}</td>
-              <td className={tdc}>{s(it.ekun_shetrafal_choras_foot)}</td>
+              <td className={tdc}>{f(it.shetrafal_purv_paschim_foot)}</td>
+              <td className={tdc}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
+              <td className={tdc}>{f(it.ekun_shetrafal_choras_foot)}</td>
               <td className={tdc}>{f(sqmOf(it))}</td>
               <td className={tdc}></td>
               <td className={tdc}></td>

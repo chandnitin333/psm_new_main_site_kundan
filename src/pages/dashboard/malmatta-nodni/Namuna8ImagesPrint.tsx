@@ -15,11 +15,6 @@ const f = (v: unknown) => {
   const num = Number(v);
   return isNaN(num) ? String(v) : Math.round(num).toString();
 };
-const f2 = (v: unknown) => {
-  if (v === null || v === undefined || v === '') return '';
-  const num = Number(v);
-  return isNaN(num) ? String(v) : num.toFixed(2);
-};
 
 const Namuna8ImagesPrint = () => {
   const [n, setN] = useState<Row>({});
@@ -247,12 +242,12 @@ const Namuna8ImagesPrint = () => {
               <td className={td} colSpan={4}>उर्वरितखाली जागा (चौ. मीटर)</td>
             </tr>
             <tr style={{ height: '36px' }}>
-              <td className={td} colSpan={3}>{s(n.lambi)}</td>
-              <td className={td} colSpan={3}>{s(n.rundi)}</td>
-              <td className={td} colSpan={3}>{s(n.shetrafal_choras_foot)}</td>
-              <td className={td} colSpan={3}>{s(n.shetrafal_choras_meter)}</td>
-              <td className={td} colSpan={4}>{s(n.urvarit_khali_jaga_choras_foot)}</td>
-              <td className={td} colSpan={4}>{f2(Number(n.urvarit_khali_jaga_choras_foot || 0) * 0.092903)}</td>
+              <td className={td} colSpan={3}>{f(n.lambi)}</td>
+              <td className={td} colSpan={3}>{f(n.rundi)}</td>
+              <td className={td} colSpan={3}>{f(n.shetrafal_choras_foot)}</td>
+              <td className={td} colSpan={3}>{f(n.shetrafal_choras_meter)}</td>
+              <td className={td} colSpan={4}>{f(n.urvarit_khali_jaga_choras_foot)}</td>
+              <td className={td} colSpan={4}>{f(Number(n.urvarit_khali_jaga_choras_foot || 0) * 0.092903)}</td>
             </tr>
 
             {/* ===== Taxation header ===== */}
@@ -282,16 +277,16 @@ const Namuna8ImagesPrint = () => {
                 <td className={td} colSpan={2}>एकूण जागा</td>
                 <td className={td} colSpan={2}>&nbsp;</td>
                 <td className={td}>&nbsp;</td>
-                <td className={td} colSpan={2}>{s(it.shetrafal_purv_paschim_foot)}</td>
-                <td className={td} colSpan={2}>{s(it.shetrafal_uttar_dakshin_foot)}</td>
-                <td className={td} colSpan={2}>{s(it.ekun_shetrafal_choras_foot)}</td>
-                <td className={td} colSpan={2}>{f2(sqmOf(it))}</td>
-                <td className={td}>{s(it.jaminiche_varshik_mulya)}</td>
+                <td className={td} colSpan={2}>{f(it.shetrafal_purv_paschim_foot)}</td>
+                <td className={td} colSpan={2}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
+                <td className={td} colSpan={2}>{f(it.ekun_shetrafal_choras_foot)}</td>
+                <td className={td} colSpan={2}>{f(sqmOf(it))}</td>
+                <td className={td}>{f(it.jaminiche_varshik_mulya)}</td>
                 <td className={td}>&nbsp;</td>
                 <td className={td}>&nbsp;</td>
                 <td className={td} colSpan={2}>{f(landBhandvali(it))}</td>
                 <td className={td}>{s(it.aakarani_dar)}</td>
-                <td className={td} colSpan={3}>{f2(landBhandvali(it) / 1000)}</td>
+                <td className={td} colSpan={3}>{f(landBhandvali(it) / 1000)}</td>
                 <td className={td} colSpan={3}>{f(landBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
               </tr>
             ))}
@@ -303,16 +298,16 @@ const Namuna8ImagesPrint = () => {
                 <td className={td} colSpan={2}>{s(it.vapar_prakar)}</td>
                 <td className={td} colSpan={2}>{s(it.bandkam_majla_name)}</td>
                 <td className={td}>{s(it.vayoman)}</td>
-                <td className={td} colSpan={2}>{s(it.shetrafal_purv_paschim_foot)}</td>
-                <td className={td} colSpan={2}>{s(it.shetrafal_uttar_dakshin_foot)}</td>
-                <td className={td} colSpan={2}>{s(it.ekun_shetrafal_choras_foot)}</td>
-                <td className={td} colSpan={2}>{f2(sqmOf(it))}</td>
-                <td className={td}>{s(it.imaratiche_varshik_mulya)}</td>
+                <td className={td} colSpan={2}>{f(it.shetrafal_purv_paschim_foot)}</td>
+                <td className={td} colSpan={2}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
+                <td className={td} colSpan={2}>{f(it.ekun_shetrafal_choras_foot)}</td>
+                <td className={td} colSpan={2}>{f(sqmOf(it))}</td>
+                <td className={td}>{f(it.imaratiche_varshik_mulya)}</td>
                 <td className={td}>{s(it.ghasara_dar)}</td>
                 <td className={td}>{s(it.bharank)}</td>
                 <td className={td} colSpan={2}>{f(consBhandvali(it))}</td>
                 <td className={td}>{s(it.aakarani_dar)}</td>
-                <td className={td} colSpan={3}>{f2(consBhandvali(it) / 1000)}</td>
+                <td className={td} colSpan={3}>{f(consBhandvali(it) / 1000)}</td>
                 <td className={td} colSpan={3}>{f(consBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
               </tr>
             ))}
@@ -324,10 +319,10 @@ const Namuna8ImagesPrint = () => {
                 <td className={td} colSpan={2}>{s(it.vapar_prakar)}</td>
                 <td className={td} colSpan={2}>{s(it.manoryache_bhag_name)}</td>
                 <td className={td}>&nbsp;</td>
-                <td className={td} colSpan={2}>{s(it.shetrafal_purv_paschim_foot)}</td>
-                <td className={td} colSpan={2}>{s(it.shetrafal_uttar_dakshin_foot)}</td>
-                <td className={td} colSpan={2}>{s(it.ekun_shetrafal_choras_foot)}</td>
-                <td className={td} colSpan={2}>{f2(sqmOf(it))}</td>
+                <td className={td} colSpan={2}>{f(it.shetrafal_purv_paschim_foot)}</td>
+                <td className={td} colSpan={2}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
+                <td className={td} colSpan={2}>{f(it.ekun_shetrafal_choras_foot)}</td>
+                <td className={td} colSpan={2}>{f(sqmOf(it))}</td>
                 <td className={td}>&nbsp;</td>
                 <td className={td}>&nbsp;</td>
                 <td className={td}>&nbsp;</td>

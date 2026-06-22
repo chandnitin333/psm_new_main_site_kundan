@@ -35,7 +35,6 @@ const vasuliToFormPatch = (r: Record<string, any>) => ({
   paniPavtiDate: _d(r.pani_kar_pavti_v_date),
   noticeFeeMagil: _s(r.magil_notice_fee), noticeFeeChalu: _s(r.chalu_notice_fee), noticeFeeJama: _s(r.jama_keleli_rakkam_notice_fee), noticeFeeShillak: _s(r.sillak_noticie_fee),
   etarFeeMagil: _s(r.magil_etar_fee), etarFeeChalu: _s(r.chalu_etar_fee), etarFeeJama: _s(r.jama_keleli_rakkam_etar_fee), etarFeeShillak: _s(r.sillak_etar_fee),
-  billBookNumber: _s(r.bill_book_number), pavtiNumber: _s(r.pavti_number),
 });
 
 const VasuliForm = () => {
@@ -53,6 +52,16 @@ const VasuliForm = () => {
   const [payments, setPayments] = useState<any[]>([]);
   const [addingPayment, setAddingPayment] = useState(false);
   const localPayIdRef = useRef(-1);
+
+  // gram panchayat payment details (QR scanners + bank/UPI) — payment only via these
+  const [gpPay, setGpPay] = useState<any>(null);
+  const [scannerPreview, setScannerPreview] = useState<string | null>(null);
+  const gpImg = (p?: string) => (p ? `${config.api.baseUrl.replace(/\/api$/, '')}/${String(p).replace(/^\/+/, '')}` : '');
+  useEffect(() => {
+    (async () => {
+      try { const r = await vasuliService.getGpPaymentInfo(); if (r.success) setGpPay(r.data); } catch { /* ignore */ }
+    })();
+  }, []);
   const currentVasuliId = existingRecord?.id ? Number(existingRecord.id) : savedVasuliId;
 
   const loadPayments = async (vid: number) => {
@@ -75,8 +84,10 @@ const VasuliForm = () => {
     khatedharkacheNav: '',
     bhogwatdaracheNav: '',
     patta: '',
-    billBookNumber: '',
-    pavtiNumber: '',
+    gharBillBook: '',
+    gharPavti: '',
+    paniBillBook: '',
+    paniPavti: '',
     gruhkarMagil: '',
     gruhkarChalu: '',
     gruhkarJama: '',
@@ -127,6 +138,12 @@ const VasuliForm = () => {
     onlineTransactionId: '',
     paymentImage: null,
     paymentImagePreview: '',
+    gharAmount: '',
+    paniAmount: '',
+    gharImage: null,
+    gharImagePreview: '',
+    paniImage: null,
+    paniImagePreview: '',
   });
 
   // Auto-focus on first input when component loads
@@ -235,9 +252,6 @@ const VasuliForm = () => {
             etarFeeChalu: str(r.chalu_etar_fee),
             etarFeeJama: str(r.jama_keleli_rakkam_etar_fee),
             etarFeeShillak: str(r.sillak_etar_fee),
-
-            billBookNumber: str(r.bill_book_number),
-            pavtiNumber: str(r.pavti_number),
           }));
           // load all payment entries for this vasuli
           if ((r.payments as any[])?.length) setPayments(r.payments as any[]);
@@ -260,11 +274,11 @@ const VasuliForm = () => {
   // Formula: (मागील कर + चालू कर) - जमा केलेली रक्कम = शिल्लक रक्कम
   useEffect(() => {
     const calculateBalance = (magil: string, chalu: string, jama: string): string => {
-      const magilNum = parseFloat(magil) || 0;
-      const chaluNum = parseFloat(chalu) || 0;
-      const jamaNum = parseFloat(jama) || 0;
+      const magilNum = Math.round(parseFloat(magil) || 0);
+      const chaluNum = Math.round(parseFloat(chalu) || 0);
+      const jamaNum = Math.round(parseFloat(jama) || 0);
       const balance = (magilNum + chaluNum) - jamaNum;
-      return balance >= 0 ? balance.toFixed(2) : '0.00';
+      return balance >= 0 ? String(balance) : '0';
     };
 
     setFormData(prev => ({
@@ -332,26 +346,38 @@ const VasuliForm = () => {
     ...prev, paymentType: '', cashAmount: '', chequeNumber: '', chequeAmount: '',
     chequeDate: '', chequeBankName: '', ddNumber: '', ddAmount: '', ddDate: '', ddBankName: '',
     onlineProvider: '', onlineAmount: '', onlineTransactionId: '', paymentImage: null, paymentImagePreview: '',
+    gharBillBook: '', gharPavti: '', paniBillBook: '', paniPavti: '',
+    gharAmount: '', paniAmount: '', gharImage: null, gharImagePreview: '', paniImage: null, paniImagePreview: '',
   }));
 
   const buildPaymentObj = () => {
     const t = (v: string) => (v === '' ? null : v);
+    const isOnline = formData.paymentType === 'online';
     return {
       nodni_id: formData.nodniId ? Number(formData.nodniId) : null,
-      payment_type: t(formData.paymentType),
-      cash_amount: t(formData.cashAmount),
-      cheque_number: t(formData.chequeNumber),
-      cheque_amount: t(formData.chequeAmount),
-      cheque_date: t(formData.chequeDate),
-      cheque_bank_name: t(formData.chequeBankName),
-      dd_number: t(formData.ddNumber),
-      dd_amount: t(formData.ddAmount),
-      dd_date: t(formData.ddDate),
-      dd_bank_name: t(formData.ddBankName),
-      online_provider: t(formData.onlineProvider),
-      online_amount: t(formData.onlineAmount),
-      online_transaction_id: t(formData.onlineTransactionId),
+      payment_type: t(formData.paymentType),               // 'cash' | 'online'
+      ghar_amount: formData.gharAmount === '' ? null : Number(formData.gharAmount),
+      pani_amount: formData.paniAmount === '' ? null : Number(formData.paniAmount),
+      reference_no: isOnline ? t(formData.onlineTransactionId) : null,
+      ghar_bill_book_no: t(formData.gharBillBook),
+      ghar_pavti_no: t(formData.gharPavti),
+      pani_bill_book_no: t(formData.paniBillBook),
+      pani_pavti_no: t(formData.paniPavti),
     };
+  };
+
+  // proof screenshot handler for गृहकर / पाणी कर
+  const handleProofImage = (which: 'ghar' | 'pani') => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    const fileKey = which === 'ghar' ? 'gharImage' : 'paniImage';
+    const prevKey = which === 'ghar' ? 'gharImagePreview' : 'paniImagePreview';
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setFormData(prev => ({ ...prev, [fileKey]: file, [prevKey]: reader.result as string }));
+      reader.readAsDataURL(file);
+    } else {
+      setFormData(prev => ({ ...prev, [fileKey]: null, [prevKey]: '' }));
+    }
   };
 
   // Add ONE payment entry. If the vasuli isn't saved yet (first-time/new form),
@@ -361,6 +387,11 @@ const VasuliForm = () => {
       toast.error('पेमेंट प्रकार निवडा (Select payment type)');
       return;
     }
+    if ((formData.gharAmount === '' || Number(formData.gharAmount) <= 0) &&
+        (formData.paniAmount === '' || Number(formData.paniAmount) <= 0)) {
+      toast.error('गृहकर किंवा पाणी कर रक्कम टाका (Enter ghar or pani amount)');
+      return;
+    }
     const payment = buildPaymentObj();
 
     // not saved yet -> queue locally (will be flushed on vasuli save)
@@ -368,7 +399,9 @@ const VasuliForm = () => {
       setPayments(prev => [...prev, {
         id: localPayIdRef.current--,
         _local: true,
-        _file: formData.paymentImage || null,
+        _gharFile: formData.gharImage || null,
+        _paniFile: formData.paniImage || null,
+        amount: (Number(formData.gharAmount || 0) + Number(formData.paniAmount || 0)),
         ...payment,
       }]);
       clearPaymentBlock();
@@ -383,9 +416,13 @@ const VasuliForm = () => {
       const res = await vasuliService.addPayment(currentVasuliId, payment);
       if (res.success) {
         const pid = Number((res.data as any)?.id);
-        if (formData.paymentImage && pid) {
-          try { await vasuliService.uploadPaymentImage(pid, formData.paymentImage as File); }
-          catch { toast.error('पेमेंट इमेज अपलोड अयशस्वी (Payment image upload failed)'); }
+        if (pid) {
+          if (formData.gharImage) {
+            try { await vasuliService.uploadPaymentImage(pid, formData.gharImage as File, 'ghar'); } catch { /* ignore */ }
+          }
+          if (formData.paniImage) {
+            try { await vasuliService.uploadPaymentImage(pid, formData.paniImage as File, 'pani'); } catch { /* ignore */ }
+          }
         }
         await loadPayments(currentVasuliId);
         clearPaymentBlock();
@@ -408,20 +445,19 @@ const VasuliForm = () => {
       try {
         const res = await vasuliService.addPayment(vid, lp);
         const pid = Number((res.data as any)?.id);
-        if (lp._file && pid) {
-          try { await vasuliService.uploadPaymentImage(pid, lp._file as File); } catch { /* ignore */ }
+        if (pid) {
+          if (lp._gharFile) { try { await vasuliService.uploadPaymentImage(pid, lp._gharFile as File, 'ghar'); } catch { /* ignore */ } }
+          if (lp._paniFile) { try { await vasuliService.uploadPaymentImage(pid, lp._paniFile as File, 'pani'); } catch { /* ignore */ } }
         }
       } catch { /* ignore individual failure */ }
     }
     await loadPayments(vid);
   };
 
-  // amount actually paid in a payment row (depends on its type)
-  const paymentAmount = (p: any): number => Number(
-    p.cash_amount || p.cheque_amount || p.dd_amount || p.online_amount || 0
-  );
+  // amount actually paid in a payment row (= ghar + pani total)
+  const paymentAmount = (p: any): number => Number(p.amount || 0);
   const PAYMENT_TYPE_LABEL: Record<string, string> = {
-    cash: 'रोख', cheque: 'चेक', dd: 'डीडी', online: 'ऑनलाइन',
+    cash: 'रोख', online: 'ऑनलाइन', cheque: 'चेक', dd: 'डीडी',
   };
 
   // Auto-fill property + previous/current tax when anu_kramank + ward are entered
@@ -465,7 +501,8 @@ const VasuliForm = () => {
       const magil = data.magil as VasuliTaxHeads;
       const chalu = data.chalu as VasuliTaxHeads;
       // shillak (balance) = magil + chalu (no jama collected yet)
-      const s = (m: number, c: number) => (Number(m) + Number(c)).toString();
+      const s = (m: number, c: number) => String(Math.round(Number(m) || 0) + Math.round(Number(c) || 0));
+      const ri = (v: number) => String(Math.round(Number(v) || 0));
 
       setFormData(prev => ({
         ...prev,
@@ -479,23 +516,23 @@ const VasuliForm = () => {
         bhogwatdaracheNav: p.bhogwatdarache_nav ?? '',
         patta: p.patta ?? '',
         // magil (previous) column
-        gruhkarMagil: String(magil.gruhkar),
-        vizMagil: String(magil.viz),
-        aarogyaMagil: String(magil.aarogya),
-        safaeMagil: String(magil.safae),
-        samanyaPaniMagil: String(magil.samanya_pani),
-        visheshPaniMagil: String(magil.vishesh_pani),
-        noticeFeeMagil: String(magil.notice_fee),
-        etarFeeMagil: String(magil.etar_fee),
+        gruhkarMagil: ri(magil.gruhkar),
+        vizMagil: ri(magil.viz),
+        aarogyaMagil: ri(magil.aarogya),
+        safaeMagil: ri(magil.safae),
+        samanyaPaniMagil: ri(magil.samanya_pani),
+        visheshPaniMagil: ri(magil.vishesh_pani),
+        noticeFeeMagil: ri(magil.notice_fee),
+        etarFeeMagil: ri(magil.etar_fee),
         // chalu (current) column
-        gruhkarChalu: String(chalu.gruhkar),
-        vizChalu: String(chalu.viz),
-        aarogyaChalu: String(chalu.aarogya),
-        safaeChalu: String(chalu.safae),
-        samanyaPaniChalu: String(chalu.samanya_pani),
-        visheshPaniChalu: String(chalu.vishesh_pani),
-        noticeFeeChalu: String(chalu.notice_fee),
-        etarFeeChalu: String(chalu.etar_fee),
+        gruhkarChalu: ri(chalu.gruhkar),
+        vizChalu: ri(chalu.viz),
+        aarogyaChalu: ri(chalu.aarogya),
+        safaeChalu: ri(chalu.safae),
+        samanyaPaniChalu: ri(chalu.samanya_pani),
+        visheshPaniChalu: ri(chalu.vishesh_pani),
+        noticeFeeChalu: ri(chalu.notice_fee),
+        etarFeeChalu: ri(chalu.etar_fee),
         // shillak (balance) column
         gruhkarShillak: s(magil.gruhkar, chalu.gruhkar),
         vizShillak: s(magil.viz, chalu.viz),
@@ -527,7 +564,7 @@ const VasuliForm = () => {
       formData.visheshPaniMagil,
       formData.noticeFeeMagil,
       formData.etarFeeMagil
-    ].reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+    ].reduce((sum, val) => sum + Math.round(parseFloat(val) || 0), 0);
 
     const chaluTotal = [
       formData.gruhkarChalu,
@@ -538,7 +575,7 @@ const VasuliForm = () => {
       formData.visheshPaniChalu,
       formData.noticeFeeChalu,
       formData.etarFeeChalu
-    ].reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+    ].reduce((sum, val) => sum + Math.round(parseFloat(val) || 0), 0);
 
     const jamaTotal = [
       formData.gruhkarJama,
@@ -549,7 +586,7 @@ const VasuliForm = () => {
       formData.visheshPaniJama,
       formData.noticeFeeJama,
       formData.etarFeeJama
-    ].reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+    ].reduce((sum, val) => sum + Math.round(parseFloat(val) || 0), 0);
 
     const shillakTotal = [
       formData.gruhkarShillak,
@@ -560,13 +597,29 @@ const VasuliForm = () => {
       formData.visheshPaniShillak,
       formData.noticeFeeShillak,
       formData.etarFeeShillak
-    ].reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+    ].reduce((sum, val) => sum + Math.round(parseFloat(val) || 0), 0);
 
+    // गृहकर total = शिल्लक of ALL heads EXCEPT विशेष पाणी कर
+    const gruhkarTotal = [
+      formData.gruhkarShillak,
+      formData.vizShillak,
+      formData.aarogyaShillak,
+      formData.safaeShillak,
+      formData.samanyaPaniShillak,
+      formData.noticeFeeShillak,
+      formData.etarFeeShillak
+    ].reduce((sum, val) => sum + Math.round(parseFloat(val) || 0), 0);
+    // पाणी कर total = ONLY विशेष पाणी कर शिल्लक
+    const paniTotal = Math.round(parseFloat(formData.visheshPaniShillak) || 0);
+
+    // everything is integer -> rows always add up to the total (no ±1-2)
     return {
-      magilTotal: magilTotal.toFixed(2),
-      chaluTotal: chaluTotal.toFixed(2),
-      jamaTotal: jamaTotal.toFixed(2),
-      shillakTotal: shillakTotal.toFixed(2)
+      magilTotal: String(magilTotal),
+      chaluTotal: String(chaluTotal),
+      jamaTotal: String(jamaTotal),
+      shillakTotal: String(shillakTotal),
+      gruhkarTotal: String(gruhkarTotal),
+      paniTotal: String(paniTotal),
     };
   };
 
@@ -600,8 +653,6 @@ const VasuliForm = () => {
       khatedharkache_nav: formData.khatedharkacheNav,
       bhogwatdarache_nav: formData.bhogwatdaracheNav,
       patta_address: formData.patta,
-      bill_book_number: txt(formData.billBookNumber),
-      pavti_number: txt(formData.pavtiNumber),
 
       magil_gruhkar_v_bhumikar: num(formData.gruhkarMagil),
       chalu_gruhkar_v_bhumikar: num(formData.gruhkarChalu),
@@ -703,8 +754,10 @@ const VasuliForm = () => {
       khatedharkacheNav: '',
       bhogwatdaracheNav: '',
       patta: '',
-      billBookNumber: '',
-      pavtiNumber: '',
+      gharBillBook: '',
+      gharPavti: '',
+      paniBillBook: '',
+      paniPavti: '',
       gruhkarMagil: '',
       gruhkarChalu: '',
       gruhkarJama: '',
@@ -755,6 +808,12 @@ const VasuliForm = () => {
       onlineTransactionId: '',
       paymentImage: null,
       paymentImagePreview: '',
+      gharAmount: '',
+      paniAmount: '',
+      gharImage: null,
+      gharImagePreview: '',
+      paniImage: null,
+      paniImagePreview: '',
     });
   };
 
@@ -927,32 +986,6 @@ const VasuliForm = () => {
                   type="text"
                   name="patta"
                   value={formData.patta}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  बिल बुक नंबर
-                </label>
-                <input
-                  type="text"
-                  name="billBookNumber"
-                  value={formData.billBookNumber}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  पावती नंबर
-                </label>
-                <input
-                  type="text"
-                  name="pavtiNumber"
-                  value={formData.pavtiNumber}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
@@ -1456,10 +1489,46 @@ const VasuliForm = () => {
                 पेमेंट पद्धत (Payment Method)
               </h3>
 
+              {/* गृहकर / पाणी कर totals (शिल्लक) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div className="rounded-lg bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 px-4 py-2 flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">गृहकर एकूण (विशेष पाणी सोडून)</span>
+                  <span className="text-lg font-bold text-primary-700 dark:text-primary-300">₹{totals.gruhkarTotal}</span>
+                </div>
+                <div className="rounded-lg bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 px-4 py-2 flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">पाणी कर एकूण (विशेष पाणी)</span>
+                  <span className="text-lg font-bold text-cyan-700 dark:text-cyan-300">₹{totals.paniTotal}</span>
+                </div>
+              </div>
+
+              {/* Bill book + pavti numbers (गृहकर & पाणी कर) — above the payment method */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">गृहकर बिल बुक नं.</label>
+                  <input type="text" name="gharBillBook" value={formData.gharBillBook} onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">गृहकर पावती नं.</label>
+                  <input type="text" name="gharPavti" value={formData.gharPavti} onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">पाणी कर बिल बुक नं.</label>
+                  <input type="text" name="paniBillBook" value={formData.paniBillBook} onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">पाणी कर पावती नं.</label>
+                  <input type="text" name="paniPavti" value={formData.paniPavti} onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                    पेमेंट प्रकार (Payment Type)
+                    पेमेंट पद्धत (Payment Method)
                   </label>
                   <select
                     name="paymentType"
@@ -1469,30 +1538,120 @@ const VasuliForm = () => {
                   >
                     <option value="">-- निवडा --</option>
                     <option value="cash">रोख (Cash)</option>
-                    <option value="cheque">चेक (Cheque)</option>
-                    <option value="dd">डीडी (DD)</option>
                     <option value="online">ऑनलाइन (Online)</option>
                   </select>
                 </div>
-              </div>
-
-              {/* Cash Fields */}
-              {formData.paymentType === 'cash' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    गृहकर रक्कम (₹)
+                  </label>
+                  <input
+                    type="number" step="0.01" min="0"
+                    name="gharAmount"
+                    value={formData.gharAmount}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="गृहकर रक्कम"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    पाणी कर रक्कम (₹)
+                  </label>
+                  <input
+                    type="number" step="0.01" min="0"
+                    name="paniAmount"
+                    value={formData.paniAmount}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="पाणी कर रक्कम"
+                  />
+                </div>
+                {formData.paymentType === 'online' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      रोख रक्कम (Cash Amount)
+                      संदर्भ क्र. / UTR (Reference)
                     </label>
                     <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      name="cashAmount"
-                      value={formData.cashAmount}
+                      type="text" name="onlineTransactionId" value={formData.onlineTransactionId}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      placeholder="₹ रक्कम टाका"
+                      placeholder="UTR / Txn / UPI Ref"
                     />
+                  </div>
+                )}
+              </div>
+
+              {/* Online: provider-specific GP details + screenshot */}
+              {formData.paymentType === 'online' && (
+                <div className="space-y-4">
+                  {/* Pay guide — separate घरकर / पाणी कर boxes (₹2000 पर्यंत scanner, नंतर bank/UPI) — bill-pay design */}
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">QR स्कॅन करून किंवा बँक/UPI ने भरणा करा</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {([
+                        { key: 'ghar', label: 'घरकर / गृहकर', amt: Number(totals.gruhkarTotal) },
+                        { key: 'pani', label: 'पाणी कर (विशेष)', amt: Number(totals.paniTotal) },
+                      ] as const).map(({ key, label, amt }) => {
+                        const g = gpPay?.[key] || {};
+                        const useBank = amt > 2000;
+                        return (
+                          <div key={key} className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center bg-gray-50 dark:bg-gray-800/40">
+                            <h4 className="font-semibold text-gray-800 dark:text-gray-200">{label}</h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                              भरावयाची रक्कम: <b className="text-emerald-600 dark:text-emerald-400">₹{amt.toFixed(2)}</b>
+                            </p>
+                            {!useBank ? (
+                              g.scanner ? (
+                                <>
+                                  <img
+                                    src={gpImg(g.scanner)} alt={label}
+                                    onClick={() => setScannerPreview(gpImg(g.scanner))}
+                                    className="w-44 h-44 object-contain mx-auto border border-gray-300 dark:border-gray-600 rounded bg-white cursor-zoom-in hover:ring-2 hover:ring-primary-400 transition"
+                                  />
+                                  <p className="text-[11px] text-gray-500 mt-1">🔍 स्कॅन करण्यासाठी टॅप करा{g.upi ? ` • UPI: ${g.upi}` : ''}</p>
+                                </>
+                              ) : (
+                                <p className="text-sm text-gray-500 dark:text-gray-400 py-6">स्कॅनर उपलब्ध नाही.</p>
+                              )
+                            ) : (
+                              (g.bank_name || g.account_no || g.upi) ? (
+                                <div className="text-left text-sm text-gray-700 dark:text-gray-300 border border-dashed border-gray-300 dark:border-gray-600 rounded p-3 mt-1 bg-white dark:bg-gray-800">
+                                  <p className="text-[12px] text-amber-600 dark:text-amber-400 mb-2">₹2000 पेक्षा जास्त — बँक खात्यात / UPI ने भरा</p>
+                                  {g.bank_name && <p className="flex justify-between gap-2"><span className="text-gray-500">बँक</span><b>{g.bank_name}</b></p>}
+                                  {g.holder && <p className="flex justify-between gap-2"><span className="text-gray-500">खातेधारक</span><b>{g.holder}</b></p>}
+                                  {g.account_no && <p className="flex justify-between gap-2"><span className="text-gray-500">खाते क्र.</span><b>{g.account_no}</b></p>}
+                                  {g.ifsc && <p className="flex justify-between gap-2"><span className="text-gray-500">IFSC</span><b>{g.ifsc}</b></p>}
+                                  {g.upi && <p className="flex justify-between gap-2"><span className="text-gray-500">UPI</span><b>{g.upi}</b></p>}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-500 dark:text-gray-400 py-6">बँक तपशील उपलब्ध नाहीत.</p>
+                              )
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 2 proof screenshots — गृहकर + पाणी कर */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">गृहकर स्क्रीनशॉट / पावती</label>
+                      <input
+                        type="file" accept="image/*" onChange={handleProofImage('ghar')}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-primary-600 file:text-white hover:file:bg-primary-700"
+                      />
+                      {formData.gharImagePreview && <img src={formData.gharImagePreview} alt="गृहकर proof" className="mt-2 h-32 rounded-lg border border-gray-300 dark:border-gray-600 object-contain" />}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">पाणी कर स्क्रीनशॉट / पावती</label>
+                      <input
+                        type="file" accept="image/*" onChange={handleProofImage('pani')}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-primary-600 file:text-white hover:file:bg-primary-700"
+                      />
+                      {formData.paniImagePreview && <img src={formData.paniImagePreview} alt="पाणी कर proof" className="mt-2 h-32 rounded-lg border border-gray-300 dark:border-gray-600 object-contain" />}
+                    </div>
                   </div>
                 </div>
               )}
@@ -1641,8 +1800,8 @@ const VasuliForm = () => {
                 </div>
               )}
 
-              {/* Online Fields */}
-              {formData.paymentType === 'online' && (
+              {/* Online Fields (legacy — replaced by scanner/bank/upi above) */}
+              {false && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
@@ -1746,28 +1905,47 @@ const VasuliForm = () => {
                           <th className="px-3 py-2 text-left">प्रकार</th>
                           <th className="px-3 py-2 text-right">रक्कम (₹)</th>
                           <th className="px-3 py-2 text-left">तपशील</th>
+                          <th className="px-3 py-2 text-left">बिल/पावती</th>
                           <th className="px-3 py-2 text-left">दिनांक</th>
                           <th className="px-3 py-2 text-left">इमेज</th>
                         </tr>
                       </thead>
                       <tbody>
                         {payments.map((p, i) => {
-                          const ref = p.cheque_number || p.dd_number || p.online_transaction_id || p.online_provider || '-';
-                          const date = p.cheque_date || p.dd_date || '';
-                          const imgUrl = p.payment_image ? `${config.api.baseUrl.replace(/\/api$/, '')}/${p.payment_image}` : '';
+                          const ref = p.reference_no || '-';
+                          const typeLabel = PAYMENT_TYPE_LABEL[p.payment_type] || p.payment_type || '-';
+                          const karLabel = ({ gruhkar: 'गृहकर', pani: 'पाणी कर', both: 'दोन्ही' } as Record<string, string>)[p.kar_prakar] || '';
+                          const ghAmt = Number(p.ghar_amount || 0);
+                          const paAmt = Number(p.pani_amount || 0);
+                          const date = p.created_at || '';
+                          const base = `${config.api.baseUrl.replace(/\/api$/, '')}/`;
+                          const gharImg = p.ghar_image ? base + p.ghar_image : '';
+                          const paniImg = p.pani_image ? base + p.pani_image : '';
                           return (
                             <tr key={p.id} className="border-t border-gray-200 dark:border-gray-700">
                               <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{i + 1}</td>
-                              <td className="px-3 py-2 text-gray-900 dark:text-white">{PAYMENT_TYPE_LABEL[p.payment_type] || p.payment_type || '-'}</td>
-                              <td className="px-3 py-2 text-right font-semibold text-gray-900 dark:text-white">{paymentAmount(p).toFixed(2)}</td>
+                              <td className="px-3 py-2 text-gray-900 dark:text-white">
+                                {typeLabel}
+                                {karLabel && <div className="text-[10px] text-gray-500">{karLabel}</div>}
+                              </td>
+                              <td className="px-3 py-2 text-right font-semibold text-gray-900 dark:text-white">
+                                {paymentAmount(p).toFixed(2)}
+                                {(ghAmt > 0 || paAmt > 0) && (
+                                  <div className="text-[10px] font-normal text-gray-500">गृह {ghAmt.toFixed(0)} / पाणी {paAmt.toFixed(0)}</div>
+                                )}
+                              </td>
                               <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{ref}</td>
+                              <td className="px-3 py-2 text-gray-700 dark:text-gray-300 text-[11px] whitespace-nowrap">
+                                {(p.ghar_bill_book_no || p.ghar_pavti_no) && <div>गृह: {p.ghar_bill_book_no || '-'} / {p.ghar_pavti_no || '-'}</div>}
+                                {(p.pani_bill_book_no || p.pani_pavti_no) && <div>पाणी: {p.pani_bill_book_no || '-'} / {p.pani_pavti_no || '-'}</div>}
+                                {!(p.ghar_bill_book_no || p.ghar_pavti_no || p.pani_bill_book_no || p.pani_pavti_no) && '-'}
+                              </td>
                               <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{date ? String(date).slice(0, 10) : '-'}</td>
-                              <td className="px-3 py-2">
-                                {imgUrl ? (
-                                  <a href={imgUrl} target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline">पहा</a>
-                                ) : (p._local && p._file) ? (
-                                  <span className="text-gray-500 dark:text-gray-400">निवडली</span>
-                                ) : '-'}
+                              <td className="px-3 py-2 whitespace-nowrap">
+                                {gharImg && <a href={gharImg} target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline">गृह</a>}
+                                {gharImg && paniImg && ' / '}
+                                {paniImg && <a href={paniImg} target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline">पाणी</a>}
+                                {!gharImg && !paniImg && ((p._local && (p._gharFile || p._paniFile)) ? <span className="text-gray-500 dark:text-gray-400">निवडली</span> : '-')}
                               </td>
                             </tr>
                           );
@@ -1798,6 +1976,27 @@ const VasuliForm = () => {
           </form>
         </div>
       </div>
+
+      {/* Scanner enlarged preview (tap QR to scan) */}
+      {scannerPreview && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setScannerPreview(null)}
+        >
+          <div className="relative bg-white rounded-xl p-3" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setScannerPreview(null)}
+              className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-red-600 text-white text-lg leading-none shadow-lg"
+              aria-label="बंद करा"
+            >
+              ✕
+            </button>
+            <img src={scannerPreview} alt="QR scanner" className="w-[80vw] max-w-sm h-auto object-contain" />
+            <p className="text-center text-sm text-gray-600 mt-2">QR स्कॅन करा</p>
+          </div>
+        </div>
+      )}
     </>
   );
 };

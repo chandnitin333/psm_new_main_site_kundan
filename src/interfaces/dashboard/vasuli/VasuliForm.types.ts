@@ -11,8 +11,11 @@ export interface VasuliFormData {
   khatedharkacheNav: string;
   bhogwatdaracheNav: string;
   patta: string;
-  billBookNumber: string;
-  pavtiNumber: string;
+  // bill book / pavti numbers (per payment) — गृहकर & पाणी कर
+  gharBillBook: string;
+  gharPavti: string;
+  paniBillBook: string;
+  paniPavti: string;
 
   // Tax rows
   gruhkarMagil: string;
@@ -75,4 +78,11 @@ export interface VasuliFormData {
   onlineTransactionId: string;
   paymentImage: File | null;
   paymentImagePreview: string;
+  // separate गृहकर / पाणी कर amounts + proof screenshots (per payment)
+  gharAmount: string;
+  paniAmount: string;
+  gharImage: File | null;
+  gharImagePreview: string;
+  paniImage: File | null;
+  paniImagePreview: string;
 }

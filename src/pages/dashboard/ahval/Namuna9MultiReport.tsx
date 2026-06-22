@@ -62,7 +62,8 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
     const m = numOr0(magil);
     const d = numOr0(dand);
     const su = numOr0(sut);
-    return m + (m * d) / 100 + (chalu - (chalu * su) / 100);
+    // round each component (same as 129 बिल) so totals match across all reports
+    return Math.round(m) + Math.round((m * d) / 100) + Math.round(chalu) - Math.round((chalu * su) / 100);
   };
   const ekGruhkar = ekun(M.gruhkar, gruhkar, D.gruhkar[0], D.gruhkar[1]);
   const ekViz = ekun(M.viz, viz, D.viz[0], D.viz[1]);
@@ -79,6 +80,9 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
   const rr = (v: number) => Math.round(v);
   const ekSubtotal4 = rr(ekGruhkar) + rr(ekViz) + rr(ekAarogya) + rr(ekSafai);
   const ekTotalAll = ekSubtotal4 + rr(ekSamanya) + rr(ekVishesh) + rr(ekEtar) + rr(ekNotice);
+  // इत्तर फी / नोटीस फी rows: only show when they have a value (> 0)
+  const showEtar = numOr0(M.etar) > 0 || numOr0(etar) > 0 || rr(ekEtar) > 0;
+  const showNotice = numOr0(M.notice) > 0 || numOr0(notice) > 0 || rr(ekNotice) > 0;
 
   const vasuliBlanks = (key: string) => Array.from({ length: 6 }).map((_, k) => <td key={`${key}-${k}`} className={td} />);
 
@@ -88,14 +92,14 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
         <p className="font-bold text-lg">नमुना ९</p>
         <p className="text-sm">सन {cy} - {cy + 1} या वर्षाची आकारणी केलेल्या कराची मागणी नोंदवही</p>
       </div>
-      <div className="text-sm mt-1">वार्ड नं :- {s(n.ward_kramnak)}</div>
       <div className="flex justify-between text-sm mt-1 mb-0.5">
+        <span>वार्ड नं :- {s(n.ward_kramnak)}</span>
         <span>जिल्हा :- {loc.district}</span>
         <span>तालुका :- {loc.taluka}</span>
         <span className="relative">
           {qrUrl && (
             <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 2, zIndex: 10 }}>
-              <QRCodeSVG value={qrUrl} size={56} level="M" marginSize={0} />
+              <QRCodeSVG value={qrUrl} size={40} level="M" marginSize={0} />
             </span>
           )}
           ग्रामपंचायत :- {loc.gramPanchayat}
@@ -188,18 +192,22 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
             <td className={td}>विशेष पाणी कर</td>
             {vasuliBlanks('r9')}
           </tr>
+          {showEtar && (
           <tr>
             <td className={td}>इत्तर फी</td>
             <td className={td}>{f(M.etar)}</td><td className={td}>{f(etar)}</td><td className={td}>{f(D.etar[0])}</td><td className={td}>{f(D.etar[1])}</td><td className={td}>{f(ekEtar)}</td>
             <td className={td}>इत्तर फी</td>
             {vasuliBlanks('r10')}
           </tr>
+          )}
+          {showNotice && (
           <tr>
             <td className={td}>नोटीस फी</td>
             <td className={td}>{f(M.notice)}</td><td className={td}>{f(notice)}</td><td className={td}>{f(D.notice[0])}</td><td className={td}>{f(D.notice[1])}</td><td className={td}>{f(ekNotice)}</td>
             <td className={td}>नोटीस फी</td>
             {vasuliBlanks('r11')}
           </tr>
+          )}
           <tr className="font-bold">
             <td className={td}>एकूण मागणी</td>
             <td className={td}>{f(mTotalAll)}</td><td className={td}>{f(totalAll)}</td><td className={td} /><td className={td} /><td className={td}>{f(ekTotalAll)}</td>
@@ -264,13 +272,17 @@ const Namuna9MultiReport = () => {
         html, body { background: #fff !important; }
         .n9m-report { min-height: 100vh; background: #fff; }
         @media print {
-          @page { size: A4 landscape; margin: 22mm 4mm 8mm 14mm; }
+          @page { size: A4 landscape; margin: 15mm 4mm 8mm 14mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
           .n9m-report { zoom: 0.85; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .n9m-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
           .n9m-zoom { zoom: 1 !important; }
-          .n9m-page { page-break-after: always; }
+          /* two reports per page: keep each report intact, break only after every 2nd */
+          .n9m-page { page-break-inside: avoid; }
+          /* top report of each pair: gap + dashed cut guide line for clean cutting */
+          .n9m-page:nth-child(odd) { padding-bottom: 9mm; border-bottom: 1px dashed #999; margin-bottom: 9mm; }
+          .n9m-page:nth-child(2n) { page-break-after: always; }
           .n9m-page:last-child { page-break-after: auto; }
         }`}</style>
 

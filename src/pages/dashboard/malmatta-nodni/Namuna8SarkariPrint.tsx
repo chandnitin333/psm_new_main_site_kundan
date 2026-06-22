@@ -13,7 +13,7 @@ const s = (v: unknown) => (v === null || v === undefined ? '' : String(v));
 const f = (v: unknown) => {
   if (v === null || v === undefined || v === '') return '';
   const num = Number(v);
-  return isNaN(num) ? String(v) : num.toFixed(2);
+  return isNaN(num) ? String(v) : Math.round(num).toString();
 };
 
 const Namuna8SarkariPrint = () => {
@@ -206,8 +206,8 @@ const Namuna8SarkariPrint = () => {
               )}
               <td className={td}>{s(it.malmatteche_varnan_name)}</td>
               <td className={td} />
-              <td className={td}>{s(it.ekun_shetrafal_choras_foot)}<br />{f(sqmOf(it))}</td>
-              <td className={td}>{s(it.jaminiche_varshik_mulya)}</td>
+              <td className={td}>{f(it.ekun_shetrafal_choras_foot)}<br />{f(sqmOf(it))}</td>
+              <td className={td}>{f(it.jaminiche_varshik_mulya)}</td>
               <td className={td} />
               <td className={td} />
             </tr>
@@ -217,9 +217,9 @@ const Namuna8SarkariPrint = () => {
             <tr key={`c1-${i}`}>
               <td className={td}>{s(it.malmatteche_varnan_name)}</td>
               <td className={td}>{s(it.vayoman)}</td>
-              <td className={td}>{s(it.ekun_shetrafal_choras_foot)}<br />{f(sqmOf(it))}</td>
+              <td className={td}>{f(it.ekun_shetrafal_choras_foot)}<br />{f(sqmOf(it))}</td>
               <td className={td} />
-              <td className={td}>{s(it.imaratiche_varshik_mulya)}</td>
+              <td className={td}>{f(it.imaratiche_varshik_mulya)}</td>
               <td className={td}>{s(it.bandkam_majla_name)}</td>
             </tr>
           ))}
@@ -228,7 +228,7 @@ const Namuna8SarkariPrint = () => {
             <tr key={`m1-${i}`}>
               <td className={td}>{s(it.malmatteche_varnan_name)}</td>
               <td className={td} />
-              <td className={td}>{s(it.ekun_shetrafal_choras_foot)}<br />{f(sqmOf(it))}</td>
+              <td className={td}>{f(it.ekun_shetrafal_choras_foot)}<br />{f(sqmOf(it))}</td>
               <td className={td} />
               <td className={td} />
               <td className={td}>{s(it.manoryache_bhag_name)}</td>

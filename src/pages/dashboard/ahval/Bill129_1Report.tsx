@@ -18,16 +18,17 @@ type TaxRow = { label: string; thak: number; chalu: number; vadh: number; sut: n
 const computeRows = (n: Row): { rows: TaxRow[]; tot: TaxRow } => {
   const sj = (n.sillak_joda as Row) || {};
   const sp = (n.sillak_joda_prev as Row) || {};
+  // round every value at source -> rows add up exactly to the total (no ±1-2 drift)
   const head = (baseKey: string, addKey: string, disKey: string, label: string): TaxRow => {
-    const thak = num(sp[baseKey]);
-    const chalu = num(sj[baseKey]);
-    const vadh = (thak * num(sp[addKey])) / 100;
-    const sut = (chalu * num(sj[disKey])) / 100;
+    const thak = Math.round(num(sp[baseKey]));
+    const chalu = Math.round(num(sj[baseKey]));
+    const vadh = Math.round((num(sp[baseKey]) * num(sp[addKey])) / 100);
+    const sut = Math.round((num(sj[baseKey]) * num(sj[disKey])) / 100);
     return { label, thak, chalu, vadh, sut, ekun: thak + vadh + chalu - sut };
   };
   const feeRow = (key: string, label: string): TaxRow => {
-    const thak = num(sp[key]);
-    const chalu = num(sj[key]);
+    const thak = Math.round(num(sp[key]));
+    const chalu = Math.round(num(sj[key]));
     return { label, thak, chalu, vadh: 0, sut: 0, ekun: thak + chalu };
   };
   const rows: TaxRow[] = [
@@ -48,6 +49,7 @@ const computeRows = (n: Row): { rows: TaxRow[]; tot: TaxRow } => {
 };
 
 const td = 'border border-black px-1 py-0.5 text-[11px] align-middle text-center';
+const PMODE: Record<string, string> = { cash: 'रोख', cheque: 'चेक', dd: 'डीडी', online: 'ऑनलाइन' };
 
 const Receipt = ({
   n, loc, cy, dates, bharna, copy, qrUrl,
@@ -57,6 +59,10 @@ const Receipt = ({
   qrUrl?: string;
 }) => {
   const { rows, tot } = computeRows(n);
+  const pay = n.payment as {
+    paid_total?: number; jama?: number; sillak?: number; pavti_number?: string;
+    payments?: { type?: string; amount?: number; date?: string; ref?: string }[];
+  } | null;
   return (
     <div className={copy === 'left' ? 'px-2 border-r border-dashed border-black' : 'px-2'}>
       <div className="text-center">
@@ -141,6 +147,26 @@ const Receipt = ({
             <td className={td}>{r0(tot.sut)}</td>
             <td className={td} colSpan={3}>{r0(tot.ekun)}</td>
           </tr>
+          {pay && (
+            <>
+              <tr className="font-bold">
+                <td className={td} colSpan={3}>एकूण भरणा (जमा)</td>
+                <td className={td} colSpan={4}>{r0((pay.payments?.length ?? 0) > 0 ? num(pay.paid_total) : num(pay.jama ?? 0))}</td>
+                <td className={td} colSpan={2}>शिल्लक</td>
+                <td className={td} colSpan={3}>{r0(num(pay.sillak ?? 0))}</td>
+              </tr>
+              {(pay.payments?.length ?? 0) > 0 && (
+                <tr>
+                  <td className="border border-black px-1 py-0.5 text-[10px] align-top text-left" colSpan={12}>
+                    भरणा तपशील: {pay.payments!.map((p) =>
+                      `${p.date || ''} ₹${r0(num(p.amount))} (${PMODE[p.type || ''] || p.type || ''}${p.ref ? ` ${p.ref}` : ''})`
+                    ).join('   |   ')}
+                    {pay.pavti_number ? `   •   पावती क्र.: ${pay.pavti_number}` : ''}
+                  </td>
+                </tr>
+              )}
+            </>
+          )}
           <tr>
             <td className="px-1 py-0.5" colSpan={2} />
             <td className={td} colSpan={8}>त्यांच्याकडून पुढील कराची रक्कम वसुली योग्य आहे</td>

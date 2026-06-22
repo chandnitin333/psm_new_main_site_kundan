@@ -45,13 +45,13 @@ const TaxRow = ({
   const amt = parseFloat(amountValue) || 0;
   const sutP = parseFloat(sutValue) || 0;
   const vadP = parseFloat(vadValue) || 0;
-  const discAmt = (sutP / 100) * amt;
-  const addAmt = (vadP / 100) * amt;
+  const discAmt = Math.round((sutP / 100) * amt);
+  const addAmt = Math.round((vadP / 100) * amt);
   let tip: string;
   if (sutP > 0) {
-    tip = `रक्कम ₹${amt} − ${sutP}% सूट (₹${discAmt.toFixed(2)}) = ₹${ekunValue || '0'}`;
+    tip = `रक्कम ₹${amt} − ${sutP}% सूट (₹${discAmt}) = ₹${ekunValue || '0'}`;
   } else if (vadP > 0) {
-    tip = `रक्कम ₹${amt} + ${vadP}% वाढ (₹${addAmt.toFixed(2)}) = ₹${ekunValue || '0'}`;
+    tip = `रक्कम ₹${amt} + ${vadP}% वाढ (₹${addAmt}) = ₹${ekunValue || '0'}`;
   } else {
     tip = `सूट / वाढ लागू नाही — एकूण = रक्कम ₹${amt}`;
   }
@@ -116,24 +116,25 @@ const recalculate = (data: MagilKarJodaData): MagilKarJodaData => {
 
   // Each row: sut/vad = percentage entered by user
   // Discount = (sut / 100) * amount, Addition = (vad / 100) * amount
-  // Total = amount - discount + addition
+  // Total = amount - discount + addition.  Round every component to integer so the
+  // एकूण matches the 129 / Namuna reports exactly (no ±1-2 drift).
   for (const [amount, sut, vad, ekun] of ROW_GROUPS) {
     const a = parseFloat(d[amount]) || 0;
     const sutPercent = parseFloat(d[sut]) || 0;
     const vadPercent = parseFloat(d[vad]) || 0;
-    const discountAmt = (sutPercent / 100) * a;
-    const additionAmt = (vadPercent / 100) * a;
-    d[ekun] = (a - discountAmt + additionAmt).toFixed(2);
+    const discountAmt = Math.round((sutPercent / 100) * a);
+    const additionAmt = Math.round((vadPercent / 100) * a);
+    d[ekun] = String(Math.round(a) - discountAmt + additionAmt);
   }
 
-  // Grand total = sum of all row totals + iterFees + noticeFees
+  // Grand total = sum of all (already-rounded) row totals + iterFees + noticeFees
   let grand = 0;
   for (const ekunField of EKUN_FIELDS) {
     grand += parseFloat(d[ekunField]) || 0;
   }
-  grand += parseFloat(updated.iterFees) || 0;
-  grand += parseFloat(updated.noticeFees) || 0;
-  updated.grandEkun = grand.toFixed(2);
+  grand += Math.round(parseFloat(updated.iterFees) || 0);
+  grand += Math.round(parseFloat(updated.noticeFees) || 0);
+  updated.grandEkun = String(Math.round(grand));
 
   return updated;
 };
