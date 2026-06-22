@@ -69,6 +69,18 @@ export const can = (moduleKey: string, action: ActionKey): boolean => {
 // Module key for a route path (handles trailing segments under /ahval/*)
 export const moduleForPath = (path: string): string | undefined => PATH_TO_MODULE[path];
 
+// Where to land after login: dashboard if allowed, otherwise the first
+// permitted page (in PATH_TO_MODULE order). Full-access users always get dashboard.
+export const getLandingPath = (): string => {
+  if (isFullAccess() || canModule('dashboard')) return '/dashboard';
+  for (const [path, moduleKey] of Object.entries(PATH_TO_MODULE)) {
+    if (path === '/dashboard') continue;
+    if (canModule(moduleKey)) return path;
+  }
+  // No matching permitted page found — fall back to dashboard.
+  return '/dashboard';
+};
+
 interface MenuLike {
   path?: string;
   subMenus?: { path: string }[];

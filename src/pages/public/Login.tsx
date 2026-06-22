@@ -6,6 +6,7 @@ import { useLoading } from '../../contexts/LoadingContext';
 import { authService, type ApiError } from '../../services';
 import { api } from '../../services/api';
 import { getCmsIcon } from '../../utils/cmsIcons';
+import { getLandingPath } from '../../utils/permissions';
 
 // fallback icons cycled when an item has no icon chosen in admin
 const FEATURE_ICONS = [Landmark, FileText, ShieldCheck];
@@ -122,7 +123,7 @@ const Login = () => {
 
           toast.success(response.message || 'Login successful! Redirecting to dashboard...');
           setTimeout(() => {
-            navigate('/dashboard');
+            navigate(getLandingPath());
           }, 1000);
         }
       } else {
@@ -211,7 +212,7 @@ const Login = () => {
 
         // Navigate to dashboard after a short delay
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate(getLandingPath());
         }, 1000);
       } else {
         toast.error(response.message || 'OTP verification failed. Please try again.');

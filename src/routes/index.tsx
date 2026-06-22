@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { canModule, getLandingPath } from '../utils/permissions';
 import PublicLayout from '../components/layout/PublicLayout';
 import DashboardLayout from '../pages/dashboard/DashboardLayout';
 
@@ -77,10 +78,17 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 };
 
 // Guest-only routes (home + auth pages). A logged-in user who lands here — via
-// the root URL or by typing the URL directly — is sent straight to the dashboard.
+// the root URL or by typing the URL directly — is sent to their landing page
+// (dashboard if permitted, otherwise the first page they have access to).
 const GuestRoute = ({ children }: ProtectedRouteProps) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <>{children}</>;
+  return isAuthenticated ? <Navigate to={getLandingPath()} replace /> : <>{children}</>;
+};
+
+// Dashboard home: only for users with dashboard permission; others are sent to
+// their first permitted page (prevents opening /dashboard directly without access).
+const DashboardHome = () => {
+  return canModule('dashboard') ? <Dashboard /> : <Navigate to={getLandingPath()} replace />;
 };
 
 export const createRouter = (handleLogout: () => void) =>
@@ -405,7 +413,7 @@ export const createRouter = (handleLogout: () => void) =>
         </ProtectedRoute>
       ),
       children: [
-        { index: true, element: <Dashboard /> },
+        { index: true, element: <DashboardHome /> },
         { path: 'chalu-khatedar', element: <ChaluKhatedar /> },
         { path: 'adhikrut', element: <ChaluKhatedar title="अधिकृत" prakar="adhikrut" /> },
         { path: 'indira-awas', element: <ChaluKhatedar title="इंदिरा आवास" prakar="gharkul" /> },
