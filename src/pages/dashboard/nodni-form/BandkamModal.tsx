@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Modal from '../../../components/common/Modal';
-import { Select2, type Select2Option } from '../../../components/common';
+import { Select2, MarathiInput, type Select2Option } from '../../../components/common';
 import type { BandkamData, BandkamModalProps } from '../../../interfaces/dashboard/nodni-form/BandkamModal.types';
 import { authService, commonDdlService } from '../../../services';
 
@@ -323,8 +323,7 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               वापर प्रकार (Usage Type)
             </label>
-            <input
-              type="text"
+            <MarathiInput
               name="vaparPrakar"
               value={formData.vaparPrakar}
               onChange={handleInputChange}

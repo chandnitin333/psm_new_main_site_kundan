@@ -13,6 +13,7 @@ import { useLoading } from '../../../contexts/LoadingContext';
 import { trackAction } from '../../../utils/tracker';
 import type { NodniFormData } from '../../../interfaces/dashboard/nodni-form/NodniForm.types';
 import { authService, nodniService } from '../../../services';
+import { MarathiInput } from '../../../components/common';
 
 interface TaxItem {
   tax_id: number;
@@ -1148,8 +1149,7 @@ const NodniForm = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   घर मालकाचे नाव
                 </label>
-                <input
-                  type="text"
+                <MarathiInput
                   name="gharMalkacheNav"
                   value={formData.gharMalkacheNav}
                   onChange={handleInputChange}
@@ -1162,8 +1162,7 @@ const NodniForm = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   पत्नी/मुलाचे नाव
                 </label>
-                <input
-                  type="text"
+                <MarathiInput
                   name="patniMulacheNav"
                   value={formData.patniMulacheNav}
                   onChange={handleInputChange}
@@ -1176,8 +1175,7 @@ const NodniForm = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   भोगवटदाराचे नाव
                 </label>
-                <input
-                  type="text"
+                <MarathiInput
                   name="bhogwatdharNav"
                   value={formData.bhogwatdharNav}
                   onChange={handleInputChange}
@@ -1198,8 +1196,7 @@ const NodniForm = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   पत्ता: नगर/लेआउट/सोसायटी (Address)
                 </label>
-                <input
-                  type="text"
+                <MarathiInput
                   name="pattaNagarLayout"
                   value={formData.pattaNagarLayout}
                   onChange={handleInputChange}
@@ -1212,8 +1209,7 @@ const NodniForm = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   कायमचा पत्ता (Permanent Address)
                 </label>
-                <input
-                  type="text"
+                <MarathiInput
                   name="kaymchaPatta"
                   value={formData.kaymchaPatta}
                   onChange={handleInputChange}
@@ -1234,8 +1230,7 @@ const NodniForm = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   पूर्वेस (East)
                 </label>
-                <input
-                  type="text"
+                <MarathiInput
                   name="purvesh"
                   value={formData.purvesh}
                   onChange={handleInputChange}
@@ -1248,8 +1243,7 @@ const NodniForm = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   पश्चिमेस (West)
                 </label>
-                <input
-                  type="text"
+                <MarathiInput
                   name="paschimes"
                   value={formData.paschimes}
                   onChange={handleInputChange}
@@ -1262,8 +1256,7 @@ const NodniForm = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   उत्तरेस (North)
                 </label>
-                <input
-                  type="text"
+                <MarathiInput
                   name="uttares"
                   value={formData.uttares}
                   onChange={handleInputChange}
@@ -1276,8 +1269,7 @@ const NodniForm = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   दक्षिणेस (South)
                 </label>
-                <input
-                  type="text"
+                <MarathiInput
                   name="dakshines"
                   value={formData.dakshines}
                   onChange={handleInputChange}
@@ -1929,7 +1921,8 @@ const NodniForm = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 मागाहून घट किंवा बदल झालेल्या बाबतीत आदेशाचा उल्लेख धरून शेरे
               </label>
-              <textarea
+              <MarathiInput
+                multiline
                 value={taxPayable.magahunGhatBadal}
                 onChange={(e) => handleTaxPayableChange('magahunGhatBadal', e.target.value)}
                 rows={3}

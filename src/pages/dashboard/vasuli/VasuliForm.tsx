@@ -5,6 +5,7 @@ import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
 import YearPicker from '../../../components/common/YearPicker';
 import DatePicker from '../../../components/common/DatePicker';
+import { MarathiInput } from '../../../components/common';
 import type { VasuliFormData } from '../../../interfaces/dashboard/vasuli/VasuliForm.types';
 import { vasuliService, type VasuliAutofillResponse, type VasuliTaxHeads } from '../../../services/vasuliService';
 import { trackAction } from '../../../utils/tracker';
@@ -956,8 +957,7 @@ const VasuliForm = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   खातेधारकाचे नाव
                 </label>
-                <input
-                  type="text"
+                <MarathiInput
                   name="khatedharkacheNav"
                   value={formData.khatedharkacheNav}
                   onChange={handleInputChange}
@@ -969,8 +969,7 @@ const VasuliForm = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   भोगवटदाराचे नाव
                 </label>
-                <input
-                  type="text"
+                <MarathiInput
                   name="bhogwatdaracheNav"
                   value={formData.bhogwatdaracheNav}
                   onChange={handleInputChange}
@@ -982,8 +981,7 @@ const VasuliForm = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   पत्ता
                 </label>
-                <input
-                  type="text"
+                <MarathiInput
                   name="patta"
                   value={formData.patta}
                   onChange={handleInputChange}
@@ -1702,8 +1700,7 @@ const VasuliForm = () => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                       बँकेचे नाव (Bank Name)
                     </label>
-                    <input
-                      type="text"
+                    <MarathiInput
                       name="chequeBankName"
                       value={formData.chequeBankName}
                       onChange={handleInputChange}
@@ -1774,8 +1771,7 @@ const VasuliForm = () => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                       बँकेचे नाव (Bank Name)
                     </label>
-                    <input
-                      type="text"
+                    <MarathiInput
                       name="ddBankName"
                       value={formData.ddBankName}
                       onChange={handleInputChange}

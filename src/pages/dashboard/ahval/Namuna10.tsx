@@ -1,4 +1,11 @@
+import { useState } from 'react';
+import { MarathiInput } from '../../../components/common';
+
 const Namuna10 = () => {
+  const [form, setForm] = useState({ applicantName: '', fatherName: '', address: '', remarks: '' });
+  const onField = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+
   return (
     <div className="space-y-6">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
@@ -12,10 +19,11 @@ const Namuna10 = () => {
               <label htmlFor="applicantName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Applicant Name
               </label>
-              <input
-                type="text"
+              <MarathiInput
                 id="applicantName"
                 name="applicantName"
+                value={form.applicantName}
+                onChange={onField}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 placeholder="Enter applicant name"
               />
@@ -25,10 +33,11 @@ const Namuna10 = () => {
               <label htmlFor="fatherName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Father's Name
               </label>
-              <input
-                type="text"
+              <MarathiInput
                 id="fatherName"
                 name="fatherName"
+                value={form.fatherName}
+                onChange={onField}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 placeholder="Enter father's name"
               />
@@ -38,10 +47,11 @@ const Namuna10 = () => {
               <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Address
               </label>
-              <input
-                type="text"
+              <MarathiInput
                 id="address"
                 name="address"
+                value={form.address}
+                onChange={onField}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 placeholder="Enter address"
               />
@@ -90,10 +100,13 @@ const Namuna10 = () => {
             <label htmlFor="remarks" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Remarks
             </label>
-            <textarea
+            <MarathiInput
+              multiline
               id="remarks"
               name="remarks"
               rows={4}
+              value={form.remarks}
+              onChange={onField}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               placeholder="Enter remarks"
             />

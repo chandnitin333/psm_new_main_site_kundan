@@ -10,6 +10,7 @@ import { can } from '../../../utils/permissions';
 import { trackAction } from '../../../utils/tracker';
 import { nodniService } from '../../../services';
 import { config } from '../../../config';
+import { MarathiInput } from '../../../components/common';
 import type { MalmattaRecord } from '../../../interfaces/dashboard/malmatta-nodni/MalmattaNodni.types';
 
 const MalmattaNodni = () => {
@@ -376,8 +377,7 @@ const MalmattaNodni = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   खातेदाराचे नाव
                 </label>
-                <input
-                  type="text"
+                <MarathiInput
                   name="ghar_malkache_nav"
                   value={filters.ghar_malkache_nav}
                   onChange={handleFilterChange}
@@ -390,8 +390,7 @@ const MalmattaNodni = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   भोगवटदाराचे नाव
                 </label>
-                <input
-                  type="text"
+                <MarathiInput
                   name="bhogavat_darache_nav"
                   value={filters.bhogavat_darache_nav}
                   onChange={handleFilterChange}
@@ -404,8 +403,7 @@ const MalmattaNodni = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   पत्ता
                 </label>
-                <input
-                  type="text"
+                <MarathiInput
                   name="patta_nagar_layout_society"
                   value={filters.patta_nagar_layout_society}
                   onChange={handleFilterChange}

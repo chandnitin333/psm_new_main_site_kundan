@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit2, Trash2, Eye } from 'lucide-react';
 import YearPicker from '../../../components/common/YearPicker';
+import { MarathiInput } from '../../../components/common';
 import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '../../../utils/deleteConfirmation';
@@ -358,8 +359,7 @@ const Vasuli = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 खातेदाराचे नाव
               </label>
-              <input
-                type="text"
+              <MarathiInput
                 name="khatedaracheNav"
                 value={formData.khatedaracheNav}
                 onChange={handleInputChange}
@@ -372,8 +372,7 @@ const Vasuli = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 भोगवटदाराचे नाव
               </label>
-              <input
-                type="text"
+              <MarathiInput
                 name="bhogwatdaracheNav"
                 value={formData.bhogwatdaracheNav}
                 onChange={handleInputChange}

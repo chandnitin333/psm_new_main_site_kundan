@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import YearPicker from '../../../components/common/YearPicker';
 import DatePicker from '../../../components/common/DatePicker';
-import { Select2, type Select2Option } from '../../../components/common';
+import { Select2, type Select2Option, MarathiInput } from '../../../components/common';
 import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
 import { commonDdlService } from '../../../services/commonDdlService';
@@ -476,8 +476,7 @@ const FerfarForm = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 घरमालकाचे नाव लिहून देणार
               </label>
-              <input
-                type="text"
+              <MarathiInput
                 name="gharmalkachiNavLihunDenar"
                 value={formData.gharmalkachiNavLihunDenar}
                 onChange={handleInputChange}
@@ -490,8 +489,7 @@ const FerfarForm = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 नाव लिहून घेणारा
               </label>
-              <input
-                type="text"
+              <MarathiInput
                 name="navLihunGhenara"
                 value={formData.navLihunGhenara}
                 onChange={handleInputChange}
@@ -504,8 +502,7 @@ const FerfarForm = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 सचिव
               </label>
-              <input
-                type="text"
+              <MarathiInput
                 name="sachiv"
                 value={formData.sachiv}
                 onChange={handleInputChange}
@@ -518,8 +515,7 @@ const FerfarForm = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 सरपंच
               </label>
-              <input
-                type="text"
+              <MarathiInput
                 name="sarpanch"
                 value={formData.sarpanch}
                 onChange={handleInputChange}
@@ -532,8 +528,7 @@ const FerfarForm = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 उपसरपंच
               </label>
-              <input
-                type="text"
+              <MarathiInput
                 name="upsarpanch"
                 value={formData.upsarpanch}
                 onChange={handleInputChange}
@@ -548,7 +543,8 @@ const FerfarForm = () => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               शेरा/टिप
             </label>
-            <textarea
+            <MarathiInput
+              multiline
               name="sheraTip"
               value={formData.sheraTip}
               onChange={handleInputChange}

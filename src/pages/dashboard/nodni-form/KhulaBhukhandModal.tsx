@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Modal from '../../../components/common/Modal';
-import { Select2, type Select2Option } from '../../../components/common';
+import { Select2, MarathiInput, type Select2Option } from '../../../components/common';
 import type { KhulaBhukhandData, KhulaBhukhandModalProps } from '../../../interfaces/dashboard/nodni-form/KhulaBhukhandModal.types';
 import { authService, commonDdlService } from '../../../services';
 
@@ -271,8 +271,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               वापर प्रकार (Usage Type)
             </label>
-            <input
-              type="text"
+            <MarathiInput
               name="vaparPrakar"
               value={formData.vaparPrakar}
               onChange={handleInputChange}
