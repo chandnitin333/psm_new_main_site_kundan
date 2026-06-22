@@ -22,6 +22,8 @@ const Namuna9 = () => {
     year_1: String(currentYear + 1),
     start: '',
     end: '',
+    side: '',          // नमुना 9 न्यू: '' (full) | 'front' (मागणी) | 'back' (वसुली)
+    orientation: '',   // shown after side chosen: 'portrait' | 'landscape'
   });
 
   // Update year_1 when year changes
@@ -70,6 +72,17 @@ const Namuna9 = () => {
     { value: 'namuna9_ghoshwara_new', label: 'नमुना 9 घोषवारा न्यू' },
   ];
 
+  // नमुना 9 न्यू only: which side + page orientation
+  const sideOptions: Select2Option[] = [
+    { value: 'front', label: 'पुढील बाजू (मागणी)' },
+    { value: 'back', label: 'मागील बाजू (वसुली)' },
+  ];
+  const orientationOptions: Select2Option[] = [
+    { value: 'portrait', label: 'Portrait (10/page)' },
+    { value: 'landscape', label: 'Landscape (6/page)' },
+  ];
+  const showSideOpts = formData.namuna === 'namuna9_new';
+
   // namuna -> { report url, sessionStorage key }
   const reportMap: Record<string, { url: string; key: string }> = {
     namuna9: { url: '/view-namuna9-multi', key: 'namuna9Params' },
@@ -101,7 +114,15 @@ const Namuna9 = () => {
       },
       url: target.url,
       sessionKey: target.key,
-      sessionValue: { ward: formData.wardNo, start: formData.start, end: formData.end, year: formData.year },
+      sessionValue: {
+        ward: formData.wardNo,
+        start: formData.start,
+        end: formData.end,
+        year: formData.year,
+        // नमुना 9 न्यू: side ('' = full as-is) + orientation (default portrait when side chosen)
+        side: formData.namuna === 'namuna9_new' ? formData.side : '',
+        orientation: formData.namuna === 'namuna9_new' && formData.side ? (formData.orientation || 'portrait') : '',
+      },
       onEmpty: () => toast.error('या निवडीसाठी माहिती उपलब्ध नाही (No data found)'),
     });
   };
@@ -114,6 +135,8 @@ const Namuna9 = () => {
       year_1: String(currentYear + 1),
       start: '',
       end: '',
+      side: '',
+      orientation: '',
     });
   };
 
@@ -129,15 +152,16 @@ const Namuna9 = () => {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <form onSubmit={handleSubmit}>
           {/* First Row - All input fields */}
-          <div className="grid grid-cols-1 md:grid-cols-7 gap-4 mb-6">
-            {/* Namuna Dropdown (wider so long options don't wrap) */}
-            <div className="md:col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
+            {/* Namuna Dropdown */}
+            <div>
               <Select2
                 label="नमुना"
                 options={namunaOptions}
                 value={formData.namuna}
                 onChange={(value) =>
-                  setFormData({ ...formData, namuna: value as string })
+                  // changing namuna resets the नमुना 9 न्यू side/orientation choices
+                  setFormData({ ...formData, namuna: value as string, side: '', orientation: '' })
                 }
                 placeholder="नमुना निवडा"
                 searchable={true}
@@ -252,6 +276,41 @@ const Namuna9 = () => {
               />
             </div>
           </div>
+
+          {/* नमुना 9 न्यू only — बाजू + पृष्ठ मांडणी (own row so the fields above stay even) */}
+          {showSideOpts && (
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
+              <div>
+                <Select2
+                  label="बाजू"
+                  options={sideOptions}
+                  value={formData.side}
+                  onChange={(value) =>
+                    // choosing/clearing side also resets orientation
+                    setFormData({ ...formData, side: value as string, orientation: '' })
+                  }
+                  placeholder="बाजू निवडा"
+                  searchable={false}
+                  clearable={true}
+                />
+              </div>
+              {formData.side && (
+                <div>
+                  <Select2
+                    label="पृष्ठ मांडणी"
+                    options={orientationOptions}
+                    value={formData.orientation}
+                    onChange={(value) =>
+                      setFormData({ ...formData, orientation: value as string })
+                    }
+                    placeholder="Portrait / Landscape"
+                    searchable={false}
+                    clearable={true}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Second Row - Buttons */}
           <div className="flex justify-center gap-4">
