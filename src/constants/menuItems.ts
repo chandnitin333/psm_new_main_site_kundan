@@ -85,5 +85,12 @@ export const DASHBOARD_MENU_ITEMS: MenuItem[] = [
       { id: 'ahval-namuna10', label: 'नमुना १०', path: '/ahval/namuna10' },
       { id: 'ahval-imla-kar', label: 'इमला कर', path: '/ahval/imla-kar' }
     ]
+  },
+  {
+    id: 'certificates',
+    label: 'प्रमाणपत्रे',
+    path: '/certificates',
+    icon: 'Award',
+    subMenus: []
   }
 ];

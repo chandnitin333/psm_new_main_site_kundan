@@ -27,7 +27,7 @@ const DashboardLayout = ({ onLogout }: DashboardLayoutProps) => {
         onToggleSidebar={toggleSidebar}
       />
 
-      <div className="flex-1 pt-16">
+      <div className="flex-1 pt-16 print:pt-0">
 
         {/* Sidebar */}
         <Sidebar
@@ -37,8 +37,8 @@ const DashboardLayout = ({ onLogout }: DashboardLayoutProps) => {
         />
 
         {/* Main Content */}
-        <main className={`transition-all duration-300 bg-white dark:bg-gray-900 ${isSidebarOpen ? 'lg:pr-64' : 'pr-0'}`}>
-          <div className="container mx-auto px-4 bg-white dark:bg-gray-900">
+        <main className={`transition-all duration-300 bg-white dark:bg-gray-900 print:!pr-0 ${isSidebarOpen ? 'lg:pr-64' : 'pr-0'}`}>
+          <div className="container mx-auto px-4 bg-white dark:bg-gray-900 print:max-w-none print:px-0">
             <Outlet />
           </div>
         </main>

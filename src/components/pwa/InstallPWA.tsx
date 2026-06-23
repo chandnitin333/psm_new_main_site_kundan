@@ -102,7 +102,7 @@ const InstallPWA = () => {
     <>
       {/* Update-available toast */}
       {needRefresh && (
-        <div className="fixed inset-x-0 top-3 z-[1000] mx-auto flex w-[92%] max-w-md items-center gap-3 rounded-xl border border-primary-200 bg-white px-4 py-3 shadow-lg dark:border-primary-800 dark:bg-gray-800">
+        <div className="fixed inset-x-0 top-3 z-[1000] mx-auto flex w-[92%] max-w-md items-center gap-3 rounded-xl border border-primary-200 bg-white px-4 py-3 shadow-lg dark:border-primary-800 dark:bg-gray-800 print:hidden">
           <RefreshCw className="h-5 w-5 shrink-0 text-primary-600" />
           <span className="flex-1 text-sm text-gray-700 dark:text-gray-200">
             नवीन आवृत्ती उपलब्ध आहे / New version available
@@ -121,7 +121,7 @@ const InstallPWA = () => {
 
       {/* Floating "Download the App" button — only when NOT installed */}
       {!installed && (
-        <div className="fixed bottom-5 right-5 z-[999] flex flex-col items-end gap-2">
+        <div className="fixed bottom-5 right-5 z-[999] flex flex-col items-end gap-2 print:hidden">
           {/* Help popover (iOS / no native prompt) */}
           {showHelp && (
             <div className="w-72 rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl dark:border-gray-700 dark:bg-gray-800">

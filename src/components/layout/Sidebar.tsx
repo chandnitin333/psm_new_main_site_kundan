@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronRight, X, FileText, Building2, RefreshCw, DollarSign, FileCheck, BarChart3, Home, Boxes, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, X, FileText, Building2, RefreshCw, DollarSign, FileCheck, BarChart3, Home, Boxes, Loader2, Award } from 'lucide-react';
 import type { MenuItem } from '../../interfaces';
 
 // Icon mapping
@@ -14,6 +14,7 @@ const iconMap: { [key: string]: any } = {
   FileCheck,
   BarChart3,
   Loader2,
+  Award,
 };
 
 interface SidebarProps {
@@ -101,7 +102,7 @@ const Sidebar = ({ isOpen, onClose, menuItems }: SidebarProps) => {
       {/* Backdrop for desktop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 hidden lg:block"
+          className="fixed inset-0 bg-black/50 z-40 hidden lg:block print:!hidden"
           onClick={onClose}
         />
       )}
@@ -109,7 +110,7 @@ const Sidebar = ({ isOpen, onClose, menuItems }: SidebarProps) => {
       {/* Sidebar - Only visible on desktop */}
       <aside
         ref={sidebarRef}
-        className={`hidden lg:block fixed top-16 right-0 h-[calc(100vh-4rem)] w-64 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 shadow-lg transform transition-transform duration-300 ease-in-out z-40 ${
+        className={`hidden lg:block fixed top-16 right-0 h-[calc(100vh-4rem)] w-64 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 shadow-lg transform transition-transform duration-300 ease-in-out z-40 print:!hidden ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >

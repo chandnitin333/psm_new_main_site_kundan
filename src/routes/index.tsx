@@ -40,6 +40,8 @@ import Namuna8NewPrint from '../pages/dashboard/malmatta-nodni/Namuna8NewPrint';
 import Namuna8ImagesPrint from '../pages/dashboard/malmatta-nodni/Namuna8ImagesPrint';
 import Namuna9Print from '../pages/dashboard/malmatta-nodni/Namuna9Print';
 import Ahval from '../pages/dashboard/ahval/Ahval';
+import Certificates from '../pages/dashboard/certificates/Certificates';
+import CertificatePage from '../pages/dashboard/certificates/CertificatePage';
 import AadharList from '../pages/dashboard/ahval/AadharList';
 import AadharReport from '../pages/dashboard/ahval/AadharReport';
 import MobileList from '../pages/dashboard/ahval/MobileList';
@@ -389,6 +391,18 @@ export const createRouter = (handleLogout: () => void) =>
           <ImlaKarAnukramikaReport />
         </ProtectedRoute>
       ),
+    },
+    {
+      path: '/certificates',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <Certificates /> },
+        { path: ':slug', element: <CertificatePage /> },
+      ],
     },
     {
       path: '/ahval',

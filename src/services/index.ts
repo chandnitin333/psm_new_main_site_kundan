@@ -11,3 +11,4 @@ export { commonDdlService } from './commonDdlService';
 export { ferfarService } from './ferfarService';
 export { karAakaraniService } from './karAakaraniService';
 export { vasuliService } from './vasuliService';
+export { certificateService } from './certificateService';
