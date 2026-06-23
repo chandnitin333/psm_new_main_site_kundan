@@ -53,7 +53,18 @@ const fetchWithTimeout = async (
  */
 const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('accessToken');
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+  // super_user: tell the backend which gram panchayat to operate on
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user?.user_type === 'super_user') {
+      const gp = JSON.parse(localStorage.getItem('activeGp') || 'null');
+      if (gp?.gram_panchayat_id) headers['X-Active-Gp'] = String(gp.gram_panchayat_id);
+    }
+  } catch {
+    // ignore — no active GP header
+  }
+  return headers;
 };
 
 /**

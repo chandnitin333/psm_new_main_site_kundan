@@ -5,7 +5,8 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import { useLoading } from '../../contexts/LoadingContext';
-import { nodniService, commonDdlService, vasuliService } from '../../services';
+import { nodniService, commonDdlService, vasuliService, authService } from '../../services';
+import { isSuperUser, getActiveGp, clearActiveGp } from '../../utils/activeGp';
 import config from '../../config';
 import type { CategoryCard } from '../../interfaces/dashboard/Dashboard.types';
 
@@ -37,21 +38,17 @@ const Dashboard = () => {
     gatGramPanchayat: '',
   });
 
-  // Load location info from localStorage
+  // Load location info — for a super_user this resolves to the SELECTED gram
+  // panchayat (getCurrentUser overlays the active GP context).
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const user: UserData = JSON.parse(userStr);
-        setLocationInfo({
-          district: user.district || '',
-          taluka: user.taluka || '',
-          gramPanchayat: user.gram_panchayat || '',
-          gatGramPanchayat: user.gat_gram_panchayat || '',
-        });
-      } catch {
-        console.error('Error parsing user data');
-      }
+    const user = authService.getCurrentUser() as UserData | null;
+    if (user) {
+      setLocationInfo({
+        district: user.district || '',
+        taluka: user.taluka || '',
+        gramPanchayat: user.gram_panchayat || '',
+        gatGramPanchayat: user.gat_gram_panchayat || '',
+      });
     }
   }, []);
 
@@ -270,6 +267,23 @@ const Dashboard = () => {
 
   return (
     <div className="p-6">
+      {/* super_user only: which gram panchayat is active + switch (only on dashboard) */}
+      {isSuperUser() && getActiveGp() && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary-200 bg-primary-50 px-4 py-2 mb-6 dark:border-primary-800 dark:bg-primary-900/30">
+          <span className="flex items-center gap-2 text-sm font-medium text-primary-800 dark:text-primary-200">
+            <MapPin className="h-4 w-4" />
+            कार्यरत ग्रामपंचायत: <strong>{getActiveGp()?.name || `#${getActiveGp()?.gram_panchayat_id}`}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={() => { clearActiveGp(); navigate('/select-gp'); }}
+            className="rounded-md border border-primary-300 px-3 py-1 text-xs font-medium text-primary-700 transition-colors hover:bg-primary-100 dark:border-primary-700 dark:text-primary-200 dark:hover:bg-primary-800/40"
+          >
+            बदला (Change)
+          </button>
+        </div>
+      )}
+
       {/* Category Cards — compact stat tiles */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
         {categories.map((category) => {

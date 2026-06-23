@@ -1,5 +1,7 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom';
 import { canModule, getLandingPath } from '../utils/permissions';
+import { isSuperUser, getActiveGp } from '../utils/activeGp';
+import SelectGramPanchayat from '../pages/dashboard/SelectGramPanchayat';
 import PublicLayout from '../components/layout/PublicLayout';
 import DashboardLayout from '../pages/dashboard/DashboardLayout';
 
@@ -74,7 +76,13 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+  const location = useLocation();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  // super_user must pick a gram panchayat before using any page
+  if (isSuperUser() && !getActiveGp() && location.pathname !== '/select-gp') {
+    return <Navigate to="/select-gp" replace />;
+  }
+  return <>{children}</>;
 };
 
 // Guest-only routes (home + auth pages). A logged-in user who lands here — via
@@ -114,6 +122,15 @@ export const createRouter = (handleLogout: () => void) =>
       // PUBLIC scanned-QR report viewer (no login, no layout)
       path: '/r/:token',
       element: <PublicReportViewer />,
+    },
+    {
+      // super_user: pick the gram panchayat to work in (standalone, no dashboard layout)
+      path: '/select-gp',
+      element: (
+        <ProtectedRoute>
+          <SelectGramPanchayat />
+        </ProtectedRoute>
+      ),
     },
     {
       path: '/nodni-form',

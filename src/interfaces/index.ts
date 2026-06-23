@@ -19,7 +19,7 @@ export interface LoginCredentials {
 }
 
 // API Login Types
-export type UserType = 'user' | 'bdo';
+export type UserType = 'user' | 'bdo' | 'super_user';
 
 export interface LoginPayload {
   email: string;

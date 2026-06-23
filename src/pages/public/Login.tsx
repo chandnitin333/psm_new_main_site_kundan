@@ -7,6 +7,7 @@ import { authService, type ApiError } from '../../services';
 import { api } from '../../services/api';
 import { getCmsIcon } from '../../utils/cmsIcons';
 import { getLandingPath } from '../../utils/permissions';
+import { isSuperUser, getActiveGp } from '../../utils/activeGp';
 
 // fallback icons cycled when an item has no icon chosen in admin
 const FEATURE_ICONS = [Landmark, FileText, ShieldCheck];
@@ -18,7 +19,7 @@ interface LoginCmsSection {
 }
 interface Feature { text: string; icon: string | null }
 
-type LoginRole = 'grampanchayat' | 'bdo';
+type LoginRole = 'grampanchayat' | 'bdo' | 'super_user';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -123,7 +124,7 @@ const Login = () => {
 
           toast.success(response.message || 'Login successful! Redirecting to dashboard...');
           setTimeout(() => {
-            navigate(getLandingPath());
+            navigate(isSuperUser() && !getActiveGp() ? '/select-gp' : getLandingPath());
           }, 1000);
         }
       } else {
@@ -212,7 +213,7 @@ const Login = () => {
 
         // Navigate to dashboard after a short delay
         setTimeout(() => {
-          navigate(getLandingPath());
+          navigate(isSuperUser() && !getActiveGp() ? '/select-gp' : getLandingPath());
         }, 1000);
       } else {
         toast.error(response.message || 'OTP verification failed. Please try again.');

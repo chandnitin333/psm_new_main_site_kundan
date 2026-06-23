@@ -9,6 +9,7 @@ const DDL_ENDPOINTS = {
   DISTRICT: '/main/common-ddl/district',
   TALUKA: '/main/common-ddl/taluka',
   GRAM_PANCHAYAT: '/main/common-ddl/gram-panchayat',
+  GRAM_PANCHAYAT_ALL: '/main/common-ddl/gram-panchayat-all',
   GAT_GRAM_PANCHAYAT: '/main/common-ddl/gat-gram-panchayat',
   MALMATTECHE_PRAKAR: '/main/common-ddl/malmatteche-prakar',
   MALMATTA: '/main/common-ddl/malmatta',
@@ -56,6 +57,13 @@ export const commonDdlService = {
    */
   getGatGramPanchayats: async (gramPanchayatId: number): Promise<ApiResponse> => {
     return api.post(DDL_ENDPOINTS.GAT_GRAM_PANCHAYAT, { gram_panchayat_id: gramPanchayatId });
+  },
+
+  /**
+   * Flat list of all gram panchayats with taluka + district (super_user picker)
+   */
+  getAllGramPanchayats: async (): Promise<ApiResponse> => {
+    return api.get(DDL_ENDPOINTS.GRAM_PANCHAYAT_ALL);
   },
 
   /**

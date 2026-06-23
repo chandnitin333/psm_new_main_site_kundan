@@ -190,7 +190,10 @@ const MarathiInput = ({
         <input type="text" {...commonProps} />
       )}
       {show && suggestions.length > 0 && (
-        <ul className="absolute z-50 left-0 top-full mt-1 max-h-56 w-max min-w-[8rem] overflow-auto rounded-md border border-gray-300 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-700">
+        <ul
+          style={{ scrollbarWidth: 'thin' }}
+          className="absolute z-50 left-0 top-full mt-1 max-h-56 w-max min-w-[8rem] overflow-auto rounded-md border border-gray-300 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-700 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-500"
+        >
           {suggestions.map((sug, i) => (
             <li
               key={`${sug}-${i}`}

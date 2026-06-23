@@ -35,15 +35,19 @@ const STORAGE_KEYS = {
 /**
  * Map frontend role to API user_type
  */
-export const mapRoleToUserType = (role: 'grampanchayat' | 'bdo'): UserType => {
-  return role === 'grampanchayat' ? 'user' : 'bdo';
+export const mapRoleToUserType = (role: 'grampanchayat' | 'bdo' | 'super_user'): UserType => {
+  if (role === 'grampanchayat') return 'user';
+  if (role === 'super_user') return 'super_user';
+  return 'bdo';
 };
 
 /**
  * Map API user_type to frontend role
  */
-export const mapUserTypeToRole = (userType: UserType): 'grampanchayat' | 'bdo' => {
-  return userType === 'user' ? 'grampanchayat' : 'bdo';
+export const mapUserTypeToRole = (userType: UserType): 'grampanchayat' | 'bdo' | 'super_user' => {
+  if (userType === 'user') return 'grampanchayat';
+  if (userType === 'super_user') return 'super_user';
+  return 'bdo';
 };
 
 export const authService = {
@@ -53,7 +57,7 @@ export const authService = {
   login: async (
     email: string,
     password: string,
-    role: 'grampanchayat' | 'bdo'
+    role: 'grampanchayat' | 'bdo' | 'super_user'
   ): Promise<ApiResponse<LoginResponse>> => {
     const payload: LoginPayload = {
       email,
@@ -75,7 +79,7 @@ export const authService = {
   verifyOtp: async (
     userId: number,
     otp: string,
-    role: 'grampanchayat' | 'bdo'
+    role: 'grampanchayat' | 'bdo' | 'super_user'
   ): Promise<ApiResponse<OtpVerifyResponse>> => {
     const payload: OtpVerifyPayload = {
       user_id: userId,
@@ -99,7 +103,7 @@ export const authService = {
   /**
    * Store authentication data in localStorage
    */
-  setAuthData: (data: OtpVerifyResponse | LoginResponse, role: 'grampanchayat' | 'bdo'): void => {
+  setAuthData: (data: OtpVerifyResponse | LoginResponse, role: 'grampanchayat' | 'bdo' | 'super_user'): void => {
     localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token as string);
     if (data.refresh_token) {
       localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
@@ -118,6 +122,7 @@ export const authService = {
     Object.values(STORAGE_KEYS).forEach((key) => {
       localStorage.removeItem(key);
     });
+    localStorage.removeItem('activeGp'); // super_user's selected gram panchayat
   },
 
   /**
@@ -146,15 +151,39 @@ export const authService = {
    */
   getCurrentUser: (): Partial<ApiUser> | null => {
     const userStr = localStorage.getItem(STORAGE_KEYS.USER);
-    return userStr ? JSON.parse(userStr) : null;
+    if (!userStr) return null;
+    const user = JSON.parse(userStr) as Partial<ApiUser>;
+    // super_user has no fixed location — overlay the selected gram panchayat so
+    // every currentUser.* location read (forms, rate lookups) uses that GP.
+    if (user?.user_type === 'super_user') {
+      try {
+        const gp = JSON.parse(localStorage.getItem('activeGp') || 'null');
+        if (gp?.gram_panchayat_id) {
+          return {
+            ...user,
+            district_id: gp.district_id,
+            taluka_id: gp.taluka_id,
+            gram_panchayat_id: gp.gram_panchayat_id,
+            gat_gram_panchayat_id: gp.gat_gram_panchayat_id,
+            gram_panchayat: gp.name,
+            district: gp.district_name ?? user.district,
+            taluka: gp.taluka_name ?? user.taluka,
+            gat_gram_panchayat: gp.gat_name ?? user.gat_gram_panchayat,
+          };
+        }
+      } catch {
+        // no active GP — return stored user as-is
+      }
+    }
+    return user;
   },
 
   /**
    * Get current user role
    */
-  getUserRole: (): 'grampanchayat' | 'bdo' | null => {
+  getUserRole: (): 'grampanchayat' | 'bdo' | 'super_user' | null => {
     const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
-    return role as 'grampanchayat' | 'bdo' | null;
+    return role as 'grampanchayat' | 'bdo' | 'super_user' | null;
   },
 
   /**
