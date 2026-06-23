@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { MarathiInput, DatePicker } from '../../../components/common';
 import { useToast } from '../../../hooks/useToast';
 import { certificateService } from '../../../services';
+import { can, certModuleKey } from '../../../utils/permissions';
 import CertificateLayout from './CertificateLayout';
 
 /* मृत्यू प्रमाणपत्र — left: fill form, right: live certificate preview.
@@ -23,6 +24,8 @@ const DeathCertificate = () => {
   // re-view / re-print: if ?id= present, load saved certificate and prefill
   const [params] = useSearchParams();
   const isView = !!params.get('id'); // opened from "जारी केलेली" → print only, no re-save
+  const canAdd = can(certModuleKey('death'), 'add');
+  const canPrint = can(certModuleKey('death'), 'print');
   useEffect(() => {
     const id = params.get('id');
     if (!id) return;
@@ -153,7 +156,7 @@ const DeathCertificate = () => {
             <p className="mt-5 rounded-lg bg-amber-50 px-3 py-2 text-center text-sm text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
               हे प्रमाणपत्र आधीच जतन केलेले आहे — फक्त प्रिंट करता येईल.
             </p>
-          ) : (
+          ) : canAdd ? (
             <button
               type="button"
               onClick={handleSave}
@@ -162,7 +165,7 @@ const DeathCertificate = () => {
             >
               {saved ? '✓ जतन झाले (Saved)' : saving ? 'जतन होत आहे...' : 'जतन करा (Save)'}
             </button>
-          )}
+          ) : null}
         </div>
         )}
 
@@ -172,6 +175,7 @@ const DeathCertificate = () => {
             title="मृत्यू प्रमाणपत्र"
             subtitle="(जन्म-मृत्यू नोंदणी अधिनियम, १९६९ अंतर्गत)"
             outwardNo={f.outwardNo}
+            canPrint={canPrint}
           >
             <p className="text-justify">
               प्रमाणित करण्यात येते की, खालील व्यक्तीची मृत्यू नोंद या ग्रामपंचायतीच्या जन्म-मृत्यू

@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { Award, ArrowLeft } from 'lucide-react';
 import { getCertificate } from '../../../constants/certificates';
+import { canModule, certModuleKey } from '../../../utils/permissions';
 import ResidenceCertificate from './ResidenceCertificate';
 import BirthCertificate from './BirthCertificate';
 import DeathCertificate from './DeathCertificate';
@@ -57,6 +58,11 @@ const CertificatePage = () => {
 
   // always open a certificate scrolled to the top
   useEffect(() => { window.scrollTo(0, 0); }, [slug]);
+
+  const allowed = slug ? canModule(certModuleKey(slug)) : false;
+
+  // no permission for this certificate type → back to the certificates list
+  if (cert && Cmp && !allowed) return <Navigate to="/certificates" replace />;
 
   if (cert && Cmp) return <Cmp />;
 

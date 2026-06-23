@@ -1,5 +1,5 @@
 import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom';
-import { canModule, getLandingPath } from '../utils/permissions';
+import { canModule, getLandingPath, moduleForPath, canAnyCertificate } from '../utils/permissions';
 import { isSuperUser, getActiveGp } from '../utils/activeGp';
 import SelectGramPanchayat from '../pages/dashboard/SelectGramPanchayat';
 import PublicLayout from '../components/layout/PublicLayout';
@@ -84,6 +84,18 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   if (isSuperUser() && !getActiveGp() && location.pathname !== '/select-gp') {
     return <Navigate to="/select-gp" replace />;
   }
+
+  // permission guard: if this page is not allowed for the user, send them to a
+  // page they DO have access to (their landing page).
+  const landing = getLandingPath();
+  const path = location.pathname;
+  if (path.startsWith('/certificates')) {
+    if (!canAnyCertificate() && path !== landing) return <Navigate to={landing} replace />;
+  } else {
+    const mod = moduleForPath(path);
+    if (mod && !canModule(mod) && path !== landing) return <Navigate to={landing} replace />;
+  }
+
   return <>{children}</>;
 };
 

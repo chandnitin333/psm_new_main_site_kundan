@@ -16,6 +16,14 @@
 
     <title>PSM - ग्रामपंचायत मालमत्ता व कर व्यवस्थापन</title>
 
+    <!-- Apply theme before React mounts to avoid a light->dark flash (default = dark) -->
+    <script>
+      (function () {
+        var t = localStorage.getItem('theme') || 'dark';
+        if (t === 'dark') document.documentElement.classList.add('dark');
+      })();
+    </script>
+
     <!-- Capture the install prompt as early as possible (it can fire before React mounts) -->
     <script>
       window.__pwaInstallPrompt = null;

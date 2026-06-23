@@ -191,7 +191,7 @@ const MalmattaFerfar = () => {
           <button
             type="button"
             onClick={handleAddFerfar}
-            className="flex items-center gap-2 px-4 py-2 bg-green-200 dark:bg-green-900 text-green-900 dark:text-green-100 rounded-lg hover:bg-green-300 dark:hover:bg-green-800 transition-colors font-medium border border-green-400 dark:border-green-700"
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
           >
             <Plus className="w-5 h-5" />
             फेरफार जोडा (Add Ferfar)

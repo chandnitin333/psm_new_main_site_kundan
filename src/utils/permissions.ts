@@ -34,6 +34,18 @@ export const PATH_TO_MODULE: Record<string, string> = {
   '/ahval/bill-ward': 'ahval_bill_ward',
   '/ahval/namuna10': 'ahval_namuna10',
   '/ahval/imla-kar': 'ahval_imla_kar',
+  // certificates are per-type (module key = `cert_<slug>`); the /certificates menu
+  // itself is gated by canAnyCertificate() (see filterMenuItems).
+};
+
+// permission module key for a certificate slug
+export const certModuleKey = (slug: string) => `cert_${slug}`;
+
+// true if the user can access at least one certificate (or has full access)
+export const canAnyCertificate = (): boolean => {
+  if (isFullAccess()) return true;
+  const pp = getPagePermissions();
+  return Object.keys(pp).some((k) => k.startsWith('cert_') && Array.isArray(pp[k]) && pp[k].length > 0);
 };
 
 export const getPagePermissions = (): PagePermissions => {
@@ -46,8 +58,13 @@ export const getPagePermissions = (): PagePermissions => {
   }
 };
 
-// No explicit permissions at all -> full access (migration / safety)
+// super_user always has full access; otherwise no explicit permissions at all
+// -> full access (migration / safety)
 export const isFullAccess = (): boolean => {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user?.user_type === 'super_user') return true;
+  } catch { /* ignore */ }
   const pp = getPagePermissions();
   return !pp || Object.keys(pp).length === 0;
 };
@@ -99,6 +116,9 @@ export const filterMenuItems = <T extends MenuLike>(items: T[]): T[] => {
         return m ? canModule(m) : true;
       });
       if (visibleSubs.length > 0) result.push({ ...item, subMenus: visibleSubs });
+    } else if (item.path === '/certificates') {
+      // certificates menu shows if the user can access ANY certificate type
+      if (canAnyCertificate()) result.push(item);
     } else {
       const m = item.path ? moduleForPath(item.path) : undefined;
       if (!m || canModule(m)) result.push(item);

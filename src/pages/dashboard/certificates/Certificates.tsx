@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Award, Search, ChevronRight } from 'lucide-react';
 import { CERTIFICATES } from '../../../constants/certificates';
+import { canModule, certModuleKey } from '../../../utils/permissions';
 import IssuedCertificates from './IssuedCertificates';
 
 const Certificates = () => {
@@ -10,9 +11,11 @@ const Certificates = () => {
   const [tab, setTab] = useState<'new' | 'issued'>('new');
 
   const filtered = useMemo(() => {
+    // only certificates the user is permitted to access
+    const allowed = CERTIFICATES.filter((c) => canModule(certModuleKey(c.slug)));
     const q = search.trim().toLowerCase();
-    if (!q) return CERTIFICATES;
-    return CERTIFICATES.filter((c) =>
+    if (!q) return allowed;
+    return allowed.filter((c) =>
       `${c.marathi} ${c.name} ${c.purpose}`.toLowerCase().includes(q),
     );
   }, [search]);

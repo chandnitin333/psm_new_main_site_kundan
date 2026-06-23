@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { MarathiInput, DatePicker } from '../../../components/common';
 import { useToast } from '../../../hooks/useToast';
 import { certificateService } from '../../../services';
+import { can, certModuleKey } from '../../../utils/permissions';
 import CertificateLayout from './CertificateLayout';
 
 /* नळ जोडणी परवानगी (Pipe Connection Permission). */
@@ -20,6 +21,8 @@ const PipeConnectionCertificate = () => {
 
   const [params] = useSearchParams();
   const isView = !!params.get('id');
+  const canAdd = can(certModuleKey('pipe-connection'), 'add');
+  const canPrint = can(certModuleKey('pipe-connection'), 'print');
   useEffect(() => {
     const id = params.get('id');
     if (!id) return;
@@ -121,14 +124,16 @@ const PipeConnectionCertificate = () => {
               <input type="text" name="outwardNo" value={f.outwardNo} onChange={on} className={inp} placeholder="जावक क्र." />
             </div>
           </div>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving || saved}
-            className="mt-5 w-full rounded-lg bg-primary-600 py-2.5 font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
-          >
-            {saved ? '✓ जतन झाले (Saved)' : saving ? 'जतन होत आहे...' : 'जतन करा (Save)'}
-          </button>
+          {canAdd && (
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving || saved}
+              className="mt-5 w-full rounded-lg bg-primary-600 py-2.5 font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+            >
+              {saved ? '✓ जतन झाले (Saved)' : saving ? 'जतन होत आहे...' : 'जतन करा (Save)'}
+            </button>
+          )}
         </div>
         )}
 
@@ -138,6 +143,7 @@ const PipeConnectionCertificate = () => {
             title="नळ जोडणी परवानगी"
             subtitle="(Pipe Connection Permission)"
             outwardNo={f.outwardNo}
+            canPrint={canPrint}
           >
             <p className="text-justify">
               श्री./श्रीमती <strong>{f.name || '________________'}</strong>{' '}

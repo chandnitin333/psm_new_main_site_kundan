@@ -11,9 +11,10 @@ interface CertificateLayoutProps {
   subtitle?: string;   // optional small line under title
   children: ReactNode; // the certificate body (per-certificate format)
   outwardNo?: string;  // जावक क्रमांक (optional)
+  canPrint?: boolean;  // show the Print button only if the user has print permission
 }
 
-const CertificateLayout = ({ title, subtitle, children, outwardNo }: CertificateLayoutProps) => {
+const CertificateLayout = ({ title, subtitle, children, outwardNo, canPrint = true }: CertificateLayoutProps) => {
   const [loc] = useState(() => {
     const u = authService.getCurrentUser();
     return {
@@ -46,14 +47,16 @@ const CertificateLayout = ({ title, subtitle, children, outwardNo }: Certificate
         }
       `}</style>
 
-      <div className="no-print mb-4 flex items-center gap-3">
-        <button
-          onClick={() => window.print()}
-          className="rounded-md bg-green-600 px-4 py-2 font-medium text-white shadow-sm transition-colors hover:bg-green-700"
-        >
-          🖨️ Print / Save as PDF
-        </button>
-      </div>
+      {canPrint && (
+        <div className="no-print mb-4 flex items-center gap-3">
+          <button
+            onClick={() => window.print()}
+            className="rounded-md bg-green-600 px-4 py-2 font-medium text-white shadow-sm transition-colors hover:bg-green-700"
+          >
+            🖨️ Print / Save as PDF
+          </button>
+        </div>
+      )}
 
       <div className="cert-sheet text-black">
         <div className="cert-frame flex flex-col">
