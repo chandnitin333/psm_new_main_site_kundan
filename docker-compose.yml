@@ -1,0 +1,8 @@
+# Main site — prebuilt image from GHCR, served on 127.0.0.1:5500 (nginx proxies it).
+# Replace OWNER with your GitHub username (lowercase).
+services:
+  web:
+    image: ghcr.io/chandnitin333/psm-main:latest
+    ports:
+      - "127.0.0.1:5500:80"
+    restart: always
