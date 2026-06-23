@@ -28,6 +28,9 @@ import ChangePassword from '../pages/dashboard/ChangePassword';
 import Components from '../pages/dashboard/components/Components';
 import NodniForm from '../pages/dashboard/nodni-form/NodniForm';
 import MalmattaNodni from '../pages/dashboard/malmatta-nodni/MalmattaNodni';
+import PropertyHistory from '../pages/dashboard/malmatta-nodni/PropertyHistory';
+import CollectionDaybook from '../pages/dashboard/vasuli/CollectionDaybook';
+import CollectionMode from '../pages/dashboard/vasuli/CollectionMode';
 import MalmattaFerfar from '../pages/dashboard/malmatta-ferfar/MalmattaFerfar';
 import FerfarForm from '../pages/dashboard/malmatta-ferfar/FerfarForm';
 import FerfarPdfManagement from '../pages/dashboard/malmatta-ferfar/FerfarPdfManagement';
@@ -172,6 +175,39 @@ export const createRouter = (handleLogout: () => void) =>
       ),
       children: [
         { index: true, element: <MalmattaNodni /> },
+      ],
+    },
+    {
+      path: '/property-history',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <PropertyHistory /> },
+      ],
+    },
+    {
+      path: '/collection-daybook',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <CollectionDaybook /> },
+      ],
+    },
+    {
+      path: '/collection-mode',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <CollectionMode /> },
       ],
     },
     {

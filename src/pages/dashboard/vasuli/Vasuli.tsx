@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Edit2, Trash2, Eye } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, BookOpen, Smartphone } from 'lucide-react';
 import YearPicker from '../../../components/common/YearPicker';
 import { MarathiInput } from '../../../components/common';
 import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '../../../utils/deleteConfirmation';
 import { vasuliService, type VasuliListPayload } from '../../../services/vasuliService';
-import { can } from '../../../utils/permissions';
+import { can, canModule } from '../../../utils/permissions';
 import { trackAction } from '../../../utils/tracker';
 import type { VasuliFormData, VasuliRecord } from '../../../interfaces/dashboard/vasuli/Vasuli.types';
 
@@ -238,6 +238,27 @@ const Vasuli = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             वसुली (Vasuli)
           </h1>
+          <div className="flex items-center gap-2">
+          {canModule('vasuli_field') && (
+          <button
+            type="button"
+            onClick={() => navigate('/collection-mode')}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium"
+          >
+            <Smartphone className="w-5 h-5" />
+            फिरती वसुली
+          </button>
+          )}
+          {canModule('vasuli_daybook') && (
+          <button
+            type="button"
+            onClick={() => navigate('/collection-daybook')}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium"
+          >
+            <BookOpen className="w-5 h-5" />
+            दैनिक रजिस्टर
+          </button>
+          )}
           {can('vasuli', 'add') && (
           <button
             type="button"
@@ -248,6 +269,7 @@ const Vasuli = () => {
             वसुली जोडा (Add Vasuli)
           </button>
           )}
+          </div>
         </div>
 
         <form onSubmit={handleSearch} className="space-y-6">

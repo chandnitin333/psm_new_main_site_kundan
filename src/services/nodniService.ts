@@ -16,6 +16,20 @@ export interface DuplicateMatch {
   match_reasons: string[];
 }
 
+export interface PropertyHistory {
+  property: Record<string, string | number | null>;
+  transfers: {
+    id: number; year: string | null; to_year: string | null; dinank_date: string | null;
+    tharav_kramnak: string | null; from_name: string | null; to_name: string | null;
+    shera_tip: string | null; created_at: string | null;
+  }[];
+  vasuli: { id: number; year: string; magni: number; jama: number; baki: number; payment_count: number }[];
+  certificates: {
+    id: number; cert_type: string; cert_name: string; applicant_name: string;
+    outward_no: string | null; created_at: string | null;
+  }[];
+}
+
 const NODNI_ENDPOINTS = {
   CREATE: '/main/nodni',
   UPDATE: (id: number) => `/main/nodni/${id}`,
@@ -26,6 +40,7 @@ const NODNI_ENDPOINTS = {
   TAX_LIST: '/main/nodni/tax-list',
   NEXT_ANU_KRAMANK: '/main/nodni/next-anu-kramank',
   CHECK_DUPLICATE: '/main/nodni/check-duplicate',
+  HISTORY: (id: number) => `/main/nodni/${id}/history`,
   SEARCH: '/main/malmatta-nodni/search',
   FILTER: '/main/malmatta-nodni/filter',
   CHECK_SILLAK_JODA: '/main/malmatta-nodni/previous-tax/check-sillak-joda-exist',
@@ -75,6 +90,11 @@ export const nodniService = {
    */
   update: async (id: number, payload: Record<string, unknown>): Promise<ApiResponse> => {
     return api.put(NODNI_ENDPOINTS.UPDATE(id), payload);
+  },
+
+  /** Property 360° — full history (transfers + year-wise vasuli + certificates) */
+  getHistory: async (id: number): Promise<ApiResponse<PropertyHistory>> => {
+    return api.get(NODNI_ENDPOINTS.HISTORY(id));
   },
 
   /**

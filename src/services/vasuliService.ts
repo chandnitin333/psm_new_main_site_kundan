@@ -13,6 +13,8 @@ const VASULI_ENDPOINTS = {
   DELETE: (id: number) => `/main/vasuli/${id}`,
   STATS: '/main/vasuli/stats',
   KPIS: '/main/vasuli/kpis',
+  DAYBOOK: '/main/vasuli/daybook',
+  WARD_COLLECTION: '/main/vasuli/ward-collection',
   FIND: '/main/vasuli/find',
   GP_PAYMENT_INFO: '/main/vasuli/gp-payment-info',
   PAYMENTS: (vasuliId: number) => `/main/vasuli/${vasuliId}/payments`,
@@ -50,6 +52,38 @@ export interface DashboardKpis {
   properties_total: number;
   today_entries: number;
   certificates_total: number;
+}
+
+export interface DaybookPayment {
+  id: number; time: string; date: string; name: string; ward: string | null;
+  anu_kramank: string | null; mode: string; provider: string | null;
+  amount: number; ghar_amount: number; pani_amount: number;
+  pavti_no: string | null; reference_no: string | null; collector: string;
+}
+
+export interface Daybook {
+  from: string; to: string;
+  payments: DaybookPayment[];
+  count: number;
+  total: number; ghar_total: number; pani_total: number;
+  by_mode: Record<string, number>;
+  by_collector: Record<string, number>;
+}
+
+export interface WardCollectionProperty {
+  nodni_id: number; anu_kramank: string | null; ward: string | null;
+  malmatta_number: string | null; name: string; mobile: string | null;
+  vasuli_id: number | null; demand: number; jama: number; baki: number;
+  status: 'paid' | 'pending' | 'not_billed';
+}
+
+export interface WardCollection {
+  ward: string; year: string;
+  properties: WardCollectionProperty[];
+  total_properties: number;
+  pending_count: number;
+  pending_baki: number;
+  collected: number;
 }
 
 /** Per-tax-head amounts returned for magil / chalu */
@@ -138,6 +172,21 @@ export const vasuliService = {
   /** Consolidated dashboard KPIs — collection totals, recovery %, ward-wise बाकी, counts */
   getKpis: async (): Promise<ApiResponse<DashboardKpis>> => {
     return api.get(VASULI_ENDPOINTS.KPIS);
+  },
+
+  /** दैनिक वसुली रजिस्टर — payments in a date range with totals (default: today) */
+  getDaybook: async (from?: string, to?: string): Promise<ApiResponse<Daybook>> => {
+    const qs = new URLSearchParams();
+    if (from) qs.set('from', from);
+    if (to) qs.set('to', to);
+    const q = qs.toString();
+    return api.get(`${VASULI_ENDPOINTS.DAYBOOK}${q ? `?${q}` : ''}`);
+  },
+
+  /** Mobile field-collection — ward-wise property list with year's vasuli status */
+  getWardCollection: async (ward: string, year: string): Promise<ApiResponse<WardCollection>> => {
+    const qs = new URLSearchParams({ ward, year }).toString();
+    return api.get(`${VASULI_ENDPOINTS.WARD_COLLECTION}?${qs}`);
   },
 
   /** Current user's GP payment details (QR scanners + bank/UPI for ghar & pani) */

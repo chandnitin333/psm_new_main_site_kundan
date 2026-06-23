@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Edit2, Trash2, Printer, Image, FileText } from 'lucide-react';
+import { Edit2, Trash2, Printer, Image, FileText, History } from 'lucide-react';
 import MagilKarJodaModal from './MagilKarJodaModal';
 import PrintModal from './PrintModal';
 import ImageUploadModal from './ImageUploadModal';
@@ -528,6 +528,14 @@ const MalmattaNodni = () => {
                             <Edit2 className="w-5 h-5" />
                           </button>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/property-history?id=${record.id}`)}
+                            className="text-teal-600 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300 transition-colors"
+                            title="इतिहास (History)"
+                          >
+                            <History className="w-5 h-5" />
+                          </button>
                           {can('malmatta_nodni', 'delete') && (
                           <button
                             type="button"

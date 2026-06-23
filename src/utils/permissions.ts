@@ -24,6 +24,8 @@ export const PATH_TO_MODULE: Record<string, string> = {
   '/malmatta-ferfar': 'malmatta_ferfar',
   '/kar-aakarani': 'kar_aakarani',
   '/vasuli': 'vasuli',
+  '/collection-daybook': 'vasuli_daybook',
+  '/collection-mode': 'vasuli_field',
   '/ahval/aadhar-list': 'ahval_aadhar_list',
   '/ahval/mobile-list': 'ahval_mobile_list',
   '/ahval/pani-list': 'ahval_pani_list',
