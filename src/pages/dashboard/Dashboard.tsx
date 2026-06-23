@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Home, Building2, Factory, Award, TrendingUp, MapPin, PieChart as PieIcon, BarChart3, Mail, Phone, ChevronLeft, ChevronRight, BadgeCheck, Landmark, Map as MapIcon, Navigation } from 'lucide-react';
+import { Users, Home, Building2, Factory, Award, TrendingUp, MapPin, PieChart as PieIcon, BarChart3, Mail, Phone, ChevronLeft, ChevronRight, BadgeCheck, Landmark, Map as MapIcon, Navigation, IndianRupee, Wallet, Percent, CalendarPlus } from 'lucide-react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import { useLoading } from '../../contexts/LoadingContext';
 import { nodniService, commonDdlService, vasuliService, authService } from '../../services';
+import type { DashboardKpis } from '../../services/vasuliService';
 import { isSuperUser, getActiveGp, clearActiveGp } from '../../utils/activeGp';
 import config from '../../config';
 import type { CategoryCard } from '../../interfaces/dashboard/Dashboard.types';
@@ -58,6 +59,7 @@ const Dashboard = () => {
   const [members, setMembers] = useState<GpMember[]>([]);
   const [vasuliYearWise, setVasuliYearWise] = useState<{ year: string; total: number; baki: number }[]>([]);
   const [vasuliByTax, setVasuliByTax] = useState<Record<string, number>>({});
+  const [kpis, setKpis] = useState<DashboardKpis | null>(null);
   // members carousel
   const [slide, setSlide] = useState(0);
   const [perView, setPerView] = useState(3);
@@ -93,10 +95,11 @@ const Dashboard = () => {
     const loadPage = async () => {
       showLoader('डॅशबोर्ड लोड होत आहे... (Loading dashboard...)');
       try {
-        const [countsRes, membersRes, vasuliRes] = await Promise.all([
+        const [countsRes, membersRes, vasuliRes, kpisRes] = await Promise.all([
           nodniService.getDashboardCounts(),
           commonDdlService.getGramPanchayatMembers(),
           vasuliService.getStats(),
+          vasuliService.getKpis(),
         ]);
         if (countsRes.success && countsRes.data) {
           const d = countsRes.data as Record<string, number>;
@@ -116,6 +119,7 @@ const Dashboard = () => {
           setVasuliYearWise(v.year_wise || []);
           setVasuliByTax(v.by_tax || {});
         }
+        if (kpisRes.success && kpisRes.data) setKpis(kpisRes.data as DashboardKpis);
       } catch (e) {
         console.error('Failed to load dashboard data', e);
       } finally {
@@ -265,6 +269,30 @@ const Dashboard = () => {
     .filter((d) => d.value > 0);
   const hasVasuliTax = vasuliTaxData.length > 0;
 
+  // ₹ in Indian short form (हजार/लाख/कोटी) for compact KPI display
+  const inr = (n: number) => '₹ ' + Math.round(n).toLocaleString('en-IN');
+  const inrShort = (n: number) => {
+    const a = Math.abs(n);
+    if (a >= 1e7) return `₹ ${(n / 1e7).toFixed(2)} कोटी`;
+    if (a >= 1e5) return `₹ ${(n / 1e5).toFixed(2)} लाख`;
+    if (a >= 1e3) return `₹ ${(n / 1e3).toFixed(1)} हजार`;
+    return inr(n);
+  };
+
+  // ward-wise outstanding (top defaulter wards)
+  const wardData = (kpis?.ward_outstanding || []).map((w) => ({ name: `वॉर्ड ${w.ward}`, baki: w.baki }));
+  const hasWardData = wardData.length > 0;
+
+  // top KPI tiles
+  const kpiCards = kpis ? [
+    { key: 'collected', label: 'एकूण वसुली', sub: 'Collected', value: inrShort(kpis.collected), Icon: IndianRupee, ring: 'text-emerald-600 dark:text-emerald-400', chip: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300' },
+    { key: 'outstanding', label: 'एकूण बाकी', sub: 'Outstanding', value: inrShort(kpis.outstanding), Icon: Wallet, ring: 'text-rose-600 dark:text-rose-400', chip: 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300' },
+    { key: 'recovery', label: 'वसुली टक्केवारी', sub: 'Recovery', value: `${kpis.recovery_pct}%`, Icon: Percent, ring: 'text-blue-600 dark:text-blue-400', chip: 'bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300' },
+    { key: 'properties', label: 'एकूण मालमत्ता', sub: 'Properties', value: String(kpis.properties_total), Icon: Building2, ring: 'text-amber-600 dark:text-amber-400', chip: 'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300' },
+    { key: 'certs', label: 'जारी प्रमाणपत्रे', sub: 'Certificates', value: String(kpis.certificates_total), Icon: Award, ring: 'text-purple-600 dark:text-purple-400', chip: 'bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-300' },
+    { key: 'today', label: 'आजच्या नोंदी', sub: "Today's entries", value: String(kpis.today_entries), Icon: CalendarPlus, ring: 'text-teal-600 dark:text-teal-400', chip: 'bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300' },
+  ] : [];
+
   return (
     <div className="p-6">
       {/* super_user only: which gram panchayat is active + switch (only on dashboard) */}
@@ -281,6 +309,27 @@ const Dashboard = () => {
           >
             बदला (Change)
           </button>
+        </div>
+      )}
+
+      {/* KPI summary tiles — collection / recovery / counts at a glance */}
+      {kpiCards.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+          {kpiCards.map(({ key, label, sub, value, Icon, ring, chip }) => (
+            <div
+              key={key}
+              className="flex items-center gap-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 shadow-sm"
+            >
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${chip}`}>
+                <Icon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <div className={`text-lg font-bold leading-none tabular-nums ${ring}`}>{value}</div>
+                <div className="mt-1 truncate text-xs font-medium text-gray-600 dark:text-gray-300">{label}</div>
+                <div className="truncate text-[10px] text-gray-400">{sub}</div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -427,6 +476,25 @@ const Dashboard = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Ward-wise outstanding — top defaulter wards (बाकी) */}
+      {hasWardData && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <Wallet className="w-5 h-5 text-rose-600" />
+            वॉर्डनिहाय थकबाकी (Ward-wise Outstanding)
+          </h2>
+          <ResponsiveContainer width="100%" height={Math.max(180, wardData.length * 42)}>
+            <BarChart data={wardData} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => inrShort(Number(v))} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={70} />
+              <Tooltip formatter={((v: number) => [inr(v), 'बाकी']) as never} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
+              <Bar dataKey="baki" fill="#f43f5e" radius={[0, 6, 6, 0]} maxBarSize={26} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       )}
 

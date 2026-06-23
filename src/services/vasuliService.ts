@@ -12,6 +12,7 @@ const VASULI_ENDPOINTS = {
   UPDATE: (id: number) => `/main/vasuli/${id}`,
   DELETE: (id: number) => `/main/vasuli/${id}`,
   STATS: '/main/vasuli/stats',
+  KPIS: '/main/vasuli/kpis',
   FIND: '/main/vasuli/find',
   GP_PAYMENT_INFO: '/main/vasuli/gp-payment-info',
   PAYMENTS: (vasuliId: number) => `/main/vasuli/${vasuliId}/payments`,
@@ -38,6 +39,17 @@ export interface VasuliAutofillPayload {
   anu_kramank: string;
   ward_number: string;
   year: string;
+}
+
+export interface DashboardKpis {
+  collected: number;
+  outstanding: number;
+  demand: number;
+  recovery_pct: number;
+  ward_outstanding: { ward: string; baki: number }[];
+  properties_total: number;
+  today_entries: number;
+  certificates_total: number;
 }
 
 /** Per-tax-head amounts returned for magil / chalu */
@@ -121,6 +133,11 @@ export const vasuliService = {
    */
   getStats: async (): Promise<ApiResponse> => {
     return api.get(VASULI_ENDPOINTS.STATS);
+  },
+
+  /** Consolidated dashboard KPIs — collection totals, recovery %, ward-wise बाकी, counts */
+  getKpis: async (): Promise<ApiResponse<DashboardKpis>> => {
+    return api.get(VASULI_ENDPOINTS.KPIS);
   },
 
   /** Current user's GP payment details (QR scanners + bank/UPI for ghar & pani) */

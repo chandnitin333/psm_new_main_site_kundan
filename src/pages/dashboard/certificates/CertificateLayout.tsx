@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { authService } from '../../../services';
 
 /* Shared print frame for every certificate: a government-style double-bordered
@@ -12,9 +13,13 @@ interface CertificateLayoutProps {
   children: ReactNode; // the certificate body (per-certificate format)
   outwardNo?: string;  // जावक क्रमांक (optional)
   canPrint?: boolean;  // show the Print button only if the user has print permission
+  verifyToken?: string; // QR verification token (present once the certificate is saved)
 }
 
-const CertificateLayout = ({ title, subtitle, children, outwardNo, canPrint = true }: CertificateLayoutProps) => {
+const CertificateLayout = ({ title, subtitle, children, outwardNo, canPrint = true, verifyToken }: CertificateLayoutProps) => {
+  const verifyUrl = verifyToken
+    ? `${(import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin).replace(/\/$/, '')}/verify/${verifyToken}`
+    : '';
   const [loc] = useState(() => {
     const u = authService.getCurrentUser();
     return {
@@ -86,10 +91,20 @@ const CertificateLayout = ({ title, subtitle, children, outwardNo, canPrint = tr
             <p>३. हे प्रमाणपत्र शासकीय / निमशासकीय कामकाजासाठी वैध आहे.</p>
           </div>
 
-          {/* Place + date */}
-          <div className="mt-3 text-xs">
-            <p>ठिकाण : {loc.gramPanchayat || '—'}</p>
-            <p>दिनांक : {today}</p>
+          {/* Place + date  +  QR authenticity check (once saved) */}
+          <div className="mt-3 flex items-end justify-between">
+            <div className="text-xs">
+              <p>ठिकाण : {loc.gramPanchayat || '—'}</p>
+              <p>दिनांक : {today}</p>
+            </div>
+            {verifyUrl && (
+              <div className="flex flex-col items-center text-center">
+                <QRCodeSVG value={verifyUrl} size={68} level="M" marginSize={0} />
+                <span className="mt-0.5 text-[9px] leading-tight text-gray-600">
+                  सत्यता पडताळणीसाठी<br />स्कॅन करा
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Footer / signatures — kept above the bottom so the office stamp fits below */}

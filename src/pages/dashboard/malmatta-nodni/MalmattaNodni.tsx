@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Edit2, Trash2, Printer, Image, FileText } from 'lucide-react';
 import MagilKarJodaModal from './MagilKarJodaModal';
 import PrintModal from './PrintModal';
@@ -15,6 +15,7 @@ import type { MalmattaRecord } from '../../../interfaces/dashboard/malmatta-nodn
 
 const MalmattaNodni = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast, ToastContainer } = useToast();
   const { showLoader, hideLoader } = useLoading();
   const [currentPage, setCurrentPage] = useState(1);
@@ -93,8 +94,9 @@ const MalmattaNodni = () => {
     }
   };
 
-  // Fetch filtered records
-  const fetchFilteredRecords = async (page: number) => {
+  // Fetch filtered records (optionally with an explicit filter set — used for
+  // query-param prefill, where `filters` state isn't updated synchronously yet)
+  const fetchFilteredRecords = async (page: number, override?: typeof initialFilters) => {
     try {
       showLoader('रेकॉर्ड शोधत आहे... (Searching records...)');
       // Build payload with only non-empty filter values
@@ -102,7 +104,7 @@ const MalmattaNodni = () => {
         page,
         per_page: recordsPerPage,
       };
-      for (const [key, value] of Object.entries(filters)) {
+      for (const [key, value] of Object.entries(override || filters)) {
         if (value.trim()) {
           payload[key] = value.trim();
         }
@@ -120,10 +122,23 @@ const MalmattaNodni = () => {
   // Track whether filter is active
   const [isFilterActive, setIsFilterActive] = useState(false);
 
-  // Load on mount
+  // Load on mount — if a global-search deep link passed filter params, prefill + search
   useEffect(() => {
     document.title = 'Malmatta Nodni - मालमत्ता नोंदणी';
-    fetchRecords(1);
+    const prefill: Partial<typeof initialFilters> = {};
+    (Object.keys(initialFilters) as (keyof typeof initialFilters)[]).forEach((k) => {
+      const v = searchParams.get(k);
+      if (v) prefill[k] = v;
+    });
+    if (Object.keys(prefill).length > 0) {
+      const merged = { ...initialFilters, ...prefill };
+      setFilters(merged);
+      setIsFilterActive(true);
+      fetchFilteredRecords(1, merged);
+    } else {
+      fetchRecords(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const paginate = (pageNumber: number) => {

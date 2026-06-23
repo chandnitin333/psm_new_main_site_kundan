@@ -17,6 +17,18 @@ export interface SaveCertificatePayload {
   data: Record<string, unknown>;
 }
 
+export interface CertificateVerifyResult {
+  valid: boolean;
+  cert_type?: string;
+  cert_name?: string;
+  applicant_name?: string;
+  outward_no?: string;
+  issued_date?: string;
+  gram_panchayat?: string;
+  taluka?: string;
+  district?: string;
+}
+
 export const certificateService = {
   /** Save an issued certificate */
   save: async (payload: SaveCertificatePayload): Promise<ApiResponse> => {
@@ -36,8 +48,13 @@ export const certificateService = {
     return api.get(CERT_ENDPOINTS.STATS);
   },
 
-  /** Full saved certificate (incl. data) for re-view / re-print */
+  /** Full saved certificate (incl. data + verify_token) for re-view / re-print */
   get: async (id: number): Promise<ApiResponse> => {
     return api.get(`${CERT_ENDPOINTS.BASE}/${id}`);
+  },
+
+  /** PUBLIC — verify a certificate's authenticity by its QR token (no login). */
+  verify: async (token: string): Promise<ApiResponse<CertificateVerifyResult>> => {
+    return api.get(`${CERT_ENDPOINTS.BASE}/verify/${encodeURIComponent(token)}`);
   },
 };

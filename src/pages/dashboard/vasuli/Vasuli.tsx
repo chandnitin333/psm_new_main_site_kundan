@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Edit2, Trash2, Eye } from 'lucide-react';
 import YearPicker from '../../../components/common/YearPicker';
 import { MarathiInput } from '../../../components/common';
@@ -36,6 +36,7 @@ const mapApiRecord = (r: VasuliApiRecord): VasuliRecord => ({
 
 const Vasuli = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const firstInputRef = useRef<HTMLInputElement>(null);
   const { toast, ToastContainer } = useToast();
   const { showLoader, hideLoader } = useLoading();
@@ -108,9 +109,20 @@ const Vasuli = () => {
     fetchRecords(pageNumber, filtersRef.current);
   };
 
-  // Initial load: fetch all records (gram-panchayat scoped) and focus first input
+  // Initial load: fetch all records (gram-panchayat scoped) and focus first input.
+  // If a global-search deep link passed anu_kramank / ward_number, prefill + search.
   useEffect(() => {
-    fetchRecords(1, {});
+    const anu = searchParams.get('anu_kramank') || '';
+    const ward = searchParams.get('ward_number') || '';
+    if (anu || ward) {
+      setFormData((prev) => ({ ...prev, anuKramank: anu, wardKramank: ward }));
+      const f: VasuliListPayload = {};
+      if (anu) f.anu_kramank = anu;
+      if (ward) f.ward_number = ward;
+      fetchRecords(1, f);
+    } else {
+      fetchRecords(1, {});
+    }
     if (firstInputRef.current) {
       firstInputRef.current.focus();
     }

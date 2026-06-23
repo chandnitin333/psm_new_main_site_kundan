@@ -13,6 +13,7 @@ import Login from '../pages/public/Login';
 import Partners from '../pages/public/Partners';
 import LegalPage from '../pages/public/LegalPage';
 import PublicReportViewer from '../pages/public/PublicReportViewer';
+import CertificateVerify from '../pages/public/CertificateVerify';
 import Register from '../pages/public/Register';
 import ForgotPassword from '../pages/public/ForgotPassword';
 import ResetPassword from '../pages/public/ResetPassword';
@@ -136,6 +137,11 @@ export const createRouter = (handleLogout: () => void) =>
       // PUBLIC scanned-QR report viewer (no login, no layout)
       path: '/r/:token',
       element: <PublicReportViewer />,
+    },
+    {
+      // PUBLIC certificate authenticity check (scanned from a certificate's QR)
+      path: '/verify/:token',
+      element: <CertificateVerify />,
     },
     {
       // super_user: pick the gram panchayat to work in (standalone, no dashboard layout)

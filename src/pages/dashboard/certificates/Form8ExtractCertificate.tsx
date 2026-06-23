@@ -11,6 +11,7 @@ const Form8ExtractCertificate = () => {
   const { toast, ToastContainer } = useToast();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [verifyToken, setVerifyToken] = useState('');
   const [f, setF] = useState({
     ownerName: '', address: '', propertyNo: '', wardNo: '', area: '',
     annualValue: '', taxAmount: '', year: '',
@@ -29,8 +30,10 @@ const Form8ExtractCertificate = () => {
     (async () => {
       try {
         const res = await certificateService.get(Number(id));
-        const d = (res?.data as { data?: Record<string, string> })?.data;
+        const row = res?.data as { data?: Record<string, string>; verify_token?: string } | undefined;
+        const d = row?.data;
         if (res.success && d) setF((p) => ({ ...p, ...d }));
+        if (row?.verify_token) setVerifyToken(row.verify_token);
       } catch { /* ignore */ }
     })();
   }, [params]);
@@ -51,7 +54,7 @@ const Form8ExtractCertificate = () => {
         outward_no: f.outwardNo,
         data: f,
       });
-      if (res.success) { toast.success('प्रमाणपत्र जतन झाले (Saved)'); setSaved(true); }
+      if (res.success) { toast.success('प्रमाणपत्र जतन झाले (Saved)'); setSaved(true); setVerifyToken((res.data as { verify_token?: string })?.verify_token || ''); }
       else toast.error(res.message || 'जतन करताना त्रुटी');
     } catch {
       toast.error('जतन करताना त्रुटी आली');
@@ -145,6 +148,7 @@ const Form8ExtractCertificate = () => {
             subtitle="(Form 8 Extract — मालमत्ता कर नोंदवही उतारा)"
             outwardNo={f.outwardNo}
             canPrint={canPrint}
+            verifyToken={verifyToken}
           >
             <p className="text-justify">
               ग्रामपंचायत नमुना ८ नुसार खालील मालमत्तेचा उतारा देण्यात येत आहे —

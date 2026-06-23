@@ -12,6 +12,7 @@ const DeathCertificate = () => {
   const { toast, ToastContainer } = useToast();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [verifyToken, setVerifyToken] = useState('');
   const [f, setF] = useState({
     deceasedName: '', gender: 'पुरुष', age: '', dod: '', placeOfDeath: '',
     relation: 'वडील', parentName: '', address: '',
@@ -32,8 +33,10 @@ const DeathCertificate = () => {
     (async () => {
       try {
         const res = await certificateService.get(Number(id));
-        const d = (res?.data as { data?: Record<string, string> })?.data;
+        const row = res?.data as { data?: Record<string, string>; verify_token?: string } | undefined;
+        const d = row?.data;
         if (res.success && d) setF((p) => ({ ...p, ...d }));
+        if (row?.verify_token) setVerifyToken(row.verify_token);
       } catch { /* ignore */ }
     })();
   }, [params]);
@@ -54,7 +57,7 @@ const DeathCertificate = () => {
         outward_no: f.outwardNo,
         data: f,
       });
-      if (res.success) { toast.success('प्रमाणपत्र जतन झाले (Saved)'); setSaved(true); }
+      if (res.success) { toast.success('प्रमाणपत्र जतन झाले (Saved)'); setSaved(true); setVerifyToken((res.data as { verify_token?: string })?.verify_token || ''); }
       else toast.error(res.message || 'जतन करताना त्रुटी');
     } catch {
       toast.error('जतन करताना त्रुटी आली');
@@ -176,6 +179,7 @@ const DeathCertificate = () => {
             subtitle="(जन्म-मृत्यू नोंदणी अधिनियम, १९६९ अंतर्गत)"
             outwardNo={f.outwardNo}
             canPrint={canPrint}
+            verifyToken={verifyToken}
           >
             <p className="text-justify">
               प्रमाणित करण्यात येते की, खालील व्यक्तीची मृत्यू नोंद या ग्रामपंचायतीच्या जन्म-मृत्यू

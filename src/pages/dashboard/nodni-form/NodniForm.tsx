@@ -13,6 +13,7 @@ import { useLoading } from '../../../contexts/LoadingContext';
 import { trackAction } from '../../../utils/tracker';
 import type { NodniFormData } from '../../../interfaces/dashboard/nodni-form/NodniForm.types';
 import { authService, nodniService } from '../../../services';
+import type { DuplicateMatch } from '../../../services/nodniService';
 import { MarathiInput } from '../../../components/common';
 
 interface TaxItem {
@@ -29,6 +30,10 @@ const NodniForm = () => {
   const { showLoader, hideLoader } = useLoading();
   const [editingId, setEditingId] = useState<number | null>(null);
   const editApiDataRef = useRef<Record<string, any> | null>(null);
+
+  // Soft duplicate detection — matches found on last save attempt (shows a warning banner)
+  const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
+  const [dupChecking, setDupChecking] = useState(false);
 
   // Optional image (uploaded AFTER the nodni is saved, using its id)
   const [nodniImageFile, setNodniImageFile] = useState<File | null>(null);
@@ -826,13 +831,39 @@ const NodniForm = () => {
     if (nodniImageInputRef.current) nodniImageInputRef.current.value = '';
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent, opts?: { skipDupCheck?: boolean }) => {
+    if (e) e.preventDefault();
 
     if (!formData.gharMalkacheNav.trim()) {
       toast.error('घर मालकाचे नाव आवश्यक आहे (House owner name is required)');
       return;
     }
+
+    // Soft duplicate check (skipped once the user clicks "तरीही जतन करा")
+    if (!opts?.skipDupCheck) {
+      setDupChecking(true);
+      try {
+        const dupRes = await nodniService.checkDuplicate({
+          malmatta_number: formData.malmattaNo,
+          ward_kramnak: formData.wardNo,
+          anu_kramank: formData.anuKramank,
+          mobile_number: formData.mobileNo,
+          ghar_malkache_nav: formData.gharMalkacheNav,
+          exclude_id: editingId || undefined,
+        });
+        const found = dupRes?.data?.duplicates || [];
+        if (dupRes.success && found.length > 0) {
+          setDuplicates(found);
+          setDupChecking(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return; // wait for the user to confirm or cancel
+        }
+      } catch {
+        /* duplicate check is best-effort — never block saving on its failure */
+      }
+      setDupChecking(false);
+    }
+    setDuplicates([]);
 
     showLoader(editingId ? 'अद्यतन करत आहे... (Updating...)' : 'नोंदणी जतन करत आहे... (Saving...)');
 
@@ -997,6 +1028,74 @@ const NodniForm = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
             नोंदणी फॉर्म (Nodni Form)
           </h1>
+
+          {/* Soft duplicate warning — does not block, lets the user save anyway */}
+          {duplicates.length > 0 && (
+            <div className="mb-5 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-700/60 dark:bg-amber-900/20">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 text-xl">⚠️</span>
+                <div className="flex-1">
+                  <p className="font-semibold text-amber-800 dark:text-amber-200">
+                    अशीच नोंद आधीपासून आहे ({duplicates.length})
+                  </p>
+                  <p className="mt-0.5 text-sm text-amber-700 dark:text-amber-300">
+                    खालील जुळणारी नोंद आढळली. कृपया तपासा — डुप्लिकेट टाळण्यासाठी.
+                  </p>
+                  <ul className="mt-3 space-y-2">
+                    {duplicates.map((d) => (
+                      <li
+                        key={d.id}
+                        className="rounded-md border border-amber-200 bg-white px-3 py-2 text-sm dark:border-amber-700/40 dark:bg-gray-800"
+                      >
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {d.ghar_malkache_nav || '—'}
+                          </span>
+                          {d.malmatta_number && (
+                            <span className="text-gray-600 dark:text-gray-400">मालमत्ता क्र.: {d.malmatta_number}</span>
+                          )}
+                          <span className="text-gray-600 dark:text-gray-400">
+                            वॉर्ड {d.ward_kramnak || '—'} / अनु.क्र. {d.anu_kramank || '—'}
+                          </span>
+                          {d.mobile_number && (
+                            <span className="text-gray-600 dark:text-gray-400">📱 {d.mobile_number}</span>
+                          )}
+                        </div>
+                        {d.match_reasons?.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {d.match_reasons.map((r, i) => (
+                              <span
+                                key={i}
+                                className="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800 dark:bg-amber-800/40 dark:text-amber-200"
+                              >
+                                {r}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleSubmit(undefined, { skipDupCheck: true })}
+                      className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700"
+                    >
+                      तरीही जतन करा (Save anyway)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDuplicates([])}
+                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                      रद्द करा (Cancel)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
         <form onSubmit={handleSubmit} className="space-y-6 nodni-form-scope">
           {/* Basic Information */}
@@ -1995,9 +2094,10 @@ const NodniForm = () => {
           <div className="flex justify-center gap-4">
             <button
                 type="submit"
-                className="px-8 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors font-medium"
+                disabled={dupChecking}
+                className="px-8 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors font-medium disabled:opacity-60"
               >
-                {editingId ? 'बदल करा (Update)' : 'जतन करा (Save)'}
+                {dupChecking ? 'तपासत आहे... (Checking...)' : editingId ? 'बदल करा (Update)' : 'जतन करा (Save)'}
               </button>
               <button
                 type="button"

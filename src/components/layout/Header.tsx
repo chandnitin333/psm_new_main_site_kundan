@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Sun, Moon, ChevronDown, User, LogOut, HelpCircle, Lock, Settings, Home, UserCircle } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useDropdownDelay } from '../../utils/dropdown';
+import GlobalSearch from './GlobalSearch';
 import type { MenuItem } from '../../interfaces';
 
 interface UserData {
@@ -187,6 +188,9 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
 
           {/* Right side actions */}
           <div className="flex items-center gap-2">
+            {/* Global Search (Dashboard only) */}
+            {isAuthenticated && <GlobalSearch />}
+
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}

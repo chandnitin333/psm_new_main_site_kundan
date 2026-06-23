@@ -12,6 +12,7 @@ const BPLCertificate = () => {
   const { toast, ToastContainer } = useToast();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [verifyToken, setVerifyToken] = useState('');
   const [f, setF] = useState({
     name: '', relation: 'वडील', parent: '', age: '', gender: 'पुरुष',
     address: '', members: '', annualIncome: '',
@@ -33,8 +34,10 @@ const BPLCertificate = () => {
     (async () => {
       try {
         const res = await certificateService.get(Number(id));
-        const d = (res?.data as { data?: Record<string, string> })?.data;
+        const row = res?.data as { data?: Record<string, string>; verify_token?: string } | undefined;
+        const d = row?.data;
         if (res.success && d) setF((p) => ({ ...p, ...d }));
+        if (row?.verify_token) setVerifyToken(row.verify_token);
       } catch { /* ignore */ }
     })();
   }, [params]);
@@ -55,7 +58,7 @@ const BPLCertificate = () => {
         outward_no: f.outwardNo,
         data: f,
       });
-      if (res.success) { toast.success('प्रमाणपत्र जतन झाले (Saved)'); setSaved(true); }
+      if (res.success) { toast.success('प्रमाणपत्र जतन झाले (Saved)'); setSaved(true); setVerifyToken((res.data as { verify_token?: string })?.verify_token || ''); }
       else toast.error(res.message || 'जतन करताना त्रुटी');
     } catch {
       toast.error('जतन करताना त्रुटी आली');
@@ -181,6 +184,7 @@ const BPLCertificate = () => {
             subtitle="(Below Poverty Line — BPL Certificate)"
             outwardNo={f.outwardNo}
             canPrint={canPrint}
+            verifyToken={verifyToken}
           >
             <p className="text-justify">
               प्रमाणित करण्यात येते की, श्री./श्रीमती <strong>{f.name || '________________'}</strong>{' '}

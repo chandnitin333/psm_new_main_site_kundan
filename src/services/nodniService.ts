@@ -5,6 +5,17 @@
 
 import { api, type ApiResponse } from './api';
 
+export interface DuplicateMatch {
+  id: number;
+  anu_kramank: string | null;
+  malmatta_number: string | null;
+  ward_kramnak: string | null;
+  ghar_malkache_nav: string | null;
+  bhogavat_darache_nav: string | null;
+  mobile_number: string | null;
+  match_reasons: string[];
+}
+
 const NODNI_ENDPOINTS = {
   CREATE: '/main/nodni',
   UPDATE: (id: number) => `/main/nodni/${id}`,
@@ -14,6 +25,7 @@ const NODNI_ENDPOINTS = {
   DHARKACHI_YADI: '/main/nodni/dharkachi-yadi',
   TAX_LIST: '/main/nodni/tax-list',
   NEXT_ANU_KRAMANK: '/main/nodni/next-anu-kramank',
+  CHECK_DUPLICATE: '/main/nodni/check-duplicate',
   SEARCH: '/main/malmatta-nodni/search',
   FILTER: '/main/malmatta-nodni/filter',
   CHECK_SILLAK_JODA: '/main/malmatta-nodni/previous-tax/check-sillak-joda-exist',
@@ -41,6 +53,21 @@ export const nodniService = {
 
   create: async (payload: Record<string, unknown>): Promise<ApiResponse> => {
     return api.post(NODNI_ENDPOINTS.CREATE, payload);
+  },
+
+  /**
+   * Soft duplicate check before saving a property. Returns matching records
+   * (with match_reasons) so the form can warn — never blocks.
+   */
+  checkDuplicate: async (payload: {
+    malmatta_number?: string;
+    ward_kramnak?: string | number;
+    anu_kramank?: string | number;
+    mobile_number?: string;
+    ghar_malkache_nav?: string;
+    exclude_id?: number;
+  }): Promise<ApiResponse<{ duplicates: DuplicateMatch[] }>> => {
+    return api.post(NODNI_ENDPOINTS.CHECK_DUPLICATE, payload);
   },
 
   /**
