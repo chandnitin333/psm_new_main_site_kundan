@@ -2,7 +2,7 @@ name: Build & Deploy Main Site
 
 on:
   push:
-    branches: [main]
+    branches: [main, master, kundan_dev]
   workflow_dispatch: {}
 
 permissions:
