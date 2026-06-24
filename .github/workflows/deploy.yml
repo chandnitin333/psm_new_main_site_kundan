@@ -2,7 +2,7 @@ name: Build & Deploy Main Site
 
 on:
   push:
-    branches: [main, master, kundan_dev]
+    branches: [main]
   workflow_dispatch: {}
 
 permissions:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build-deploy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted]
     steps:
       - uses: actions/checkout@v4
 
