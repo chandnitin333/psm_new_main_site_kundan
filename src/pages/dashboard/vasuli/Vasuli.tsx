@@ -234,18 +234,18 @@ const Vasuli = () => {
       <ToastContainer />
       <div className="space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        <div className="flex items-center justify-between mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
             वसुली (Vasuli)
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
           {canModule('vasuli_field') && (
           <button
             type="button"
             onClick={() => navigate('/collection-mode')}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium"
+            className="flex flex-1 sm:flex-none items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm whitespace-nowrap border border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium"
           >
-            <Smartphone className="w-5 h-5" />
+            <Smartphone className="w-5 h-5 shrink-0" />
             फिरती वसुली
           </button>
           )}
@@ -253,9 +253,9 @@ const Vasuli = () => {
           <button
             type="button"
             onClick={() => navigate('/collection-daybook')}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium"
+            className="flex flex-1 sm:flex-none items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm whitespace-nowrap border border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium"
           >
-            <BookOpen className="w-5 h-5" />
+            <BookOpen className="w-5 h-5 shrink-0" />
             दैनिक रजिस्टर
           </button>
           )}
@@ -263,10 +263,10 @@ const Vasuli = () => {
           <button
             type="button"
             onClick={handleAddVasuli}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+            className="flex flex-1 sm:flex-none items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm whitespace-nowrap bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
           >
-            <Plus className="w-5 h-5" />
-            वसुली जोडा (Add Vasuli)
+            <Plus className="w-5 h-5 shrink-0" />
+            वसुली जोडा <span className="hidden lg:inline">(Add Vasuli)</span>
           </button>
           )}
           </div>
