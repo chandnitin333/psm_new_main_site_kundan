@@ -32,8 +32,8 @@ jobs:
           push: true
           tags: ${{ env.IMAGE }}:latest
           build-args: |
-            VITE_API_BASE_URL=http://apipsm.gramvikas.co.in/api
-            VITE_PUBLIC_BASE_URL=http://psm.gramvikas.co.in
+            VITE_API_BASE_URL=https://apipsm.gramvikas.co.in/api
+            VITE_PUBLIC_BASE_URL=https://psm.gramvikas.co.in
 
       - name: Deploy on VPS (pull + restart)
         uses: appleboy/ssh-action@v1.0.3
