@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Modal from '../../../components/common/Modal';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, Camera } from 'lucide-react';
+import { compressImage } from '../../../utils/imageCompress';
 import type { ImageUploadModalProps } from '../../../interfaces/dashboard/malmatta-nodni/ImageUploadModal.types';
 
 const ImageUploadModal = ({ isOpen, onClose, onSave, khatedharkacheNav, existingImageUrl }: ImageUploadModalProps) => {
@@ -35,26 +36,29 @@ const ImageUploadModal = ({ isOpen, onClose, onSave, khatedharkacheNav, existing
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('कृपया फक्त इमेज फाइल निवडा (Please select only image files)');
-        return;
-      }
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const original = e.target.files?.[0];
+    if (!original) return;
 
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({
-          ...prev,
-          imageFile: file,
-          imagePreview: reader.result as string,
-        }));
-      };
-      reader.readAsDataURL(file);
+    // Validate file type
+    if (!original.type.startsWith('image/')) {
+      alert('कृपया फक्त इमेज फाइल निवडा (Please select only image files)');
+      return;
     }
+
+    // Compress/resize large photos before upload (camera shots are often 3-8 MB)
+    const file = await compressImage(original);
+
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData(prev => ({
+        ...prev,
+        imageFile: file,
+        imagePreview: reader.result as string,
+      }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleRemoveImage = () => {
@@ -154,7 +158,25 @@ const ImageUploadModal = ({ isOpen, onClose, onSave, khatedharkacheNav, existing
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             इमेज अपलोड (Upload Image)
           </label>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Camera — opens device camera directly (mobile) */}
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleImageSelect}
+              className="hidden"
+              id="image-camera"
+            />
+            <label
+              htmlFor="image-camera"
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer font-medium"
+            >
+              <Camera className="w-5 h-5" />
+              कॅमेरा (Camera)
+            </label>
+
+            {/* Gallery / files */}
             <input
               type="file"
               ref={fileInputRef}
@@ -168,10 +190,10 @@ const ImageUploadModal = ({ isOpen, onClose, onSave, khatedharkacheNav, existing
               className="flex items-center gap-2 px-4 py-2 bg-[rgb(106,115,55)] text-white rounded-lg hover:bg-[rgb(86,95,35)] transition-colors cursor-pointer font-medium"
             >
               <Upload className="w-5 h-5" />
-              इमेज निवडा (Choose Image)
+              गॅलरी (Gallery)
             </label>
             {formData.imageFile && (
-              <span className="text-sm text-gray-700 dark:text-gray-300">
+              <span className="w-full text-sm text-gray-700 dark:text-gray-300 sm:w-auto">
                 {formData.imageFile.name}
               </span>
             )}
