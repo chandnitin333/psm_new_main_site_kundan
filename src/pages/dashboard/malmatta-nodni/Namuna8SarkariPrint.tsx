@@ -111,7 +111,9 @@ const Namuna8SarkariPrint = () => {
           .no-print { display: none !important; }
           .namuna8s-report { zoom: 0.85; padding: 0 !important; min-height: 0; }
           .n8s-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
-          .n8s-zoom { zoom: 1 !important; }   /* ignore screen zoom while printing */
+          .n8s-zoom { zoom: 1 !important; page-break-inside: avoid; break-inside: avoid; }   /* ignore screen zoom while printing; keep report on one page */
+          /* print-only: enlarge cell text for readability (screen unaffected) */
+          .namuna8s-report td { font-size: 15px !important; line-height: 1.2 !important; }
         }`}</style>
 
       <div className="no-print mb-4 flex items-center gap-3">

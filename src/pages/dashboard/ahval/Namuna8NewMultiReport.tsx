@@ -273,11 +273,15 @@ const Namuna8NewMultiReport = () => {
           @page { size: A4 landscape; margin: 24mm 4mm 8mm 12mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
-          .n8nm-report { zoom: 0.98; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .n8nm-report { zoom: 0.9; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .n8nm-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
           .n8nm-zoom { zoom: 1 !important; }   /* ignore screen zoom while printing */
-          .n8nm-page { page-break-after: always; }
+          /* each report must stay on a single page */
+          .n8nm-page { page-break-after: always; page-break-inside: avoid; break-inside: avoid; }
           .n8nm-page:last-child { page-break-after: auto; }
+          /* print-only: enlarge dense cell text for readability (screen unaffected) */
+          .n8nm-report td { font-size: 11px !important; line-height: 1.15 !important; }
+          .n8nm-report th { font-size: 10px !important; }
         }`}</style>
 
       <div className="no-print mb-4 flex items-center gap-3">

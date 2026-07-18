@@ -48,11 +48,11 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
   return (
     <div className="n8m-page mx-auto" style={{ width: `${tableW}px` }}>
       <div className="text-center">
-        <p className="font-bold text-lg">नमुना ८</p>
-        <p className="text-sm">
+        <p className="font-bold text-[22px]">नमुना ८</p>
+        <p className="text-[16px]">
           सन {cy}-{cy + 1} ते {cy + 3}-{cy + 4} या वर्षासाठी करास पात्र असलेल्या इमारती व जमिनी (खुला भूखंड) यांची कर आकारणी नोंदवही.
         </p>
-        <p className="text-sm">सदर नोंद ग्रामपंचायत नमुना ८ पान क्रमांक __{s(n.anu_kramank)}__ वरून घेण्यात आली</p>
+        <p className="text-[16px]">सदर नोंद ग्रामपंचायत नमुना ८ पान क्रमांक __{s(n.anu_kramank)}__ वरून घेण्यात आली</p>
       </div>
       <div className="flex justify-between text-sm mt-1 mb-0.5">
         <span>जिल्हा :- {loc.district}</span>
@@ -337,8 +337,10 @@ const Namuna8MultiReport = () => {
           .n8m-report { zoom: 0.75; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .n8m-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
           .n8m-zoom { zoom: 1 !important; }
-          .n8m-page { page-break-after: always; }
+          .n8m-page { page-break-after: always; page-break-inside: avoid; break-inside: avoid; }
           .n8m-page:last-child { page-break-after: auto; }
+          /* print-only: enlarge cell text for readability (screen unaffected) */
+          .n8m-report td { font-size: 15px !important; line-height: 1.15 !important; }
         }`}</style>
 
       <div className="no-print mb-4 flex items-center gap-3">

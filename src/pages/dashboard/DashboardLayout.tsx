@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Header from '../../components/layout/Header';
 import Sidebar from '../../components/layout/Sidebar';
 import PageTracker from '../../components/PageTracker';
+import GramSahayak from '../../components/assistant/GramSahayak';
 import { DASHBOARD_MENU_ITEMS } from '../../constants/menuItems';
 import { filterMenuItems } from '../../utils/permissions';
 import type { DashboardLayoutProps } from '../../interfaces/dashboard/DashboardLayout.types';
@@ -43,6 +44,9 @@ const DashboardLayout = ({ onLogout }: DashboardLayoutProps) => {
           </div>
         </main>
       </div>
+
+      {/* AI-free guided assistant — floating on all dashboard pages */}
+      <GramSahayak />
     </div>
   );
 };

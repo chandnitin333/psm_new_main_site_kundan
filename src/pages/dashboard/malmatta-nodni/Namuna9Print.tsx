@@ -156,6 +156,10 @@ const Namuna9Print = () => {
           .namuna9-report { zoom: 0.85; padding: 0 !important; min-height: 0; }
           .n9-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
           .n9-zoom { zoom: 1 !important; }   /* ignore screen zoom while printing */
+          /* print-only: enlarge cell text for readability (screen unaffected) */
+          .namuna9-report td { font-size: 15px !important; line-height: 1.2 !important; }
+          .namuna9-report th { font-size: 13px !important; line-height: 1.2 !important; }
+          .n9-zoom { page-break-inside: avoid; break-inside: avoid; }
         }`}</style>
 
       <div className="no-print mb-4 flex items-center gap-3">

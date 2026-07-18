@@ -312,6 +312,9 @@ const Namuna9NewMultiReport = () => {
 
   // pagination for front/back modes: portrait 10 / landscape 6 records per page
   const perPage = orientation === 'landscape' ? 6 : 10;
+  // print font — portrait front/back is zoomed down the most (0.66), so it needs a bigger base font
+  const tdFont = side === '' ? 13 : (orientation === 'landscape' ? 13 : 15);
+  const thFont = side === '' ? 12 : (orientation === 'landscape' ? 12 : 13);
   const chunks: Row[][] = [];
   if (side) {
     for (let i = 0; i < records.length; i += perPage) chunks.push(records.slice(i, i + perPage));
@@ -321,7 +324,7 @@ const Namuna9NewMultiReport = () => {
   const printInner = side === ''
     ? `@page { size: A4 landscape; margin: 24mm 3mm 8mm 15mm; }
        .n9n-report { zoom: 0.95; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }`
-    : `@page { size: ${orientation === 'landscape' ? 'A4 landscape' : 'A4 portrait'}; margin: ${orientation === 'landscape' ? '10mm 4mm 8mm 4mm' : '10mm 3mm 8mm 3mm'}; }
+    : `@page { size: ${orientation === 'landscape' ? 'A4 landscape' : 'A4 portrait'}; margin: ${orientation === 'landscape' ? '20mm 4mm 8mm 4mm' : '10mm 3mm 8mm 3mm'}; }
        .n9n-report { zoom: ${orientation === 'landscape' ? 0.9 : 0.66}; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
        .n9n-page { page-break-after: always; page-break-inside: avoid; }
        .n9n-page:last-child { page-break-after: auto; }`;
@@ -337,6 +340,9 @@ const Namuna9NewMultiReport = () => {
           .no-print { display: none !important; }
           .n9n-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
           .n9n-zoom { zoom: 1 !important; }
+          /* print-only: enlarge dense cell text for readability (screen unaffected) */
+          .n9n-report td { font-size: ${tdFont}px !important; }
+          .n9n-report th { font-size: ${thFont}px !important; }
           ${printInner}
         }`}</style>
 

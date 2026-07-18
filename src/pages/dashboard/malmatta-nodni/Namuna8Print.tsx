@@ -125,13 +125,17 @@ const Namuna8Print = () => {
         .namuna8-report { min-height: 100vh; background: #fff; }
         @media print {
           /* top right bottom left — more space at top & left, less at right */
-          @page { size: A4 landscape; margin: 24mm 4mm 8mm 16mm; }
+          @page { size: A4 landscape; margin: 24mm 4mm 8mm 12mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
-          .namuna8-report { zoom: 0.85; padding: 0 !important; min-height: 0; }   /* shrink wide tables to fit the page */
+          .namuna8-report { zoom: 0.78; padding: 0 !important; min-height: 0; }   /* shrink wide (1325px) table to fit A4 landscape width */
           /* center the fixed-width tables/header/footer so left & right gaps are equal */
           .n8-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
           .n8-zoom { zoom: 1 !important; }   /* ignore screen zoom while printing */
+          /* print-only: enlarge cell text for readability (screen unaffected) */
+          .namuna8-report td { font-size: 15px !important; line-height: 1.15 !important; }
+          /* keep the single report on one page */
+          .n8-zoom { page-break-inside: avoid; break-inside: avoid; }
         }`}</style>
 
       <div className="no-print mb-4 flex items-center gap-3">
@@ -176,15 +180,15 @@ const Namuna8Print = () => {
       <div className="n8-zoom mx-auto relative" style={{ width: `${tableW}px`, zoom }}>
       {qrUrl && (
         <div style={{ position: 'absolute', top: 16, right: 55 }}>
-          <QRCodeSVG value={qrUrl} size={52} level="M" marginSize={0} />
+          <QRCodeSVG value={qrUrl} size={68} level="M" marginSize={0} />
         </div>
       )}
       <div className="text-center">
-        <p className="font-bold text-lg">नमुना ८</p>
-        <p className="text-sm">
+        <p className="font-bold text-[22px]">नमुना ८</p>
+        <p className="text-[16px]">
           सन {cy}-{cy + 1} ते {cy + 3}-{cy + 4} या वर्षासाठी करास पात्र असलेल्या इमारती व जमिनी (खुला भूखंड) यांची कर आकारणी नोंदवही.
         </p>
-        <p className="text-sm">
+        <p className="text-[16px]">
           सदर नोंद ग्रामपंचायत नमुना ८ पान क्रमांक __{s(n.anu_kramank)}__ वरून घेण्यात आली
         </p>
       </div>

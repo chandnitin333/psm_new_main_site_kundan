@@ -72,10 +72,13 @@ const ImlaKarAnukramikaReport = () => {
         html, body { background: #fff !important; }
         .ika-report { min-height: 100vh; background: #fff; }
         @media print {
-          @page { size: A4 portrait; margin: 20mm 8mm 8mm 8mm; }
+          @page { size: A4 portrait; margin: 20mm 8mm 10mm 14mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
           .ika-report { padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          /* print-only: enlarge cell text for readability (screen unaffected) */
+          .ika-report th, .ika-report td { font-size: 14px !important; line-height: 1.35 !important; padding: 5px 8px !important; }
+          .ika-report thead { display: table-header-group; }
         }`}</style>
 
       <div className="no-print mb-4">

@@ -98,11 +98,11 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
             <td className={tdb} colSpan={2}>घरमालकाचे नाव</td>
             <td className={td} colSpan={11}>{s(n.ghar_malkache_nav)}</td>
             <td className={td} colSpan={9}>आधार कार्ड / वोटर कार्ड</td>
-            <td className={`${td} p-1`} colSpan={7} rowSpan={8} style={{ height: '264px' }}>
+            <td className={`${td} p-1`} colSpan={7} rowSpan={8} style={{ height: '302px' }}>
               {imgUrl ? (
-                <img src={imgUrl} alt="property" style={{ width: '100%', height: '262px', objectFit: 'fill', display: 'block' }} />
+                <img src={imgUrl} alt="property" style={{ width: '100%', height: '300px', objectFit: 'fill', display: 'block' }} />
               ) : (
-                <div className="flex items-center justify-center text-gray-400 text-xs" style={{ height: '262px' }}>चित्र उपलब्ध नाही</div>
+                <div className="flex items-center justify-center text-gray-400 text-xs" style={{ height: '300px' }}>चित्र उपलब्ध नाही</div>
               )}
             </td>
           </tr>
@@ -345,11 +345,13 @@ const Namuna8ImagesMultiReport = () => {
           @page { size: A4 landscape; margin: 22mm 4mm 8mm 14mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
-          .n8im-report { zoom: 0.7; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .n8im-report { zoom: 0.72; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .n8im-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
           .n8im-zoom { zoom: 1 !important; }
-          .n8im-page { page-break-after: always; }
+          .n8im-page { page-break-after: always; page-break-inside: avoid; break-inside: avoid; }
           .n8im-page:last-child { page-break-after: auto; }
+          /* print-only: enlarge cell text for readability (screen unaffected) */
+          .n8im-report td { font-size: 15px !important; line-height: 1.15 !important; }
         }`}</style>
 
       <div className="no-print mb-4 flex items-center gap-3">

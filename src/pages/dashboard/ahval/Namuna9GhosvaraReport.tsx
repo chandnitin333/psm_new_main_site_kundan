@@ -117,7 +117,7 @@ const Namuna9GhosvaraReport = () => {
     ),
   };
 
-  const th = 'border border-black px-2 py-1 text-[12px] font-bold text-center bg-gray-100';
+  const th = 'border border-black px-2 py-1 text-[12px] font-bold text-center align-middle bg-gray-100';
   const td = 'border border-black px-2 py-1 text-[12px] text-center align-middle';
   const tdL = 'border border-black px-2 py-1 text-[12px] text-left align-middle font-medium';
 
@@ -126,8 +126,8 @@ const Namuna9GhosvaraReport = () => {
 
   const Cols = () => (
     <colgroup>
-      <col style={{ width: '10%' }} />
-      <col style={{ width: '30%' }} />
+      <col style={{ width: '15%' }} />
+      <col style={{ width: '25%' }} />
       <col style={{ width: '15%' }} />
       <col style={{ width: '15%' }} />
       <col style={{ width: '15%' }} />
@@ -161,10 +161,13 @@ const Namuna9GhosvaraReport = () => {
         html, body { background: #fff !important; }
         .ng9-report { min-height: 100vh; background: #fff; }
         @media print {
-          @page { size: A4 portrait; margin: 24mm 8mm 8mm 8mm; }
+          @page { size: A4 portrait; margin: 24mm 8mm 10mm 14mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
           .ng9-report { padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          /* print-only: enlarge cell text for readability (screen unaffected) */
+          .ng9-report th, .ng9-report td { font-size: 14px !important; line-height: 1.35 !important; padding: 5px 8px !important; }
+          .ng9-report thead { display: table-header-group; }
         }`}</style>
 
       <div className="no-print mb-4">

@@ -19,8 +19,8 @@ const BillWard = () => {
   const [formData, setFormData] = useState({
     year: String(currentYear),       // default to current year
     toYear: String(currentYear + 1),
-    deyakDinank: todayStr,           // default to today
-    antimTarik: todayStr,            // default to today (editable)
+    deyakDinank: '',                 // empty — user chooses (report page)
+    antimTarik: '',                  // empty — user chooses (report page)
     start: '',
     end: '',
     bharna: '',
@@ -71,16 +71,12 @@ const BillWard = () => {
     column129_2: String(w),
   }));
 
-  // All fields are required before generating a report
+  // Only वर्ष / ते वर्ष are required. दिनांक, अंतिम तारीख, सुरुवात/शेवट क्रमांक and
+  // भरणा are optional — if filled they flow into the report, otherwise omitted.
   const validateRequired = (): boolean => {
     const missing: string[] = [];
     if (!formData.year) missing.push('वर्ष');
     if (!formData.toYear) missing.push('ते वर्ष');
-    if (!formData.deyakDinank) missing.push('देयक दिनांक');
-    if (!formData.antimTarik) missing.push('अंतिम तारीख');
-    if (!formData.start) missing.push('सुरुवात क्रमांक');
-    if (!formData.end) missing.push('शेवट क्रमांक');
-    if (!formData.bharna) missing.push('भरणा');
     if (missing.length > 0) {
       toast.error(`कृपया सर्व आवश्यक माहिती भरा (Required): ${missing.join(', ')}`);
       return false;

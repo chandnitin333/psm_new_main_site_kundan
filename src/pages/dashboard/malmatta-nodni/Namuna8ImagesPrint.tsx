@@ -127,7 +127,9 @@ const Namuna8ImagesPrint = () => {
           .no-print { display: none !important; }
           .namuna8i-report { zoom: 0.7; padding: 0 !important; min-height: 0; }
           .n8i-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
-          .n8i-zoom { zoom: 1 !important; }
+          .n8i-zoom { zoom: 1 !important; page-break-inside: avoid; break-inside: avoid; }
+          /* print-only: enlarge cell text for readability (screen unaffected) */
+          .namuna8i-report td { font-size: 15px !important; line-height: 1.2 !important; }
         }`}</style>
 
       <div className="no-print mb-4 flex items-center gap-3">
