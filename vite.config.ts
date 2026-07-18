@@ -42,6 +42,11 @@ export default defineConfig({
             purpose: 'maskable',
           },
         ],
+        // Lets the site detect its own installed PWA via navigator.getInstalledRelatedApps()
+        // (Chrome/Android) so the install button/help never shows in the browser once installed.
+        related_applications: [
+          { platform: 'webapp', url: 'https://psm.gramvikas.co.in/manifest.webmanifest' },
+        ],
       },
       workbox: {
         // precache the built app shell
