@@ -27,7 +27,7 @@ const thc = `${td} font-bold bg-gray-100`;
 const colW = [55, 70, 80, 75, 90, 75, 75, 85, 75, 90, 70, 80, 80, 75, 90];
 const tableW = colW.reduce((x, y) => x + y, 0);
 
-const RecordBlock = ({ n, loc }: { n: Row; loc: { district: string; taluka: string; gramPanchayat: string } }) => {
+const RecordBlock = ({ n, loc, qrUrl }: { n: Row; loc: { district: string; taluka: string; gramPanchayat: string }; qrUrl?: string }) => {
   const land = (n.khula_bhukhand_kar_aakarani as Row[]) || [];
   const cons = (n.bandkamachi_kar_aakarani as Row[]) || [];
   const manora = (n.manoryache_kar_aakarani as Row[]) || [];
@@ -44,12 +44,17 @@ const RecordBlock = ({ n, loc }: { n: Row; loc: { district: string; taluka: stri
   const a = landRows.length + cons.length + manora.length;
 
   return (
-    <div className="n8sm-page mx-auto" style={{ width: `${tableW}px` }}>
+    <div className="n8sm-page mx-auto relative" style={{ width: `${tableW}px` }}>
+      {qrUrl && (
+        <span style={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }}>
+          <QRCodeSVG value={qrUrl} size={56} level="M" marginSize={0} />
+        </span>
+      )}
       <div className="text-center">
-        <p className="font-bold text-lg">नमुना ८</p>
+        <p className="font-bold text-[22px]">नमुना ८</p>
       </div>
-      <div className="text-sm font-bold mt-1">ग्रामपंचायत कार्यालय :- {loc.gramPanchayat}</div>
-      <div className="flex justify-between text-sm mt-1 mb-1">
+      <div className="text-[16px] font-bold mt-1">ग्रामपंचायत कार्यालय :- {loc.gramPanchayat}</div>
+      <div className="flex justify-between text-[16px] mt-1 mb-1">
         <span>जिल्हा :- {loc.district}</span>
         <span>तालुका :- {loc.taluka}</span>
         <span>ग्रामपंचायत :- {loc.gramPanchayat}</span>
@@ -246,8 +251,10 @@ const Namuna8SarkariMultiReport = () => {
           .n8sm-report { zoom: 0.85; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .n8sm-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
           .n8sm-zoom { zoom: 1 !important; }
-          .n8sm-page { page-break-after: always; }
+          .n8sm-page { page-break-after: always; page-break-inside: avoid; break-inside: avoid; }
           .n8sm-page:last-child { page-break-after: auto; }
+          /* print-only: enlarge cell text for readability (screen unaffected) */
+          .n8sm-report td { font-size: 15px !important; line-height: 1.15 !important; }
         }`}</style>
 
       <div className="no-print mb-4 flex items-center gap-3">
@@ -273,14 +280,7 @@ const Namuna8SarkariMultiReport = () => {
               {loading ? 'लोड होत आहे...' : 'या निवडीसाठी माहिती उपलब्ध नाही'}
             </p>
           ) : (
-            <>
-              {qrUrl && (
-                <div className="flex justify-end mb-1">
-                  <QRCodeSVG value={qrUrl} size={64} level="M" marginSize={0} />
-                </div>
-              )}
-              {records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} />)}
-            </>
+            records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} qrUrl={qrUrl} />)
           )}
         </div>
       </div>

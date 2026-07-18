@@ -69,10 +69,13 @@ const AadharReport = () => {
         html, body { background: #fff !important; }
         .aadhar-report { min-height: 100vh; background: #fff; }
         @media print {
-          @page { size: A4 portrait; margin: 20mm 8mm 8mm 8mm; }
+          @page { size: A4 portrait; margin: 20mm 8mm 10mm 14mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
           .aadhar-report { padding: 0 !important; min-height: 0; }
+          /* print-only: enlarge cell text for readability (screen unaffected) */
+          .aadhar-report th, .aadhar-report td { font-size: 14px !important; line-height: 1.35 !important; padding: 5px 8px !important; }
+          .aadhar-report thead { display: table-header-group; }
         }`}</style>
 
       <div className="no-print mb-4 flex items-center gap-3">

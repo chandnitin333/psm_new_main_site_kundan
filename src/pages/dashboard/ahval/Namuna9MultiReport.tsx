@@ -17,7 +17,7 @@ const f = (v: unknown) => {
 
 const td = 'border border-black px-1 py-0.5 text-[11px] align-middle text-center';
 const th = 'border border-black px-1 py-0.5 text-[10px] align-middle text-center font-bold bg-gray-100';
-const colW = [35, 110, 65, 60, 60, 55, 95, 50, 55, 45, 45, 55, 50, 95, 50, 50, 45, 45, 55, 55];
+const colW = [44, 138, 81, 75, 75, 69, 119, 63, 69, 56, 56, 69, 63, 119, 63, 63, 56, 56, 69, 69];
 const tableW = colW.reduce((a, b) => a + b, 0);
 
 const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; taluka: string; gramPanchayat: string }; cy: number; qrUrl?: string }) => {
@@ -65,6 +65,11 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
     // round each component (same as 129 बिल) so totals match across all reports
     return Math.round(m) + Math.round((m * d) / 100) + Math.round(chalu) - Math.round((chalu * su) / 100);
   };
+  // actual दंड / सूट rupee amounts (base × stored %/100) — columns must show the value, not the percent
+  const dandAmt = (magil: number | '', addPct: number | ''): number | '' =>
+    Math.round(numOr0(magil) * numOr0(addPct) / 100) || '';
+  const sutAmt = (chalu: number, discPct: number | ''): number | '' =>
+    Math.round(numOr0(chalu) * numOr0(discPct) / 100) || '';
   const ekGruhkar = ekun(M.gruhkar, gruhkar, D.gruhkar[0], D.gruhkar[1]);
   const ekViz = ekun(M.viz, viz, D.viz[0], D.viz[1]);
   const ekAarogya = ekun(M.aarogya, aarogya, D.aarogya[0], D.aarogya[1]);
@@ -145,7 +150,7 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
             <td className={td}>{s(n.survey_number)}</td>
             <td className={td}>{s(n.plot_number)}</td>
             <td className={td}>गृहकर व भूमीकर</td>
-            <td className={td}>{f(M.gruhkar)}</td><td className={td}>{f(gruhkar)}</td><td className={td}>{f(D.gruhkar[0])}</td><td className={td}>{f(D.gruhkar[1])}</td><td className={td}>{f(ekGruhkar)}</td>
+            <td className={td}>{f(M.gruhkar)}</td><td className={td}>{f(gruhkar)}</td><td className={td}>{f(dandAmt(M.gruhkar, D.gruhkar[0]))}</td><td className={td}>{f(sutAmt(gruhkar, D.gruhkar[1]))}</td><td className={td}>{f(ekGruhkar)}</td>
             <td className={td} rowSpan={5} />
             <td className={td}>गृहकर व भूमीकर</td>
             {vasuliBlanks('r1')}
@@ -153,19 +158,19 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
           <tr>
             <td className={td} rowSpan={3} colSpan={4}>{s(n.patta_nagar_layout_society)}</td>
             <td className={td}>दिवाबत्ती/वीज कर</td>
-            <td className={td}>{f(M.viz)}</td><td className={td}>{f(viz)}</td><td className={td}>{f(D.viz[0])}</td><td className={td}>{f(D.viz[1])}</td><td className={td}>{f(ekViz)}</td>
+            <td className={td}>{f(M.viz)}</td><td className={td}>{f(viz)}</td><td className={td}>{f(dandAmt(M.viz, D.viz[0]))}</td><td className={td}>{f(sutAmt(viz, D.viz[1]))}</td><td className={td}>{f(ekViz)}</td>
             <td className={td}>दिवाबत्ती/वीज कर</td>
             {vasuliBlanks('r2')}
           </tr>
           <tr>
             <td className={td}>आरोग्य रक्षण कर</td>
-            <td className={td}>{f(M.aarogya)}</td><td className={td}>{f(aarogya)}</td><td className={td}>{f(D.aarogya[0])}</td><td className={td}>{f(D.aarogya[1])}</td><td className={td}>{f(ekAarogya)}</td>
+            <td className={td}>{f(M.aarogya)}</td><td className={td}>{f(aarogya)}</td><td className={td}>{f(dandAmt(M.aarogya, D.aarogya[0]))}</td><td className={td}>{f(sutAmt(aarogya, D.aarogya[1]))}</td><td className={td}>{f(ekAarogya)}</td>
             <td className={td}>आरोग्य रक्षण कर</td>
             {vasuliBlanks('r3')}
           </tr>
           <tr>
             <td className={td}>सफाई कर</td>
-            <td className={td}>{f(M.safai)}</td><td className={td}>{f(safai)}</td><td className={td}>{f(D.safai[0])}</td><td className={td}>{f(D.safai[1])}</td><td className={td}>{f(ekSafai)}</td>
+            <td className={td}>{f(M.safai)}</td><td className={td}>{f(safai)}</td><td className={td}>{f(dandAmt(M.safai, D.safai[0]))}</td><td className={td}>{f(sutAmt(safai, D.safai[1]))}</td><td className={td}>{f(ekSafai)}</td>
             <td className={td}>सफाई कर</td>
             {vasuliBlanks('r4')}
           </tr>
@@ -181,14 +186,14 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
             <td className={td} rowSpan={5}>{s(n.bhogavat_darache_nav)}</td>
             <td className={td} rowSpan={5} colSpan={4}>{s(n.milkat_prakar)}</td>
             <td className={td}>सामान्य पाणी कर</td>
-            <td className={td}>{f(M.samanya)}</td><td className={td}>{f(samanya)}</td><td className={td}>{f(D.samanya[0])}</td><td className={td}>{f(D.samanya[1])}</td><td className={td}>{f(ekSamanya)}</td>
+            <td className={td}>{f(M.samanya)}</td><td className={td}>{f(samanya)}</td><td className={td}>{f(dandAmt(M.samanya, D.samanya[0]))}</td><td className={td}>{f(sutAmt(samanya, D.samanya[1]))}</td><td className={td}>{f(ekSamanya)}</td>
             <td className={td} rowSpan={5} />
             <td className={td}>सामान्य पाणी कर</td>
             {vasuliBlanks('r8')}
           </tr>
           <tr>
             <td className={td}>विशेष पाणी कर</td>
-            <td className={td}>{f(M.vishesh)}</td><td className={td}>{f(vishesh)}</td><td className={td}>{f(D.vishesh[0])}</td><td className={td}>{f(D.vishesh[1])}</td><td className={td}>{f(ekVishesh)}</td>
+            <td className={td}>{f(M.vishesh)}</td><td className={td}>{f(vishesh)}</td><td className={td}>{f(dandAmt(M.vishesh, D.vishesh[0]))}</td><td className={td}>{f(sutAmt(vishesh, D.vishesh[1]))}</td><td className={td}>{f(ekVishesh)}</td>
             <td className={td}>विशेष पाणी कर</td>
             {vasuliBlanks('r9')}
           </tr>
@@ -272,17 +277,19 @@ const Namuna9MultiReport = () => {
         html, body { background: #fff !important; }
         .n9m-report { min-height: 100vh; background: #fff; }
         @media print {
-          @page { size: A4 landscape; margin: 15mm 4mm 8mm 14mm; }
+          @page { size: A4 landscape; margin: 18mm 8mm 8mm 12mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
-          .n9m-report { zoom: 0.85; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .n9m-report { zoom: 0.70; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          /* print-only: enlarge cell text for readability (screen unaffected) */
+          .n9m-report td, .n9m-report th { font-size: 15px !important; line-height: 1.15 !important; }
           .n9m-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
           .n9m-zoom { zoom: 1 !important; }
           /* two reports per page: keep each report intact, break only after every 2nd */
           .n9m-page { page-break-inside: avoid; }
           /* top report of each pair: gap + dashed cut guide line for clean cutting */
-          .n9m-page:nth-child(odd) { padding-bottom: 9mm; border-bottom: 1px dashed #999; margin-bottom: 9mm; }
-          .n9m-page:nth-child(2n) { page-break-after: always; }
+          .n9m-page:nth-child(odd) { padding-bottom: 6mm; border-bottom: 1px dashed #999; margin-bottom: 6mm; }
+          .n9m-page:nth-child(2n) { page-break-after: always; padding-top: 8mm; }
           .n9m-page:last-child { page-break-after: auto; }
         }`}</style>
 

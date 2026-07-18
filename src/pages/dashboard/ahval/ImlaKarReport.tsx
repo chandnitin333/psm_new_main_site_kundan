@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
+import config from '../../../config';
 import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
 import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
 
-/* इमलाकर मोजमाप यादी (मालमत्ता धारकाची यादी) — exact old `malmatta-darkahchi-yadi-list` layout.
-   One नमुना-८ block per property (one per printed page). Filters via sessionStorage 'imlakarParams'. */
+/* इमलाकर मोजमाप यादी — नमुना-८ style block per property (one per printed page), now with
+   a property-image box on the right (same fixed-grid layout as नमुना ८ चित्रे so everything
+   fits). Only इमलाकर properties (मिलकत प्रकार = इमलाकर). Filters via sessionStorage 'imlakarParams'. */
 
 type Row = Record<string, unknown>;
 const s = (v: unknown) => (v === null || v === undefined ? '' : String(v));
@@ -22,13 +24,17 @@ const consBhandvali = (it: Row) =>
 const manoraKar = (it: Row) =>
   Number(it.ekun_shetrafal_choras_foot || 0) * Number(it.aakarani_dar || 0) * (Number(it.majla) || 1);
 
-const td = 'border border-black px-1 py-1 text-[11px] align-middle text-center';
+const td = 'border border-black px-1 py-0.5 text-[11px] align-middle text-center';
 const tdb = `${td} font-bold`;
+const COLS = 29;
+const pageW = 1450;
+const backendBase = config.api.baseUrl.replace(/\/api$/, '');
 
 const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; taluka: string; gramPanchayat: string }; cy: number; qrUrl?: string }) => {
   const land = (n.khula_bhukhand_kar_aakarani as Row[]) || [];
   const cons = (n.bandkamachi_kar_aakarani as Row[]) || [];
   const manora = (n.manoryache_kar_aakarani as Row[]) || [];
+  const imgs = ((n.images as Row[]) || []).filter((im) => im && im.image_path);
   const otherTax = (n.other_tax_calculation as Row[]) || [];
   const taxAmt = (id: number) => {
     const r = otherTax.find((t) => Number(t.tax_id) === id);
@@ -44,14 +50,14 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
   const ekunTaxAmt = vizAmt + aarogyaAmt + safaiAmt + samanyaPaniAmt + visheshPaniAmt + itarAmt;
 
   return (
-    <div className="ik-page mx-auto" style={{ maxWidth: '1300px' }}>
+    <div className="ik-page mx-auto" style={{ width: `${pageW}px` }}>
       <div className="text-center">
         <p className="font-bold text-lg">इमलाकर मोजमाप यादी</p>
         <p className="text-sm">
           सन {cy}-{cy + 1} ते {cy + 3}-{cy + 4} या वर्षासाठी करास पात्र असलेल्या इमारती व जमिनी (खुला भूखंड) यांची कर आकारणी नोंदवही.
         </p>
+        <p className="text-sm">सदर नोंद ग्रामपंचायत नमुना ८ पान क्रमांक __{s(n.anu_kramank)}__ वरून घेण्यात आली</p>
       </div>
-      <div className="text-center text-sm font-bold mt-1">सदर नोंद ग्रामपंचायत नमुना ८ पान क्रमांक __{s(n.anu_kramank)}__ वरून घेण्यात आली</div>
       <div className="flex justify-between text-sm mt-1 mb-1">
         <span>जिल्हा :- {loc.district}</span>
         <span>तालुका :- {loc.taluka}</span>
@@ -65,222 +71,230 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
         </span>
       </div>
 
-      <table className="w-full border-collapse">
+      <table className="table-fixed w-full border-collapse">
+        <colgroup>{Array.from({ length: COLS }).map((_, i) => <col key={i} style={{ width: `${pageW / COLS}px` }} />)}</colgroup>
         <tbody>
-          {/* Basic Info */}
           <tr>
             <td className={td}>अ.क्र</td>
             <td className={td}>{s(n.anu_kramank)}</td>
-            <td className={td}>मालमत्ता क्र.</td>
-            <td className={td}>{s(n.malmatta_number)}</td>
-            <td className={td}>वार्ड क्र.</td>
+            <td className={td} colSpan={2}>मालमत्ता क्र.</td>
+            <td className={td} colSpan={2}>{s(n.malmatta_number)}</td>
+            <td className={td} colSpan={2}>वार्ड क्र.</td>
             <td className={td}>{s(n.ward_kramnak)}</td>
-            <td className={td}>प्लॉट क्र.</td>
+            <td className={td} colSpan={2}>प्लॉट क्र.</td>
             <td className={td}>{s(n.plot_number)}</td>
-            <td className={td}>खसरा न.</td>
+            <td className={td} colSpan={2}>खसरा न.</td>
             <td className={td}>{s(n.khasara_number)}</td>
-            <td className={td}>सर्वे क्र.</td>
+            <td className={td} colSpan={2}>सर्वे क्र.</td>
             <td className={td}>{s(n.survey_number)}</td>
-            <td className={td}>पाणी व्यवस्ता</td>
-            <td className={td}>{s(n.pinyacha_panyachi_vyavastha)}</td>
-            <td className={td}>शौचालय</td>
+            <td className={td} colSpan={2}>पाणी व्यवस्ता</td>
+            <td className={td} colSpan={2}>{s(n.pinyacha_panyachi_vyavastha)}</td>
+            <td className={td} colSpan={2}>शौचालय</td>
             <td className={td}>{s(n.ghari_souychalaya)}</td>
-            <td className={td}>मिलकत प्रकार</td>
-            <td className={td}>{s(n.milkat_prakar)}</td>
+            <td className={td} colSpan={2}>मिलकत प्रकार</td>
+            <td className={td} colSpan={2}>{s(n.milkat_prakar) || '-'}</td>
           </tr>
-
-          {/* Owner Info + chatur seema */}
-          <tr>
+          <tr style={{ height: '30px' }}>
             <td className={tdb} colSpan={2}>घरमालकाचे नाव</td>
-            <td className={td} colSpan={7}>{s(n.ghar_malkache_nav)}</td>
-            <td className={td} rowSpan={4}>चतुर : सीमा</td>
-            <td className={td} colSpan={2}>पूर्वेस</td>
-            <td className={td} colSpan={10}>{s(n.purv)}</td>
+            <td className={td} colSpan={11}>{s(n.ghar_malkache_nav)}</td>
+            <td className={td} colSpan={9}>आधार कार्ड / वोटर कार्ड</td>
+            <td className={`${td} p-1 align-middle`} colSpan={7} rowSpan={8} style={{ height: '264px' }}>
+              {imgs.length > 0 ? (
+                <div className="flex h-full flex-col gap-1" style={{ height: '262px' }}>
+                  {imgs.map((im, i) => (
+                    <img
+                      key={i}
+                      src={`${backendBase}/${im.image_path}`}
+                      alt={`चित्र ${i + 1}`}
+                      className="bg-white"
+                      style={{ width: '100%', flex: '1 1 0', minHeight: 0, objectFit: 'fill', display: 'block' }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <span>&nbsp;</span>
+              )}
+            </td>
           </tr>
-          <tr>
+          <tr style={{ height: '30px' }}>
             <td className={tdb} colSpan={2}>पत्नी / मुलांचे नाव</td>
-            <td className={td} colSpan={7}>{s(n.patni_mulache_nav)}</td>
-            <td className={td} colSpan={2}>पश्चिमेस</td>
-            <td className={td} colSpan={10}>{s(n.paschim)}</td>
+            <td className={td} colSpan={11}>{s(n.patni_mulache_nav)}</td>
+            <td className={td} colSpan={9}>{s(n.aadahar_card_number)} &nbsp; {s(n.matdar_card_number)}</td>
           </tr>
-          <tr>
+          <tr style={{ height: '30px' }}>
             <td className={tdb} colSpan={2}>भोगवटदाराचे नाव</td>
-            <td className={td} colSpan={7}>{s(n.bhogavat_darache_nav)}</td>
-            <td className={td} colSpan={2}>उत्तरेस</td>
-            <td className={td} colSpan={10}>{s(n.uttar)}</td>
+            <td className={td} colSpan={11}>{s(n.bhogavat_darache_nav)}</td>
+            <td className={td} colSpan={9}>मोबाईल</td>
           </tr>
-          <tr>
+          <tr style={{ height: '30px' }}>
             <td className={tdb} colSpan={2}>पत्ता</td>
-            <td className={td} colSpan={7}>{s(n.patta_nagar_layout_society)}</td>
-            <td className={td} colSpan={2}>दक्षिणेस</td>
-            <td className={td} colSpan={10}>{s(n.dakshin)}</td>
+            <td className={td} colSpan={11}>{s(n.patta_nagar_layout_society)}</td>
+            <td className={td} colSpan={9}>{s(n.mobile_number)}</td>
+          </tr>
+          <tr style={{ height: '36px' }}>
+            <td className={tdb} colSpan={2} rowSpan={2}>चतुर : सीमा</td>
+            <td className={td} colSpan={5}>पूर्वेस</td>
+            <td className={td} colSpan={5}>पश्चिमेस</td>
+            <td className={td} colSpan={5}>उत्तरेस</td>
+            <td className={td} colSpan={5}>दक्षिणेस</td>
+          </tr>
+          <tr style={{ height: '36px' }}>
+            <td className={td} colSpan={5}>{s(n.purv) || '-'}</td>
+            <td className={td} colSpan={5}>{s(n.paschim) || '-'}</td>
+            <td className={td} colSpan={5}>{s(n.uttar) || '-'}</td>
+            <td className={td} colSpan={5}>{s(n.dakshin) || '-'}</td>
+          </tr>
+          <tr style={{ height: '36px' }}>
+            <td className={tdb} colSpan={2} rowSpan={2}>एकूण जागेचे क्षेत्रफळ</td>
+            <td className={td} colSpan={3}>लांबी (चौ.फु.)</td>
+            <td className={td} colSpan={3}>रुंदी (चौ.फु.)</td>
+            <td className={td} colSpan={3}>क्षेत्रफळ (चौ.फु.)</td>
+            <td className={td} colSpan={3}>क्षेत्रफळ (चौ.मीटर)</td>
+            <td className={td} colSpan={4}>उर्वरितखाली जागा (चौ. फु.)</td>
+            <td className={td} colSpan={4}>उर्वरितखाली जागा (चौ. मीटर)</td>
+          </tr>
+          <tr style={{ height: '36px' }}>
+            <td className={td} colSpan={3}>{f(n.lambi)}</td>
+            <td className={td} colSpan={3}>{f(n.rundi)}</td>
+            <td className={td} colSpan={3}>{f(n.shetrafal_choras_foot)}</td>
+            <td className={td} colSpan={3}>{f(n.shetrafal_choras_meter)}</td>
+            <td className={td} colSpan={4}>{f(n.urvarit_khali_jaga_choras_foot)}</td>
+            <td className={td} colSpan={4}>{f(Number(n.urvarit_khali_jaga_choras_foot || 0) * 0.092903)}</td>
           </tr>
 
-          {/* Area and Contact Info */}
-          <tr>
-            <td className={tdb} rowSpan={2} colSpan={2}>एकूण जागेचे क्षेत्रफळ</td>
-            <td className={td}>लांबी (चौ. फु .)</td>
-            <td className={td}>रुंदी (चौ. फु .)</td>
-            <td className={td} colSpan={2}>क्षेत्रफळ(चौ. फु .)</td>
-            <td className={td} colSpan={2}>मीटर(चौ. मीटर)</td>
-            <td className={td} colSpan={2}>उर्वरित(चौ. फु .)</td>
-            <td className={td} colSpan={2}>उर्वरित मीटर(चौ. मीटर )</td>
-            <td className={td} colSpan={2}>मोबाईल</td>
-            <td className={td} colSpan={3}>आधार</td>
-            <td className={td} colSpan={3}>वोटर</td>
-          </tr>
-          <tr>
-            <td className={td}>{f(n.lambi)}</td>
-            <td className={td}>{f(n.rundi)}</td>
-            <td className={td} colSpan={2}>{f(n.shetrafal_choras_foot)}</td>
-            <td className={td} colSpan={2}>{f(n.shetrafal_choras_meter)}</td>
-            <td className={td} colSpan={2}>{f(n.urvarit_khali_jaga_choras_foot)}</td>
-            <td className={td} colSpan={2}>{f(Number(n.urvarit_khali_jaga_choras_foot || 0) * 0.092903)}</td>
-            <td className={td} colSpan={2}>{s(n.mobile_number)}</td>
-            <td className={td} colSpan={3}>{s(n.aadahar_card_number)}</td>
-            <td className={td} colSpan={4}>{s(n.matdar_card_number)}</td>
-          </tr>
-
-          {/* Description Heading */}
           <tr className="font-bold bg-gray-100">
             <td className={td} colSpan={2}>मालमत्तेचे वर्णन</td>
-            <td className={td}>मालमत्तेचा प्रकार</td>
-            <td className={td}>वापराचा प्रकार</td>
-            <td className={td}>मजला</td>
-            <td className={td}>वय</td>
-            <td className={td}>क्षेत्रफळ पु.प.</td>
-            <td className={td}>क्षेत्रफळ उ.द.</td>
-            <td className={td}>एकूण क्षेत्रफळ</td>
-            <td className={td}>मीटर</td>
+            <td className={td} colSpan={2}>मालमत्तेचा प्रकार</td>
+            <td className={td} colSpan={2}>वापराचा प्रकार</td>
+            <td className={td} colSpan={2}>बांधकामाचा मजला</td>
+            <td className={td}>वय / वर्ष</td>
+            <td className={td} colSpan={2}>क्षेत्रफळ पु.प.(चौ.फूट)</td>
+            <td className={td} colSpan={2}>क्षेत्रफळ उ. द. (चौ.फूट)</td>
+            <td className={td} colSpan={2}>एकूण क्षेत्रफळ (चौ.फूट)</td>
+            <td className={td} colSpan={2}>एकूण क्षेत्रफळ (चौ.मीटर)</td>
             <td className={td}>वार्षिक मूल्य</td>
             <td className={td}>घसारा</td>
             <td className={td}>भारांक</td>
-            <td className={td}>भांडवली मूल्य</td>
+            <td className={td} colSpan={2}>भांडवली मूल्य</td>
             <td className={td}>आकारणी दर</td>
-            <td className={td}>प्रति रु.१०००</td>
-            <td className={td} colSpan={4}>कर आकारणी</td>
+            <td className={td} colSpan={3}>प्रति रु.१००० च्या भांडवली मूल्यावर</td>
+            <td className={td} colSpan={3}>कर आकारणी</td>
           </tr>
-
-          {/* Land (taxationLandRS4) */}
           {land.map((it, i) => (
             <tr key={`l${i}`}>
               <td className={td} colSpan={2}>{s(it.malmatteche_varnan_name)}</td>
-              <td className={td}>{s(it.malmatteche_prakar_name)}</td>
-              <td className={td}>एकूण जागा</td>
+              <td className={td} colSpan={2}>{s(it.malmatteche_prakar_name)}</td>
+              <td className={td} colSpan={2}>एकूण जागा</td>
+              <td className={td} colSpan={2}>&nbsp;</td>
               <td className={td}>&nbsp;</td>
-              <td className={td}>&nbsp;</td>
-              <td className={td}>{f(it.shetrafal_purv_paschim_foot)}</td>
-              <td className={td}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
-              <td className={td}>{f(it.ekun_shetrafal_choras_foot)}</td>
-              <td className={td}>{f(sqmOf(it))}</td>
+              <td className={td} colSpan={2}>{f(it.shetrafal_purv_paschim_foot)}</td>
+              <td className={td} colSpan={2}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
+              <td className={td} colSpan={2}>{f(it.ekun_shetrafal_choras_foot)}</td>
+              <td className={td} colSpan={2}>{f(sqmOf(it))}</td>
               <td className={td}>{f(it.jaminiche_varshik_mulya)}</td>
               <td className={td}>&nbsp;</td>
               <td className={td}>&nbsp;</td>
-              <td className={td}>{f(landBhandvali(it))}</td>
+              <td className={td} colSpan={2}>{f(landBhandvali(it))}</td>
               <td className={td}>{s(it.aakarani_dar)}</td>
-              <td className={td}>{f(landBhandvali(it) / 1000)}</td>
-              <td className={td} colSpan={4}>{f(landBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
+              <td className={td} colSpan={3}>{f(landBhandvali(it) / 1000)}</td>
+              <td className={td} colSpan={3}>{f(landBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
             </tr>
           ))}
-
-          {/* Construction (constructionTaxRS5) */}
           {cons.map((it, i) => (
             <tr key={`c${i}`}>
               <td className={td} colSpan={2}>{s(it.malmatteche_prakar_name)}</td>
-              <td className={td}>{s(it.malmatteche_varnan_name)}</td>
-              <td className={td}>{s(it.vapar_prakar)}</td>
-              <td className={td}>{s(it.bandkam_majla_name)}</td>
+              <td className={td} colSpan={2}>{s(it.malmatteche_varnan_name)}</td>
+              <td className={td} colSpan={2}>{s(it.vapar_prakar)}</td>
+              <td className={td} colSpan={2}>{s(it.bandkam_majla_name)}</td>
               <td className={td}>{s(it.vayoman)}</td>
-              <td className={td}>{f(it.shetrafal_purv_paschim_foot)}</td>
-              <td className={td}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
-              <td className={td}>{f(it.ekun_shetrafal_choras_foot)}</td>
-              <td className={td}>{f(sqmOf(it))}</td>
+              <td className={td} colSpan={2}>{f(it.shetrafal_purv_paschim_foot)}</td>
+              <td className={td} colSpan={2}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
+              <td className={td} colSpan={2}>{f(it.ekun_shetrafal_choras_foot)}</td>
+              <td className={td} colSpan={2}>{f(sqmOf(it))}</td>
               <td className={td}>{f(it.imaratiche_varshik_mulya)}</td>
               <td className={td}>{s(it.ghasara_dar)}</td>
               <td className={td}>{s(it.bharank)}</td>
-              <td className={td}>{f(consBhandvali(it))}</td>
+              <td className={td} colSpan={2}>{f(consBhandvali(it))}</td>
               <td className={td}>{s(it.aakarani_dar)}</td>
-              <td className={td}>{f(consBhandvali(it) / 1000)}</td>
-              <td className={td} colSpan={4}>{f(consBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
+              <td className={td} colSpan={3}>{f(consBhandvali(it) / 1000)}</td>
+              <td className={td} colSpan={3}>{f(consBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
             </tr>
           ))}
-
-          {/* Manora (taxPayerRS6) */}
           {manora.map((it, i) => (
             <tr key={`m${i}`}>
               <td className={td} colSpan={2}>{s(it.malmatteche_varnan_name)}</td>
-              <td className={td}>{s(it.malmatteche_prakar_name)}</td>
-              <td className={td}>{s(it.vapar_prakar)}</td>
-              <td className={td}>{s(it.manoryache_bhag_name)}</td>
+              <td className={td} colSpan={2}>{s(it.malmatteche_prakar_name)}</td>
+              <td className={td} colSpan={2}>{s(it.vapar_prakar)}</td>
+              <td className={td} colSpan={2}>{s(it.manoryache_bhag_name)}</td>
               <td className={td}>&nbsp;</td>
-              <td className={td}>{f(it.shetrafal_purv_paschim_foot)}</td>
-              <td className={td}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
-              <td className={td}>{f(it.ekun_shetrafal_choras_foot)}</td>
-              <td className={td}>{f(sqmOf(it))}</td>
-              <td className={td}>&nbsp;</td>
-              <td className={td}>&nbsp;</td>
+              <td className={td} colSpan={2}>{f(it.shetrafal_purv_paschim_foot)}</td>
+              <td className={td} colSpan={2}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
+              <td className={td} colSpan={2}>{f(it.ekun_shetrafal_choras_foot)}</td>
+              <td className={td} colSpan={2}>{f(sqmOf(it))}</td>
               <td className={td}>&nbsp;</td>
               <td className={td}>&nbsp;</td>
+              <td className={td}>&nbsp;</td>
+              <td className={td} colSpan={2}>&nbsp;</td>
               <td className={td}>{s(it.aakarani_dar)}</td>
-              <td className={td}>&nbsp;</td>
-              <td className={td} colSpan={4}>{f(manoraKar(it))}</td>
+              <td className={td} colSpan={3}>&nbsp;</td>
+              <td className={td} colSpan={3}>{f(manoraKar(it))}</td>
             </tr>
           ))}
 
-          {/* Final Summary */}
           <tr className="font-bold bg-gray-100">
-            <td className={td} colSpan={8}>कराची रक्क्म</td>
-            <td className={td} colSpan={6}>अपिलाचे निकाल आणि त्यानंतर केलेले फेरफार (रुपये)</td>
-            <td className={td} colSpan={2}>गृह व भूमीकर</td>
-            <td className={td} colSpan={4}>{f(gruhkarAmt)}</td>
+            <td className={td} colSpan={11}>कराची रक्क्म</td>
+            <td className={td} colSpan={11}>अपिलाचे निकाल आणि त्यानंतर केलेले फेरफार (रुपये)</td>
+            <td className={td} colSpan={4}>गृह व भूमीकर</td>
+            <td className={td} colSpan={3}>{f(gruhkarAmt)}</td>
           </tr>
           <tr className="font-bold bg-gray-100">
             <td className={td} colSpan={2}>गृह व भूमीकर</td>
             <td className={td}>वीज</td>
             <td className={td}>आरोग्य</td>
             <td className={td}>सफाई</td>
-            <td className={td}>सा. पाणी</td>
-            <td className={td}>वि. पाणी</td>
+            <td className={td} colSpan={2}>सा. पाणी</td>
+            <td className={td} colSpan={2}>वि. पाणी</td>
             <td className={td}>एकूण</td>
             <td className={td}>एकूण कर</td>
             <td className={td} colSpan={2}>गृह व भूमीकर</td>
-            <td className={td}>वीज कर</td>
+            <td className={td} colSpan={2}>वीज कर</td>
             <td className={td}>आरोग्य</td>
-            <td className={td}>सफाई कर</td>
-            <td className={td}>सा. पाणी</td>
-            <td className={td}>वि. पाणी</td>
-            <td className={td}>एकूण</td>
-            <td className={td} colSpan={4}>एकूण कर</td>
+            <td className={td} colSpan={2}>सफाई कर</td>
+            <td className={td} colSpan={2}>सा. पाणी</td>
+            <td className={td} colSpan={2}>वि. पाणी</td>
+            <td className={td} colSpan={4}>एकूण</td>
+            <td className={td} colSpan={3}>एकूण कर</td>
           </tr>
           <tr>
             <td className={td} colSpan={2}>{f(gruhkarAmt)}</td>
             <td className={td}>{f(vizAmt)}</td>
             <td className={td}>{f(aarogyaAmt)}</td>
             <td className={td}>{f(safaiAmt)}</td>
-            <td className={td}>{f(samanyaPaniAmt)}</td>
-            <td className={td}>{f(visheshPaniAmt)}</td>
+            <td className={td} colSpan={2}>{f(samanyaPaniAmt)}</td>
+            <td className={td} colSpan={2}>{f(visheshPaniAmt)}</td>
             <td className={td}>{f(ekunTaxAmt)}</td>
             <td className={td}>{f(n.ekun_kar_bharne)}</td>
             <td className={td} colSpan={2}>&nbsp;</td>
+            <td className={td} colSpan={2}>&nbsp;</td>
             <td className={td}>&nbsp;</td>
-            <td className={td}>&nbsp;</td>
-            <td className={td}>&nbsp;</td>
-            <td className={td}>&nbsp;</td>
-            <td className={td}>&nbsp;</td>
-            <td className={td}>&nbsp;</td>
+            <td className={td} colSpan={2}>&nbsp;</td>
+            <td className={td} colSpan={2}>&nbsp;</td>
+            <td className={td} colSpan={2}>&nbsp;</td>
             <td className={td} colSpan={4}>&nbsp;</td>
+            <td className={td} colSpan={3}>&nbsp;</td>
           </tr>
           <tr>
             <td className={tdb} colSpan={2}>फेरफार / शेरा</td>
-            <td className={`${td} text-left`} colSpan={14}>{s(n.magahun_ghat_kiva_badal)}</td>
-            <td className="border border-black px-1 py-1 text-[11px] font-bold text-center align-bottom" colSpan={4} rowSpan={2}>सचिव / सरपंच स्वाक्षरी</td>
+            <td className={`${td} text-left`} colSpan={27}>{s(n.magahun_ghat_kiva_badal)}</td>
           </tr>
           <tr>
-            <td className={td} colSpan={16}>टीप : १) ह्या आकारणीचा अर्थ जागेवर मालकी हक्क नव्हे. २) हा नमुना ८ नाही.</td>
+            <td className="border border-black px-1 py-0.5 text-[11px] align-middle text-left" colSpan={18}>
+              टीप : १) ह्या आकारणीचा अर्थ जागेवर मालकी हक्क नव्हे. २) हा नमुना ८ नाही.
+            </td>
+            <td className="border border-black px-1 text-[11px] font-bold text-center align-bottom" colSpan={11}>सचिव / सरपंच स्वाक्षरी</td>
           </tr>
         </tbody>
       </table>
-
       <div className="text-right text-sm mt-1">पान नंबर : {s(n.anu_kramank)}</div>
     </div>
   );
@@ -290,6 +304,7 @@ const ImlaKarReport = () => {
   const [records, setRecords] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [reportYear, setReportYear] = useState<number>(new Date().getFullYear());
+  const [zoom, setZoom] = useState(0.9); // SCREEN-only default zoom; does not affect print
   const [loc] = useState(() => {
     try {
       const u = JSON.parse(localStorage.getItem('user') || '{}');
@@ -306,14 +321,13 @@ const ImlaKarReport = () => {
   useEffect(() => {
     document.documentElement.classList.remove('dark');
     document.body.classList.remove('dark');
-    document.title = 'मालमत्ता धारकाची यादी';
+    document.title = 'इमलाकर मोजमाप यादी';
     let params: { ward?: string; start?: string; end?: string; type?: string; year?: string } = {};
     try {
       params = JSON.parse(sessionStorage.getItem('imlakarParams') || '{}');
     } catch {
       params = {};
     }
-    document.title = 'इमलाकर मोजमाप यादी';
     if (params.year && !isNaN(Number(params.year))) setReportYear(Number(params.year));
     (async () => {
       try {
@@ -346,32 +360,45 @@ const ImlaKarReport = () => {
         html, body { background: #fff !important; }
         .ik-report { min-height: 100vh; background: #fff; }
         @media print {
-          @page { size: A4 landscape; margin: 24mm 4mm 8mm 16mm; }
+          @page { size: A4 landscape; margin: 20mm 5mm 8mm 12mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
-          .ik-report { zoom: 0.85; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .bg-gray-100 { background-color: #f3f4f6 !important; }
+          .ik-report { zoom: 0.72; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .ik-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
+          .ik-zoom { zoom: 1 !important; }
           .ik-page { page-break-after: always; }
           .ik-page:last-child { page-break-after: auto; }
+          .bg-gray-100 { background-color: #f3f4f6 !important; }
+          /* print-only: enlarge cell text so it stays readable after the fit-to-page zoom (screen unaffected) */
+          .ik-page td { font-size: 14px !important; line-height: 1.2 !important; }
         }`}</style>
 
-      <div className="no-print mb-4">
+      <div className="no-print mb-4 flex items-center gap-3">
         <button
           onClick={() => window.print()}
           className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium shadow-sm transition-colors"
         >
           🖨️ Print / Save as PDF
         </button>
+        <div className="flex items-center gap-1 rounded-md border border-gray-300 bg-white p-1 shadow-sm">
+          <span className="px-2 text-sm font-medium text-gray-500 select-none">Zoom</span>
+          <button onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.1).toFixed(2)))} className="flex h-8 w-8 items-center justify-center rounded text-lg font-bold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors" title="Zoom out">−</button>
+          <span className="w-14 text-center text-sm font-semibold text-gray-700 tabular-nums select-none">{Math.round(zoom * 100)}%</span>
+          <button onClick={() => setZoom((z) => Math.min(2.5, +(z + 0.1).toFixed(2)))} className="flex h-8 w-8 items-center justify-center rounded text-lg font-bold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors" title="Zoom in">+</button>
+          <button onClick={() => setZoom(1)} className="ml-1 h-8 rounded px-3 text-xs font-medium text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors" title="Reset zoom">Reset</button>
+        </div>
       </div>
 
-      <div className="space-y-10 print:space-y-0">
-        {records.length === 0 ? (
-          <p className="text-center text-gray-500 py-10">
-            {loading ? 'लोड होत आहे...' : 'या निवडीसाठी माहिती उपलब्ध नाही'}
-          </p>
-        ) : (
-          records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} cy={reportYear} qrUrl={qrUrl} />)
-        )}
+      <div className="ik-wrap overflow-x-auto">
+        <div className="ik-zoom space-y-10 print:space-y-0" style={{ zoom }}>
+          {records.length === 0 ? (
+            <p className="text-center text-gray-500 py-10">
+              {loading ? 'लोड होत आहे...' : 'या निवडीसाठी माहिती उपलब्ध नाही'}
+            </p>
+          ) : (
+            records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} cy={reportYear} qrUrl={qrUrl} />)
+          )}
+        </div>
       </div>
     </div>
   );

@@ -44,22 +44,20 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
   const ekunTaxAmt = vizAmt + aarogyaAmt + safaiAmt + samanyaPaniAmt + visheshPaniAmt + itarAmt;
 
   return (
-    <div className="dy-page mx-auto" style={{ maxWidth: '1300px' }}>
+    <div className="dy-page mx-auto relative" style={{ maxWidth: '1300px' }}>
+      {qrUrl && (
+        <span style={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }}>
+          <QRCodeSVG value={qrUrl} size={48} level="M" marginSize={0} />
+        </span>
+      )}
       <div className="text-center">
         <p className="font-bold text-lg">फेरकर आकारणी मुल्यांकन यादी</p>
         <p className="text-sm">सन {cy} - {cy + 1}</p>
       </div>
-      <div className="flex justify-between text-sm mt-1 mb-1">
+      <div className="flex justify-between text-sm mt-1 mb-1 pr-14">
         <span>जिल्हा :- {loc.district}</span>
         <span>तालुका :- {loc.taluka}</span>
-        <span className="relative">
-          {qrUrl && (
-            <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 2, zIndex: 10 }}>
-              <QRCodeSVG value={qrUrl} size={56} level="M" marginSize={0} />
-            </span>
-          )}
-          ग्रामपंचायत :- {loc.gramPanchayat}
-        </span>
+        <span>ग्रामपंचायत :- {loc.gramPanchayat}</span>
       </div>
 
       <table className="w-full border-collapse">
@@ -340,6 +338,8 @@ const MalmattaDharkachiReport = () => {
           .bg-gray-100 { background-color: #f3f4f6 !important; }
           .dy-page { page-break-after: always; }
           .dy-page:last-child { page-break-after: auto; }
+          /* print-only: enlarge cell text for readability (screen unaffected) */
+          .dy-report td { font-size: 14px !important; line-height: 1.2 !important; }
         }`}</style>
 
       <div className="no-print mb-4">

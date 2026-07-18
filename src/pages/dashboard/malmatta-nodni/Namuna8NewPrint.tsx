@@ -121,9 +121,9 @@ const Namuna8NewPrint = () => {
           @page { size: A4 landscape; margin: 24mm 4mm 8mm 16mm; }
           html, body { background: #fff !important; }
           .no-print { display: none !important; }
-          .namuna8n-report { zoom: 1.05; padding: 0 !important; min-height: 0; }
+          .namuna8n-report { zoom: 1.0; padding: 0 !important; min-height: 0; }   /* 1.05 overflowed to a 2nd page; content is 646px tall vs 673px usable — 1.0 fits with margin */
           .n8n-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
-          .n8n-zoom { zoom: 1 !important; }   /* ignore screen zoom while printing */
+          .n8n-zoom { zoom: 1 !important; page-break-inside: avoid; break-inside: avoid; }   /* ignore screen zoom while printing; keep report on one page */
         }`}</style>
 
       <div className="no-print mb-4 flex items-center gap-3">

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, ScanLine, Camera, Image as ImageIcon } from 'lucide-react';
 import { config } from '../../../config';
+import { compressImage } from '../../../utils/imageCompress';
 import KhulaBhukhandModal from './KhulaBhukhandModal';
 import BandkamModal from './BandkamModal';
 import ManoryachModal from './ManoryachModal';
@@ -34,6 +35,11 @@ const NodniForm = () => {
   // Soft duplicate detection — matches found on last save attempt (shows a warning banner)
   const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
   const [dupChecking, setDupChecking] = useState(false);
+
+  // Form scan (OCR) — upload a photo/scan of a filled form → auto-fill fields for review
+  const [scanning, setScanning] = useState(false);
+  const scanCameraInputRef = useRef<HTMLInputElement>(null);
+  const scanGalleryInputRef = useRef<HTMLInputElement>(null);
 
   // Optional image (uploaded AFTER the nodni is saved, using its id)
   const [nodniImageFile, setNodniImageFile] = useState<File | null>(null);
@@ -831,6 +837,75 @@ const NodniForm = () => {
     if (nodniImageInputRef.current) nodniImageInputRef.current.value = '';
   };
 
+  // Scan a filled-form photo → OCR → prefill the form (user reviews & edits before saving)
+  const handleScanFormSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // reset the input so re-selecting the same file fires onChange again
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('कृपया फक्त इमेज फाइल निवडा (Please select an image)');
+      return;
+    }
+
+    setScanning(true);
+    showLoader('फॉर्म स्कॅन होत आहे... (Scanning form...)');
+    try {
+      // higher quality than the normal upload — handwriting needs detail
+      const compressed = await compressImage(file, { maxDimension: 2200, quality: 0.85 });
+      const res = await nodniService.scanForm(compressed);
+      if (!res.success || !res.data?.fields) {
+        toast.error(res.message || 'फॉर्म वाचता आला नाही (Could not read the form)');
+        return;
+      }
+
+      const fields = res.data.fields;
+      let filled = 0;
+      setFormData((prev) => {
+        const next = { ...prev };
+        (Object.keys(fields) as Array<keyof NodniFormData>).forEach((k) => {
+          const v = fields[k as string];
+          if (v && k in next) {
+            (next as Record<string, string>)[k as string] = v;
+            filled += 1;
+          }
+        });
+        // recompute area if both dimensions were extracted
+        const lambi = parseFloat(next.lambi) || 0;
+        const rundi = parseFloat(next.rundi) || 0;
+        if (lambi && rundi) {
+          const cf = lambi * rundi;
+          next.shetrafalChorasFoot = cf.toFixed(2);
+          next.shetrafalChorasMeter = (cf * 0.092903).toFixed(2);
+        }
+        return next;
+      });
+
+      // ward-wise auto अनु क्रमांक (only for a new record, if ward was detected)
+      if (!editingId && fields.wardNo) {
+        try {
+          const r = await nodniService.getNextAnuKramank(fields.wardNo) as {
+            success: boolean; data?: { next_anu_kramank: number };
+          };
+          if (r.success && r.data) {
+            setFormData((prev) => ({ ...prev, anuKramank: String(r.data!.next_anu_kramank) }));
+          }
+        } catch { /* ignore — leave anu kramank empty */ }
+      }
+
+      if (filled > 0) {
+        toast.success(`${filled} माहिती भरली — कृपया तपासून दुरुस्त करा (Prefilled ${filled} fields — please review)`);
+      } else {
+        toast.error('फॉर्ममधून माहिती मिळाली नाही — स्पष्ट फोटो वापरा (No data found — try a clearer photo)');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'स्कॅन अयशस्वी (Scan failed)');
+    } finally {
+      hideLoader();
+      setScanning(false);
+    }
+  };
+
   const handleSubmit = async (e?: React.FormEvent, opts?: { skipDupCheck?: boolean }) => {
     if (e) e.preventDefault();
 
@@ -1028,6 +1103,57 @@ const NodniForm = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
             नोंदणी फॉर्म (Nodni Form)
           </h1>
+
+          {/* AI form scan — upload/snap a filled form, auto-fills fields for review */}
+          <div className="mb-5 rounded-lg border border-primary-200 bg-primary-50 p-4 dark:border-primary-700/50 dark:bg-primary-900/20">
+            {/* hidden inputs: camera (mobile) + gallery/file */}
+            <input
+              ref={scanCameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleScanFormSelect}
+              className="hidden"
+            />
+            <input
+              ref={scanGalleryInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleScanFormSelect}
+              className="hidden"
+            />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 text-primary-600 dark:text-primary-300"><ScanLine size={22} /></span>
+                <div>
+                  <p className="font-semibold text-primary-800 dark:text-primary-200">
+                    भरलेला फॉर्म स्कॅन करा (Scan filled form)
+                  </p>
+                  <p className="mt-0.5 text-xs text-primary-700/80 dark:text-primary-300/80">
+                    फोटो/स्कॅन अपलोड करा — माहिती आपोआप भरली जाईल. कृपया तपासून मगच जतन करा.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-shrink-0 gap-2">
+                <button
+                  type="button"
+                  disabled={scanning}
+                  onClick={() => scanCameraInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Camera size={16} /> कॅमेरा
+                </button>
+                <button
+                  type="button"
+                  disabled={scanning}
+                  onClick={() => scanGalleryInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-primary-300 bg-white px-3 py-2 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-primary-600 dark:bg-gray-800 dark:text-primary-200 dark:hover:bg-gray-700"
+                >
+                  <ImageIcon size={16} /> गॅलरी
+                </button>
+              </div>
+            </div>
+          </div>
 
           {/* Soft duplicate warning — does not block, lets the user save anyway */}
           {duplicates.length > 0 && (

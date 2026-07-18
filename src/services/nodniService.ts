@@ -40,6 +40,7 @@ const NODNI_ENDPOINTS = {
   TAX_LIST: '/main/nodni/tax-list',
   NEXT_ANU_KRAMANK: '/main/nodni/next-anu-kramank',
   CHECK_DUPLICATE: '/main/nodni/check-duplicate',
+  SCAN_FORM: '/main/nodni/scan-form',
   HISTORY: (id: number) => `/main/nodni/${id}/history`,
   SEARCH: '/main/malmatta-nodni/search',
   FILTER: '/main/malmatta-nodni/filter',
@@ -90,6 +91,16 @@ export const nodniService = {
    */
   update: async (id: number, payload: Record<string, unknown>): Promise<ApiResponse> => {
     return api.put(NODNI_ENDPOINTS.UPDATE(id), payload);
+  },
+
+  /**
+   * Scan a photo/scan of a filled नोंदणी form → OCR-extracted fields for prefill.
+   * Best-effort: returns { fields: { <NodniForm key>: value } } for user review.
+   */
+  scanForm: async (imageFile: File): Promise<ApiResponse<{ fields: Record<string, string> }>> => {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    return api.upload(NODNI_ENDPOINTS.SCAN_FORM, formData);
   },
 
   /** Property 360° — full history (transfers + year-wise vasuli + certificates) */

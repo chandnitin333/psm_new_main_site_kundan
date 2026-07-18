@@ -126,7 +126,7 @@ const Receipt = ({
           <tr className="font-bold">
             <td className={td} colSpan={2}>थकबाकी</td>
             <td className={td} colSpan={2}>चालू</td>
-            <td className={td}>५% वाढ</td>
+            <td className={td}>५% दंड</td>
             <td className={td}>५% सूट</td>
           </tr>
           {rows.map((row) => (
@@ -264,6 +264,8 @@ const Bill129_1Report = () => {
           .bill1-report { zoom: 0.92; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .bill1-page { page-break-after: always; }
           .bill1-page:last-child { page-break-after: auto; }
+          /* print-only: enlarge cell text for readability (screen unaffected) */
+          .bill1-report td { font-size: 13px !important; line-height: 1.25 !important; }
         }`}</style>
 
       <div className="no-print mb-4">

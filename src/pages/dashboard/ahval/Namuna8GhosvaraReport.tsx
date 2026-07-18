@@ -87,7 +87,7 @@ const Namuna8GhosvaraReport = () => {
   const totalHouses = records.length;
   const round = (v: number) => Math.round(v).toString();
 
-  const box = 'border border-black px-2 py-2 text-[12px] text-center flex items-center justify-center min-h-[40px]';
+  const box = 'border border-black px-2 py-2 text-[14px] text-center flex items-center justify-center min-h-[40px]';
 
 
   return (
@@ -114,8 +114,8 @@ const Namuna8GhosvaraReport = () => {
       <div className="mx-auto" style={{ maxWidth: '900px' }}>
         {/* Title — full-width bordered box (connects to the boxes below) */}
         <div className="w-full border border-black text-center mb-4">
-          <p className="font-bold text-[15px] py-1.5 border-b border-black">गोषवारा नमुना ८</p>
-          <p className="text-[12px] py-1.5">कर मागणी सन {cy}-{cy + 1} ते {cy + 3}-{cy + 4}</p>
+          <p className="font-bold text-[18px] py-1.5 border-b border-black">गोषवारा नमुना ८</p>
+          <p className="text-[14px] py-1.5">कर मागणी सन {cy}-{cy + 1} ते {cy + 3}-{cy + 4}</p>
         </div>
 
         {/* जिल्हा / तहसील / ग्रामपंचायत — 3 separate boxes with gaps (old bootstrap col-md-4) */}
@@ -152,7 +152,7 @@ const Namuna8GhosvaraReport = () => {
           </>
         )}
 
-        <p className="text-center text-[12px] mt-4 leading-relaxed">
+        <p className="text-center text-[14px] mt-4 leading-relaxed">
           ग्रामपंचायत मासिक सभा दि. ........./........./........... ठराव क्रं. .............. अन्वये गृहकर व भूमीकर, दिवाबत्ती कर, आरोग्य रक्षण कर, सफाई कर व पाणी पट्टी कर सन {cy}-{cy + 1} ते {cy + 3}-{cy + 4} करीत सदर कर आकारणी "कर आकारणी समिती" कडून अंतिम करण्यात येत आहे.
         </p>
 
