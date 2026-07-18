@@ -23,6 +23,17 @@ const isStandalone = () =>
   // iOS Safari
   (window.navigator as unknown as { standalone?: boolean }).standalone === true;
 
+// Persisted flag: once the app is installed on this device/browser we remember it,
+// so the install button never reappears when the site is later opened in a browser tab
+// (display-mode is NOT standalone there, so isStandalone() alone can't detect it).
+const INSTALLED_KEY = 'psm_pwa_installed';
+const wasInstalled = () => {
+  try { return localStorage.getItem(INSTALLED_KEY) === '1'; } catch { return false; }
+};
+const markInstalled = () => {
+  try { localStorage.setItem(INSTALLED_KEY, '1'); } catch { /* ignore */ }
+};
+
 // Reports/print pages open in a NEW tab via window.open() — those have window.opener set.
 // We never want the install UI on those popup/report tabs.
 const isReportPopup = () => {
@@ -40,14 +51,23 @@ const InstallPWA = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(
     typeof window !== 'undefined' ? window.__pwaInstallPrompt : null
   );
-  const [installed, setInstalled] = useState<boolean>(isStandalone());
+  const [installed, setInstalled] = useState<boolean>(isStandalone() || wasInstalled());
   const [showHelp, setShowHelp] = useState(false);
 
   // Service worker update handling
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
-  } = useRegisterSW();
+  } = useRegisterSW({
+    // After a new build is deployed, installed/open apps must notice it. The browser
+    // only checks the SW on load, so poll for a new version so the "update available"
+    // toast appears even while the app stays open.
+    onRegisteredSW(_swUrl, registration) {
+      if (!registration) return;
+      registration.update().catch(() => { /* ignore */ });
+      setInterval(() => { registration.update().catch(() => { /* ignore */ }); }, 30 * 60 * 1000);
+    },
+  });
 
   useEffect(() => {
     // the early index.html listener fires this once a prompt is available
@@ -59,13 +79,22 @@ const InstallPWA = () => {
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
     const onInstalled = () => {
+      markInstalled();
       setInstalled(true);
       window.__pwaInstallPrompt = null;
       setDeferredPrompt(null);
       setShowHelp(false);
     };
     const mql = window.matchMedia('(display-mode: standalone)');
-    const onDisplayChange = () => setInstalled(isStandalone());
+    const onDisplayChange = () => setInstalled(isStandalone() || wasInstalled());
+
+    // Chrome/Android: reliably detect an already-installed PWA even when viewed in a browser tab.
+    const nav = window.navigator as unknown as { getInstalledRelatedApps?: () => Promise<unknown[]> };
+    if (typeof nav.getInstalledRelatedApps === 'function') {
+      nav.getInstalledRelatedApps()
+        .then((apps) => { if (apps && apps.length > 0) { markInstalled(); setInstalled(true); } })
+        .catch(() => { /* ignore */ });
+    }
 
     window.addEventListener('pwa-installable', onInstallable);
     window.addEventListener('beforeinstallprompt', onBeforeInstall);
