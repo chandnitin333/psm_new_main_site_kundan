@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Sun, Moon, ChevronDown, User, LogOut, HelpCircle, Lock, Settings, Home, UserCircle } from 'lucide-react';
+import { Menu, X, Sun, Moon, ChevronDown, User, LogOut, Lock, Home, UserCircle } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
+import { useBranding } from '../../utils/branding';
 import { useDropdownDelay } from '../../utils/dropdown';
 import GlobalSearch from './GlobalSearch';
 import type { MenuItem } from '../../interfaces';
@@ -23,6 +24,7 @@ interface HeaderProps {
 }
 
 const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: HeaderProps) => {
+  const { name: brandName } = useBranding();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -121,8 +123,14 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
               className="w-10 h-10"
             />
             <span className="flex flex-col leading-tight relative">
-              <span className="text-[19px] font-black italic tracking-tight text-gray-900 dark:text-white" style={{ fontFamily: 'Georgia, serif' }}>
-                G<span className="text-primary-600 dark:text-primary-400">ram</span> V<span className="text-primary-600 dark:text-primary-400">ikas</span>
+              <span className="text-[19px] font-black italic tracking-tight text-gray-900 dark:text-white" style={{ fontFamily: 'var(--app-font)' }}>
+                {brandName.split(' ').filter(Boolean).map((word, i) => (
+                  <span key={i}>
+                    {i > 0 && ' '}
+                    {word.charAt(0)}
+                    <span className="text-primary-600 dark:text-primary-400">{word.slice(1)}</span>
+                  </span>
+                ))}
               </span>
               <span className="h-[2px] w-full bg-gradient-to-r from-primary-600 via-primary-400 to-primary-600 rounded-full"></span>
               <span className="text-[10px] font-bold tracking-[0.15em] text-gray-600 dark:text-gray-300 text-center mt-[2px]">
@@ -235,6 +243,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                       <UserCircle className="w-4 h-4" />
                       प्रोफाइल
                     </Link>
+                    {/* मदत / Help — hidden from menu (route kept)
                     <Link
                       to="/dashboard/help"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -243,6 +252,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                       <HelpCircle className="w-4 h-4" />
                       मदत
                     </Link>
+                    */}
                     <Link
                       to="/change-password"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -251,6 +261,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                       <Lock className="w-4 h-4" />
                       पासवर्ड बदला
                     </Link>
+                    {/* सेटिंग्ज / Settings — hidden from menu (route kept)
                     <Link
                       to="/dashboard/settings"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -259,6 +270,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                       <Settings className="w-4 h-4" />
                       सेटिंग्ज
                     </Link>
+                    */}
                     {onLogout && (
                       <button
                         onClick={() => {
@@ -372,6 +384,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                     <UserCircle className="w-4 h-4" />
                     प्रोफाइल
                   </Link>
+                  {/* मदत / Help — hidden from menu (route kept)
                   <Link
                     to="/dashboard/help"
                     onClick={() => setIsMobileMenuOpen(false)}
@@ -380,6 +393,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                     <HelpCircle className="w-4 h-4" />
                     मदत
                   </Link>
+                  */}
                   <Link
                     to="/change-password"
                     onClick={() => setIsMobileMenuOpen(false)}
@@ -388,6 +402,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                     <Lock className="w-4 h-4" />
                     पासवर्ड बदला
                   </Link>
+                  {/* सेटिंग्ज / Settings — hidden from menu (route kept)
                   <Link
                     to="/dashboard/settings"
                     onClick={() => setIsMobileMenuOpen(false)}
@@ -396,6 +411,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                     <Settings className="w-4 h-4" />
                     सेटिंग्ज
                   </Link>
+                  */}
                   {onLogout && (
                     <button
                       onClick={() => {
