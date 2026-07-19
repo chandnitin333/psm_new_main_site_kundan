@@ -124,7 +124,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
               <span className="text-[19px] font-black italic tracking-tight text-gray-900 dark:text-white" style={{ fontFamily: 'Georgia, serif' }}>
                 G<span className="text-primary-600 dark:text-primary-400">ram</span> V<span className="text-primary-600 dark:text-primary-400">ikas</span>
               </span>
-              <span className="h-[2px] w-full bg-gradient-to-r from-primary-600 via-amber-500 to-primary-600 rounded-full"></span>
+              <span className="h-[2px] w-full bg-gradient-to-r from-primary-600 via-primary-400 to-primary-600 rounded-full"></span>
               <span className="text-[10px] font-bold tracking-[0.15em] text-gray-600 dark:text-gray-300 text-center mt-[2px]">
                 ग्राम पंचायत सेवा
               </span>

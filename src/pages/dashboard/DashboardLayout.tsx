@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Header from '../../components/layout/Header';
 import Sidebar from '../../components/layout/Sidebar';
 import PageTracker from '../../components/PageTracker';
+import ScrollToTop from '../../components/ScrollToTop';
 import GramSahayak from '../../components/assistant/GramSahayak';
 import { DASHBOARD_MENU_ITEMS } from '../../constants/menuItems';
 import { filterMenuItems } from '../../utils/permissions';
@@ -20,6 +21,7 @@ const DashboardLayout = ({ onLogout }: DashboardLayoutProps) => {
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
+      <ScrollToTop />
       <PageTracker />
       <Header
         isAuthenticated={true}
