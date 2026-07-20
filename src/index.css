@@ -2,9 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Default accent palette (space-separated RGB, consumed by tailwind primary-*).
+   Overridden at runtime by src/utils/themeColor.ts from the admin-set colour. */
+:root {
+  --color-primary-50: 245 243 255;
+  --color-primary-100: 237 233 254;
+  --color-primary-200: 221 214 254;
+  --color-primary-300: 196 181 253;
+  --color-primary-400: 167 139 250;
+  --color-primary-500: 139 122 214;
+  --color-primary-600: 118 75 162;
+  --color-primary-700: 107 63 153;
+  --color-primary-800: 90 51 128;
+  --color-primary-900: 74 39 102;
+}
+
+/* Gradient accent mode (set by themeColor.ts): paint the strong primary button/
+   panel/table-header surfaces with the chosen 2-colour gradient. Light tints
+   (50-400) and solid mode are left untouched. */
+:root[data-brand="gradient"] .bg-primary-500,
+:root[data-brand="gradient"] .bg-primary-600,
+:root[data-brand="gradient"] .bg-primary-700,
+:root[data-brand="gradient"] .bg-primary-800 {
+  background-image: var(--brand-gradient) !important;
+}
+
 @layer base {
   body {
     @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200;
+    /* dynamic brand fonts (set by branding.ts): English glyphs use the English
+       font, Devanagari glyphs fall back to the Marathi font automatically */
+    font-family: var(--app-font, 'Inter', 'Noto Sans Devanagari', system-ui, -apple-system, sans-serif);
   }
   /* Mobile safety: never allow stray horizontal scroll / content overflow */
   html, body {

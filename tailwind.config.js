@@ -8,17 +8,21 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Dynamic accent — shades come from CSS variables set at runtime
+        // (see src/utils/themeColor.ts). Admin picks one colour; the 50-900
+        // palette is generated and applied, re-tinting every primary-* usage
+        // (buttons, panels, tables, borders, and gradient stops).
         primary: {
-          50: '#f5f3ff',
-          100: '#ede9fe',
-          200: '#ddd6fe',
-          300: '#c4b5fd',
-          400: '#a78bfa',
-          500: '#8b7ad6',
-          600: '#764ba2',
-          700: '#6b3f99',
-          800: '#5a3380',
-          900: '#4a2766',
+          50: 'rgb(var(--color-primary-50) / <alpha-value>)',
+          100: 'rgb(var(--color-primary-100) / <alpha-value>)',
+          200: 'rgb(var(--color-primary-200) / <alpha-value>)',
+          300: 'rgb(var(--color-primary-300) / <alpha-value>)',
+          400: 'rgb(var(--color-primary-400) / <alpha-value>)',
+          500: 'rgb(var(--color-primary-500) / <alpha-value>)',
+          600: 'rgb(var(--color-primary-600) / <alpha-value>)',
+          700: 'rgb(var(--color-primary-700) / <alpha-value>)',
+          800: 'rgb(var(--color-primary-800) / <alpha-value>)',
+          900: 'rgb(var(--color-primary-900) / <alpha-value>)',
         },
       },
       keyframes: {

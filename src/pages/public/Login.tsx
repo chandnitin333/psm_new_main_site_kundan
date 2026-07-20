@@ -237,7 +237,7 @@ const Login = () => {
       {/* Left Side - Branding with nature scene */}
       <div className="relative hidden lg:flex lg:w-1/2 overflow-hidden">
         {/* gradient + decorative scene */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-600 via-primary-700 to-emerald-600" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-700" />
         <svg className="absolute bottom-0 left-0 w-full" viewBox="0 0 1200 300" preserveAspectRatio="none" aria-hidden="true">
           <path d="M0,210 Q300,150 620,195 T1200,180 V300 H0 Z" fill="#ffffff" opacity="0.08" />
           <path d="M0,250 Q360,190 760,240 T1200,230 V300 H0 Z" fill="#ffffff" opacity="0.10" />
@@ -281,7 +281,7 @@ const Login = () => {
           <div className="rounded-2xl border border-gray-100 bg-white p-7 shadow-xl dark:border-gray-700 dark:bg-gray-800 sm:p-9">
             {/* Logo */}
             <div className="mb-6 flex flex-col items-center text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-emerald-500 p-2 shadow-md">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 p-2 shadow-md">
                 <img src="/psm_logo1.png" alt="PSM" className="h-full w-full object-contain" />
               </div>
               <h2 className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">
@@ -358,7 +358,7 @@ const Login = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary-600 to-emerald-600 py-3 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary-600 to-primary-700 py-3 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting ? (
                     <>
@@ -403,7 +403,7 @@ const Login = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary-600 to-emerald-600 py-3 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary-600 to-primary-700 py-3 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting ? 'Verifying...' : 'Verify OTP / पडताळणी'}
                 </button>

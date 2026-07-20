@@ -18,6 +18,10 @@ interface DatePickerProps {
   min?: string;
   max?: string;
   format?: DateFormat;
+  /** also pick a time — value is emitted as 'YYYY-MM-DD HH:mm:ss' */
+  showTime?: boolean;
+  /** with showTime: default time applied on the FIRST date pick (then user-editable). start=00:00, end=23:59 */
+  defaultTime?: 'start' | 'end';
 }
 
 const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
@@ -35,6 +39,8 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       min,
       max,
       format = 'DD/MM/YYYY',
+      showTime = false,
+      defaultTime,
     },
     ref
   ) => {
@@ -47,7 +53,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
         'DD-MM-YYYY': 'dd-MM-yyyy',
         'MM-DD-YYYY': 'MM-dd-yyyy',
       };
-      return formatMap[fmt];
+      return formatMap[fmt] + (showTime ? ' HH:mm' : '');
     };
 
     // Convert ISO string to Date object
@@ -57,18 +63,30 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       return isNaN(date.getTime()) ? null : date;
     };
 
-    // Convert Date object to ISO string
+    // Convert Date object to ISO string (adds time when showTime is on)
     const formatDate = (date: Date | null): string => {
       if (!date) return '';
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
+      if (showTime) {
+        const hh = String(date.getHours()).padStart(2, '0');
+        const mm = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hh}:${mm}:00`;
+      }
       return `${year}-${month}-${day}`;
     };
 
     const handleChange = (date: Date | null) => {
-      const isoDate = formatDate(date);
-      onChange?.(isoDate);
+      let d = date;
+      // On the FIRST date pick (field was empty), snap to the default time.
+      // Afterwards the value is set, so the user's chosen time is respected.
+      if (showTime && d && defaultTime && !value) {
+        d = new Date(d);
+        if (defaultTime === 'start') d.setHours(0, 0, 0, 0);
+        else d.setHours(23, 59, 0, 0);
+      }
+      onChange?.(formatDate(d));
     };
 
     const selectedDate = parseDate(value || '');
@@ -99,6 +117,12 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
             showMonthDropdown
             showYearDropdown
             dropdownMode="select"
+            showTimeSelect={showTime}
+            timeFormat="HH:mm"
+            timeIntervals={15}
+            popperPlacement="bottom-start"
+            popperClassName="!z-[9999]"
+            popperProps={{ strategy: 'fixed' }}
             className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors ${
               error
                 ? 'border-red-500 dark:border-red-500'

@@ -539,7 +539,7 @@ const Dashboard = () => {
                     <div key={m.id} className="shrink-0 px-2.5" style={{ width: `${100 / perView}%` }}>
                       <div className="group h-full overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
                         {/* gradient header band */}
-                        <div className="h-20 bg-gradient-to-r from-primary-500 via-primary-600 to-emerald-500" />
+                        <div className="h-20 bg-gradient-to-r from-primary-500 via-primary-600 to-primary-600" />
 
                         {/* avatar overlapping the band */}
                         <div className="-mt-12 flex justify-center">
@@ -554,7 +554,7 @@ const Dashboard = () => {
                                 />
                               ) : null}
                               <div
-                                className="h-full w-full items-center justify-center bg-gradient-to-br from-primary-500 to-emerald-500 text-2xl font-bold text-white"
+                                className="h-full w-full items-center justify-center bg-gradient-to-br from-primary-500 to-primary-600 text-2xl font-bold text-white"
                                 style={{ display: m.profile_image ? 'none' : 'flex' }}
                               >
                                 {initials || '?'}

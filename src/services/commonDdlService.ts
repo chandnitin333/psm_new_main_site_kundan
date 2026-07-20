@@ -172,6 +172,29 @@ export const commonDdlService = {
   },
 
   /**
+   * Live email-availability check for the profile editor.
+   * Returns status: 'empty' | 'invalid' | 'available' | 'self' | 'taken'
+   */
+  checkMyEmail: async (email: string): Promise<ApiResponse<{ status: string }>> => {
+    return api.get<{ status: string }>(`${DDL_ENDPOINTS.PROFILE}/check-email?email=${encodeURIComponent(email)}`);
+  },
+
+  /**
+   * Update the logged-in user's own editable profile fields (email, PAN, aadhar,
+   * name, address). Login-critical fields (mobile/username/type) are not editable.
+   */
+  updateMyProfile: async (payload: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    pan_card_no?: string;
+    aadhar_card_no?: string;
+    address?: string;
+  }): Promise<ApiResponse> => {
+    return api.put(DDL_ENDPOINTS.PROFILE, payload);
+  },
+
+  /**
    * Upload / replace the logged-in user's profile image. Updates the DB and
    * returns the new stored relative path { profile_image }.
    */

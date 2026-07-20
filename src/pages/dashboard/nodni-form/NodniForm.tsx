@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Upload, X, ScanLine, Camera, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, ScanLine, Camera, Image as ImageIcon, Plus, Trash2, Users } from 'lucide-react';
 import { config } from '../../../config';
 import { compressImage } from '../../../utils/imageCompress';
 import KhulaBhukhandModal from './KhulaBhukhandModal';
@@ -94,6 +94,7 @@ const NodniForm = () => {
     surveyNo: '',
     votarCardNo: '',
     mobileNo: '',
+    alternateMobileNo: '',
     aadharCardNo: '',
     gharMalkacheNav: '',
     patniMulacheNav: '',
@@ -117,6 +118,16 @@ const NodniForm = () => {
     shetrafalChorasFoot: '',
     shetrafalChorasMeter: '',
   });
+
+  // Optional family members (dynamic add/remove rows) — all fields optional
+  type FamilyMember = { name: string; mobile: string; age: string; aadhar_card_number: string; pan_card_number: string };
+  const emptyFamilyMember: FamilyMember = { name: '', mobile: '', age: '', aadhar_card_number: '', pan_card_number: '' };
+  const [family, setFamily] = useState<FamilyMember[]>([]);
+
+  const addFamilyRow = () => setFamily(prev => [...prev, { ...emptyFamilyMember }]);
+  const removeFamilyRow = (i: number) => setFamily(prev => prev.filter((_, idx) => idx !== i));
+  const setFamilyField = (i: number, key: keyof FamilyMember, value: string) =>
+    setFamily(prev => prev.map((m, idx) => (idx === i ? { ...m, [key]: value } : m)));
 
   // Ref for अनु क्रमांक input field
   const anuKramankInputRef = useRef<HTMLInputElement>(null);
@@ -231,7 +242,13 @@ const NodniForm = () => {
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+    const { name } = e.target;
+    let value = e.target.value;
+    // input sanitisation for the ID / phone fields
+    if (name === 'mobileNo') value = value.replace(/\D/g, '').slice(0, 10);
+    else if (name === 'alternateMobileNo') value = value.replace(/[^0-9,\s]/g, ''); // digits, comma, space
+    else if (name === 'aadharCardNo') value = value.replace(/\D/g, '').slice(0, 12);
+    else if (name === 'votarCardNo') value = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
     const updated = { ...formData, [name]: value };
 
     // Auto-calculate ekun jagechi shetrafal
@@ -549,6 +566,7 @@ const NodniForm = () => {
       survey_number: formData.surveyNo,
       matdar_card_number: formData.votarCardNo,
       mobile_number: formData.mobileNo,
+      alternate_mobile_number: formData.alternateMobileNo,
       aadahar_card_number: formData.aadharCardNo,
       ghar_malkache_nav: formData.gharMalkacheNav,
       patni_mulache_nav: formData.patniMulacheNav,
@@ -590,6 +608,8 @@ const NodniForm = () => {
       magahun_ghat_kiva_badal: taxPayable.magahunGhatBadal,
       // Other Tax Calculation (dynamic)
       taxes: selectedTaxes,
+      // Optional family members
+      family_details: family,
       // Child records — used for sync on update (ignored by create endpoint)
       khula_bhukhand_records: khulaBhukhandRecords.map(r => buildKhulaBhukhandPayload(r, 0)),
       bandkam_records: bandkamRecords.map(r => buildBandkamPayload(r, 0)),
@@ -712,6 +732,7 @@ const NodniForm = () => {
       surveyNo: str(data.survey_number),
       votarCardNo: str(data.matdar_card_number),
       mobileNo: str(data.mobile_number),
+      alternateMobileNo: str(data.alternate_mobile_number),
       aadharCardNo: str(data.aadahar_card_number),
       gharMalkacheNav: str(data.ghar_malkache_nav),
       patniMulacheNav: str(data.patni_mulache_nav),
@@ -735,6 +756,17 @@ const NodniForm = () => {
       shetrafalChorasFoot: str(data.shetrafal_choras_foot),
       shetrafalChorasMeter: str(data.shetrafal_choras_meter),
     });
+
+    // Optional family members
+    if (Array.isArray(data.family_details)) {
+      setFamily(data.family_details.map((f: Record<string, any>) => ({
+        name: str(f.name),
+        mobile: str(f.mobile),
+        age: str(f.age),
+        aadhar_card_number: str(f.aadhar_card_number),
+        pan_card_number: str(f.pan_card_number),
+      })));
+    }
 
     setPropertyTax({
       urvaritKhaliJaga: str(data.urvarit_khali_jaga_choras_foot),
@@ -914,6 +946,20 @@ const NodniForm = () => {
       return;
     }
 
+    // Identity/phone format checks (all optional, but if filled must be valid)
+    if (formData.mobileNo && !/^\d{10}$/.test(formData.mobileNo)) {
+      toast.error('मोबाईल क्रमांक १० अंकी असावा (Mobile must be 10 digits)');
+      return;
+    }
+    if (formData.aadharCardNo && !/^\d{12}$/.test(formData.aadharCardNo)) {
+      toast.error('आधार क्रमांक १२ अंकी असावा (Aadhar must be 12 digits)');
+      return;
+    }
+    if (formData.votarCardNo && !/^[A-Z]{3}[0-9]{7}$/.test(formData.votarCardNo)) {
+      toast.error('मतदार क्रमांक स्वरूप: ABC1234567 (Invalid Voter ID)');
+      return;
+    }
+
     // Soft duplicate check (skipped once the user clicks "तरीही जतन करा")
     if (!opts?.skipDupCheck) {
       setDupChecking(true);
@@ -1026,6 +1072,7 @@ const NodniForm = () => {
       surveyNo: '',
       votarCardNo: '',
       mobileNo: '',
+      alternateMobileNo: '',
       aadharCardNo: '',
       gharMalkacheNav: '',
       patniMulacheNav: '',
@@ -1054,6 +1101,7 @@ const NodniForm = () => {
     setKhulaBhukhandRecords([]);
     setBandkamRecords([]);
     setManoryachRecords([]);
+    setFamily([]);
 
     // Reset other taxes - only uncheck selections, keep API data
     setOtherTaxes(prev => prev.map(t => ({ ...t, selected: false })));
@@ -1325,7 +1373,7 @@ const NodniForm = () => {
             {/* <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
               वैयक्तिक माहिती
             </h2> */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   मतदार कार्ड नं
@@ -1335,9 +1383,13 @@ const NodniForm = () => {
                   name="votarCardNo"
                   value={formData.votarCardNo}
                   onChange={handleInputChange}
+                  maxLength={10}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="मतदार कार्ड नं"
+                  placeholder="ABC1234567"
                 />
+                {formData.votarCardNo && !/^[A-Z]{3}[0-9]{7}$/.test(formData.votarCardNo) && (
+                  <p className="mt-1 text-[11px] text-red-500">स्वरूप: ABC1234567 (३ अक्षरे + ७ अंक)</p>
+                )}
               </div>
 
               <div>
@@ -1349,10 +1401,29 @@ const NodniForm = () => {
                   name="mobileNo"
                   value={formData.mobileNo}
                   onChange={handleInputChange}
-                  pattern="[0-9]{10}"
+                  inputMode="numeric"
+                  maxLength={10}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="मोबाईल नं"
+                  placeholder="१० अंकी मोबाईल नं"
                 />
+                {formData.mobileNo && formData.mobileNo.length !== 10 && (
+                  <p className="mt-1 text-[11px] text-red-500">मोबाईल क्रमांक १० अंकी असावा</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  पर्यायी मोबाईल नं (Alternate)
+                </label>
+                <input
+                  type="text"
+                  name="alternateMobileNo"
+                  value={formData.alternateMobileNo}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="कॉमाने वेगळे करा उदा. 9876543210, 9123456780"
+                />
+                <p className="mt-1 text-[11px] text-gray-400">एकापेक्षा जास्त असल्यास कॉमा (,) ने वेगळे करा</p>
               </div>
 
               <div>
@@ -1364,12 +1435,19 @@ const NodniForm = () => {
                   name="aadharCardNo"
                   value={formData.aadharCardNo}
                   onChange={handleInputChange}
-                  pattern="[0-9]{12}"
+                  inputMode="numeric"
+                  maxLength={12}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="आधार कार्ड नं"
+                  placeholder="१२ अंकी आधार कार्ड नं"
                 />
+                {formData.aadharCardNo && formData.aadharCardNo.length !== 12 && (
+                  <p className="mt-1 text-[11px] text-red-500">आधार क्रमांक १२ अंकी असावा</p>
+                )}
               </div>
+            </div>
 
+            {/* Name fields — own 3-column row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   घर मालकाचे नाव
@@ -1443,6 +1521,101 @@ const NodniForm = () => {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Family Details (optional, dynamic rows) */}
+          <div>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 dark:border-gray-700 pb-2">
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+                <Users className="h-5 w-5 text-primary-600" />
+                कुटुंब तपशील (Family Details) <span className="text-xs font-normal text-gray-400">— पर्यायी / Optional</span>
+              </h2>
+              <button
+                type="button"
+                onClick={addFamilyRow}
+                className="flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-primary-700"
+              >
+                <Plus className="h-4 w-4" /> सदस्य जोडा
+              </button>
+            </div>
+
+            {family.length === 0 ? (
+              <p className="text-sm text-gray-400">सदस्य जोडण्यासाठी "सदस्य जोडा" वर क्लिक करा (optional).</p>
+            ) : (
+              <div className="space-y-3">
+                {family.map((m, i) => (
+                  <div key={i} className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:grid-cols-2 lg:grid-cols-6">
+                    <div className="lg:col-span-2">
+                      <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">नाव / Name</label>
+                      <MarathiInput
+                        name={`family_name_${i}`}
+                        value={m.name}
+                        onChange={(e) => setFamilyField(i, 'name', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="नाव"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">मोबाईल / Mobile</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={10}
+                        value={m.mobile}
+                        onChange={(e) => setFamilyField(i, 'mobile', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="मोबाईल"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">वय / Age</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={3}
+                        value={m.age}
+                        onChange={(e) => setFamilyField(i, 'age', e.target.value.replace(/\D/g, '').slice(0, 3))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="वय"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">आधार कार्ड नं</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={12}
+                        value={m.aadhar_card_number}
+                        onChange={(e) => setFamilyField(i, 'aadhar_card_number', e.target.value.replace(/\D/g, '').slice(0, 12))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="१२ अंकी"
+                      />
+                    </div>
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1">
+                        <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">पॅन कार्ड नं</label>
+                        <input
+                          type="text"
+                          maxLength={10}
+                          value={m.pan_card_number}
+                          onChange={(e) => setFamilyField(i, 'pan_card_number', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10))}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="ABCDE1234F"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeFamilyRow(i)}
+                        title="काढा (Remove)"
+                        className="mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 transition hover:bg-red-100 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Chatursima (Boundaries) */}

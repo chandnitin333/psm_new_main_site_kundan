@@ -7,6 +7,7 @@ export interface NodniFormData {
   surveyNo: string;
   votarCardNo: string;
   mobileNo: string;
+  alternateMobileNo: string;
   aadharCardNo: string;
   gharMalkacheNav: string;
   patniMulacheNav: string;

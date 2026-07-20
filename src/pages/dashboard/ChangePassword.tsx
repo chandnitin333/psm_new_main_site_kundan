@@ -158,7 +158,7 @@ const ChangePassword = () => {
             {/* LEFT — security info panel */}
             <div className="lg:col-span-2">
               <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <div className="flex flex-col items-center bg-gradient-to-br from-primary-600 via-primary-500 to-emerald-500 px-6 py-8 text-center">
+                <div className="flex flex-col items-center bg-gradient-to-br from-primary-600 via-primary-500 to-primary-600 px-6 py-8 text-center">
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
                     <ShieldCheck className="h-8 w-8 text-white" />
                   </div>

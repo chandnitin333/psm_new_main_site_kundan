@@ -1,18 +1,27 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { ToastMessage } from '../interfaces';
 import Toast from '../components/custom/Toast';
 
 export const useToast = () => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-
-  const addToast = useCallback((type: ToastMessage['type'], message: string, duration?: number) => {
-    const id = Date.now().toString();
-    const newToast: ToastMessage = { id, type, message, duration };
-    setToasts((prev) => [...prev, newToast]);
-  }, []);
+  const seqRef = useRef(0);
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  }, []);
+
+  const addToast = useCallback((type: ToastMessage['type'], message: string, duration?: number) => {
+    // unique id (Date.now alone can collide when two toasts fire in the same ms)
+    const id = `${Date.now()}-${seqRef.current++}`;
+    const newToast: ToastMessage = { id, type, message, duration };
+    setToasts((prev) => [...prev, newToast]);
+    // Auto-dismiss at the HOOK level (independent of the Toast component's own
+    // mount timer) so it always closes even if <ToastContainer /> re-mounts on
+    // parent re-renders.
+    const ms = duration ?? 3000;
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, ms);
   }, []);
 
   const ToastContainer = () => (

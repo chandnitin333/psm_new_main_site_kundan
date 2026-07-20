@@ -277,7 +277,7 @@ const Profile = () => {
                         onError={() => setImgError(true)}
                       />
                     ) : (
-                      <div className="flex h-28 w-28 select-none items-center justify-center rounded-full border-4 border-white bg-gradient-to-br from-primary-500 to-emerald-500 text-4xl font-bold text-white shadow-lg dark:border-gray-800">
+                      <div className="flex h-28 w-28 select-none items-center justify-center rounded-full border-4 border-white bg-gradient-to-br from-primary-500 to-primary-600 text-4xl font-bold text-white shadow-lg dark:border-gray-800">
                         {initials}
                       </div>
                     )}
