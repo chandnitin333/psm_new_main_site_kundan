@@ -1,11 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Sun, Moon, ChevronDown, User, LogOut, Lock, Home, UserCircle } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, Sun, Moon, ChevronDown, User, LogOut, Lock, Home, UserCircle, Bell } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useBranding } from '../../utils/branding';
 import { useDropdownDelay } from '../../utils/dropdown';
 import GlobalSearch from './GlobalSearch';
+import { isCitizen } from '../../utils/permissions';
+import { postService, type GpPost } from '../../services';
 import type { MenuItem } from '../../interfaces';
+
+const fmtNotifDate = (v: unknown) => {
+  if (!v) return '';
+  const d = new Date(v as string);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+};
 
 interface UserData {
   id?: number;
@@ -56,6 +65,60 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
     ? `${userData.first_name} ${userData.last_name}`
     : userData?.username || 'User';
   const userEmail = userData?.email || '';
+  // Citizens have their own dashboard; everyone else uses the staff dashboard.
+  const dashboardPath = userData?.user_type === 'citizen' ? '/citizen-dashboard' : '/dashboard';
+
+  // Citizen notification bell — unread posts count (polled) + dropdown list
+  const navigate = useNavigate();
+  const [unread, setUnread] = useState(0);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifItems, setNotifItems] = useState<GpPost[]>([]);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const bellRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated || !isCitizen()) return;
+    let active = true;
+    const fetchUnread = async () => {
+      try {
+        const r = await postService.unreadCount();
+        if (active) setUnread(r?.data?.unread || 0);
+      } catch { /* ignore */ }
+    };
+    fetchUnread();
+    const t = setInterval(fetchUnread, 60000);
+    return () => { active = false; clearInterval(t); };
+  }, [isAuthenticated, location.pathname]);
+
+  // close the notification dropdown on outside click
+  useEffect(() => {
+    if (!notifOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setNotifOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [notifOpen]);
+
+  const toggleNotif = async () => {
+    const next = !notifOpen;
+    setNotifOpen(next);
+    if (next) {
+      setNotifLoading(true);
+      try {
+        const r = await postService.list();
+        setNotifItems(Array.isArray(r?.data) ? r.data.slice(0, 8) : []);
+      } catch { /* ignore */ }
+      setNotifLoading(false);
+    }
+  };
+
+  const openNotices = () => {
+    postService.markRead().catch(() => {});
+    setUnread(0);
+    setNotifOpen(false);
+    navigate('/posts');
+  };
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -116,7 +179,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to={isAuthenticated ? "/dashboard" : "/"} className="flex items-center space-x-2">
+          <Link to={isAuthenticated ? dashboardPath : "/"} className="flex items-center space-x-2">
             <img
               src="/psm_logo1.png"
               alt="Gram Panchayat Logo"
@@ -196,8 +259,65 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
 
           {/* Right side actions */}
           <div className="flex items-center gap-2">
-            {/* Global Search (Dashboard only) */}
-            {isAuthenticated && <GlobalSearch />}
+            {/* Global Search (staff only — hidden for citizens) */}
+            {isAuthenticated && !isCitizen() && <GlobalSearch />}
+
+            {/* Notification bell (citizen) — unread posts + dropdown */}
+            {isAuthenticated && isCitizen() && (
+              <div className="relative" ref={bellRef}>
+                <button
+                  type="button"
+                  onClick={toggleNotif}
+                  className="relative p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  title="सूचना / Notices"
+                >
+                  <Bell className="w-5 h-5" />
+                  {unread > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                      {unread > 9 ? '9+' : unread}
+                    </span>
+                  )}
+                </button>
+
+                {notifOpen && (
+                  <div className="absolute right-0 mt-2 w-80 max-w-[90vw] rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 z-[9999]">
+                    <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5 dark:border-gray-700">
+                      <span className="text-sm font-bold text-gray-900 dark:text-white">सूचना / Notices</span>
+                      {unread > 0 && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-600 dark:bg-red-900/40 dark:text-red-300">{unread} नवीन</span>}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifLoading ? (
+                        <div className="flex justify-center py-6"><div className="h-6 w-6 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" /></div>
+                      ) : notifItems.length === 0 ? (
+                        <p className="px-4 py-6 text-center text-sm text-gray-400">कोणतीही सूचना नाही</p>
+                      ) : (
+                        notifItems.map((n) => (
+                          <button
+                            key={n.id}
+                            type="button"
+                            onClick={openNotices}
+                            className="flex w-full flex-col items-start gap-0.5 border-b border-gray-50 px-4 py-2.5 text-left transition hover:bg-gray-50 dark:border-gray-700/50 dark:hover:bg-gray-700"
+                          >
+                            <span className="line-clamp-1 text-sm font-medium text-gray-900 dark:text-white">{n.title}</span>
+                            <span className="flex items-center gap-2 text-[11px] text-gray-400">
+                              {n.category ? <span className="rounded bg-primary-50 px-1.5 py-0.5 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300">{n.category}</span> : null}
+                              {fmtNotifDate(n.publish_at || n.created_at)}
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openNotices}
+                      className="w-full rounded-b-xl border-t border-gray-100 py-2.5 text-center text-sm font-semibold text-primary-600 hover:bg-gray-50 dark:border-gray-700 dark:text-primary-300 dark:hover:bg-gray-700"
+                    >
+                      सर्व सूचना पहा →
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Theme Toggle */}
             <button
@@ -228,7 +348,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
                       <p className="text-xs text-gray-500 dark:text-gray-400">{userEmail}</p>
                     </div>
                     <Link
-                      to="/dashboard"
+                      to={dashboardPath}
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       onClick={() => setIsUserMenuOpen(false)}
                     >
@@ -369,7 +489,7 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
               <>
                 <div className="border-t border-gray-200 dark:border-gray-700 mt-2 pt-2">
                   <Link
-                    to="/dashboard"
+                    to={dashboardPath}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   >

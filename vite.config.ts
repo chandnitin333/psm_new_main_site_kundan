@@ -49,6 +49,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // custom push / notificationclick handlers merged into the generated SW
+        importScripts: ['/push-sw.js'],
         // precache the built app shell
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         // SPA fallback so deep links work offline

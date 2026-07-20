@@ -36,6 +36,8 @@ export const PATH_TO_MODULE: Record<string, string> = {
   '/ahval/bill-ward': 'ahval_bill_ward',
   '/ahval/namuna10': 'ahval_namuna10',
   '/ahval/imla-kar': 'ahval_imla_kar',
+  '/helpline': 'helpline',
+  '/posts': 'gp_posts',
   // certificates are per-type (module key = `cert_<slug>`); the /certificates menu
   // itself is gated by canAnyCertificate() (see filterMenuItems).
 };
@@ -60,11 +62,21 @@ export const getPagePermissions = (): PagePermissions => {
   }
 };
 
+// Citizen (नागरिक / मालमत्ताधारक) — a villager login created from a nodni record.
+// They get a restricted citizen dashboard only, NOT the staff/admin views.
+export const isCitizen = (): boolean => {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    return user?.user_type === 'citizen';
+  } catch { return false; }
+};
+
 // super_user always has full access; otherwise no explicit permissions at all
-// -> full access (migration / safety)
+// -> full access (migration / safety). Citizens are NEVER full access.
 export const isFullAccess = (): boolean => {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user?.user_type === 'citizen') return false;
     if (user?.user_type === 'super_user') return true;
   } catch { /* ignore */ }
   const pp = getPagePermissions();
@@ -91,6 +103,7 @@ export const moduleForPath = (path: string): string | undefined => PATH_TO_MODUL
 // Where to land after login: dashboard if allowed, otherwise the first
 // permitted page (in PATH_TO_MODULE order). Full-access users always get dashboard.
 export const getLandingPath = (): string => {
+  if (isCitizen()) return '/my-property';
   if (isFullAccess() || canModule('dashboard')) return '/dashboard';
   for (const [path, moduleKey] of Object.entries(PATH_TO_MODULE)) {
     if (path === '/dashboard') continue;
@@ -108,6 +121,7 @@ interface MenuLike {
 // Filter a menu tree to only the items/submenus the user can access.
 // Parent with submenus is kept only if at least one submenu is visible.
 export const filterMenuItems = <T extends MenuLike>(items: T[]): T[] => {
+  if (isCitizen()) return []; // citizens have no staff menus
   if (isFullAccess()) return items;
   const result: T[] = [];
   for (const item of items) {

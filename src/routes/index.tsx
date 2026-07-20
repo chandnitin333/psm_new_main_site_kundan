@@ -1,5 +1,5 @@
 import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom';
-import { canModule, getLandingPath, moduleForPath, canAnyCertificate } from '../utils/permissions';
+import { canModule, getLandingPath, moduleForPath, canAnyCertificate, isCitizen } from '../utils/permissions';
 import { isSuperUser, getActiveGp } from '../utils/activeGp';
 import SelectGramPanchayat from '../pages/dashboard/SelectGramPanchayat';
 import PublicLayout from '../components/layout/PublicLayout';
@@ -75,6 +75,14 @@ import Namuna9 from '../pages/dashboard/ahval/Namuna9';
 import BillWard from '../pages/dashboard/ahval/BillWard';
 import ImlaKar from '../pages/dashboard/ahval/ImlaKar';
 import Loaders from '../pages/dashboard/loaders/Loaders';
+import CitizenDashboard from '../pages/dashboard/CitizenDashboard';
+import CitizenProfile from '../pages/dashboard/CitizenProfile';
+import CitizenMalmatta from '../pages/dashboard/CitizenMalmatta';
+import CitizenBill from '../pages/dashboard/CitizenBill';
+import CitizenHelpline from '../pages/dashboard/CitizenHelpline';
+import Helpline from '../pages/dashboard/helpline/Helpline';
+import CitizenPosts from '../pages/dashboard/CitizenPosts';
+import Posts from '../pages/dashboard/posts/Posts';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -97,7 +105,9 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     if (!canAnyCertificate() && path !== landing) return <Navigate to={landing} replace />;
   } else {
     const mod = moduleForPath(path);
-    if (mod && !canModule(mod) && path !== landing) return <Navigate to={landing} replace />;
+    // citizens may always view their own pages (helpline directory, posts feed)
+    const citizenAllowed = isCitizen() && (mod === 'helpline' || mod === 'gp_posts');
+    if (mod && !canModule(mod) && !citizenAllowed && path !== landing) return <Navigate to={landing} replace />;
   }
 
   return <>{children}</>;
@@ -115,6 +125,37 @@ const GuestRoute = ({ children }: ProtectedRouteProps) => {
 // their first permitted page (prevents opening /dashboard directly without access).
 const DashboardHome = () => {
   return canModule('dashboard') ? <Dashboard /> : <Navigate to={getLandingPath()} replace />;
+};
+
+// Citizen dashboard home: only citizens see it; any other logged-in user is
+// bounced to their own landing page.
+const CitizenHome = () => {
+  return isCitizen() ? <CitizenDashboard /> : <Navigate to={getLandingPath()} replace />;
+};
+
+// /profile: citizens get their own citizen profile; staff get the regular one.
+const ProfileHome = () => {
+  return isCitizen() ? <CitizenProfile /> : <Profile />;
+};
+
+// /my-property: citizen-only view of their own registered property.
+const MyPropertyHome = () => {
+  return isCitizen() ? <CitizenMalmatta /> : <Navigate to={getLandingPath()} replace />;
+};
+
+// /my-bill: citizen-only tax demand bill.
+const MyBillHome = () => {
+  return isCitizen() ? <CitizenBill /> : <Navigate to={getLandingPath()} replace />;
+};
+
+// /helpline: citizens get the read-only directory; staff get the management page.
+const HelplineHome = () => {
+  return isCitizen() ? <CitizenHelpline /> : <Helpline />;
+};
+
+// /posts: citizens get the notices feed; staff get the management page.
+const PostsHome = () => {
+  return isCitizen() ? <CitizenPosts /> : <Posts />;
 };
 
 export const createRouter = (handleLogout: () => void) =>
@@ -510,6 +551,61 @@ export const createRouter = (handleLogout: () => void) =>
       ],
     },
     {
+      path: '/citizen-dashboard',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <CitizenHome /> },
+      ],
+    },
+    {
+      path: '/my-property',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <MyPropertyHome /> },
+      ],
+    },
+    {
+      path: '/my-bill',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <MyBillHome /> },
+      ],
+    },
+    {
+      path: '/helpline',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <HelplineHome /> },
+      ],
+    },
+    {
+      path: '/posts',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <PostsHome /> },
+      ],
+    },
+    {
       path: '/profile',
       element: (
         <ProtectedRoute>
@@ -517,7 +613,7 @@ export const createRouter = (handleLogout: () => void) =>
         </ProtectedRoute>
       ),
       children: [
-        { index: true, element: <Profile /> },
+        { index: true, element: <ProfileHome /> },
       ],
     },
     {

@@ -44,6 +44,8 @@ const NODNI_ENDPOINTS = {
   HISTORY: (id: number) => `/main/nodni/${id}/history`,
   SEARCH: '/main/malmatta-nodni/search',
   FILTER: '/main/malmatta-nodni/filter',
+  MY_PROPERTIES: '/main/malmatta-nodni/my-properties',
+  MY_PROPERTY_UPDATE: (id: number) => `/main/malmatta-nodni/my-property/${id}`,
   CHECK_SILLAK_JODA: '/main/malmatta-nodni/previous-tax/check-sillak-joda-exist',
   CREATE_PREVIOUS_TAX: '/main/malmatta-nodni/previous-tax',
   UPDATE_PREVIOUS_TAX: (id: number) => `/main/malmatta-nodni/previous-tax/${id}`,
@@ -174,6 +176,30 @@ export const nodniService = {
    */
   filter: async (payload: Record<string, unknown>): Promise<ApiResponse> => {
     return api.post(NODNI_ENDPOINTS.FILTER, payload);
+  },
+
+  /**
+   * Citizen self-service: the logged-in user's OWN property records
+   * (matched on their mobile / aadhar / voter card). Read-only.
+   */
+  getMyProperties: async (payload?: { page?: number; per_page?: number }): Promise<ApiResponse> => {
+    return api.post(NODNI_ENDPOINTS.MY_PROPERTIES, payload || {});
+  },
+
+  /**
+   * Citizen self-update of their OWN property — only whitelisted fields
+   * (currently चतु:सीमा / boundaries). Backend verifies ownership.
+   */
+  updateMyProperty: async (
+    id: number,
+    payload: {
+      purv?: string; paschim?: string; uttar?: string; dakshin?: string;
+      matdar_card_number?: string; aadahar_card_number?: string;
+      alternate_mobile_number?: string;
+      family_details?: Array<{ name?: string; mobile?: string; age?: string; aadhar_card_number?: string; pan_card_number?: string }>;
+    },
+  ): Promise<ApiResponse> => {
+    return api.put(NODNI_ENDPOINTS.MY_PROPERTY_UPDATE(id), payload);
   },
 
   /**

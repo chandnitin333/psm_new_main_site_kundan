@@ -92,5 +92,58 @@ export const DASHBOARD_MENU_ITEMS: MenuItem[] = [
     path: '/certificates',
     icon: 'Award',
     subMenus: []
+  },
+  {
+    id: 'helpline',
+    label: 'हेल्पलाईन',
+    path: '/helpline',
+    icon: 'LifeBuoy',
+    subMenus: []
+  },
+  {
+    id: 'gp-posts',
+    label: 'सूचना',
+    path: '/posts',
+    icon: 'Megaphone',
+    subMenus: []
+  }
+];
+
+// Menu shown ONLY to citizen (नागरिक / मालमत्ताधारक) logins — dashboard + their property.
+export const CITIZEN_MENU_ITEMS: MenuItem[] = [
+  {
+    id: 'citizen-dashboard',
+    label: 'डॅशबोर्ड',
+    path: '/citizen-dashboard',
+    icon: 'Home',
+    subMenus: []
+  },
+  {
+    id: 'my-property',
+    label: 'माझी मालमत्ता',
+    path: '/my-property',
+    icon: 'Building2',
+    subMenus: []
+  },
+  {
+    id: 'my-bill',
+    label: 'कर बिल',
+    path: '/my-bill',
+    icon: 'FileText',
+    subMenus: []
+  },
+  {
+    id: 'helpline',
+    label: 'हेल्पलाईन',
+    path: '/helpline',
+    icon: 'LifeBuoy',
+    subMenus: []
+  },
+  {
+    id: 'gp-posts',
+    label: 'सूचना',
+    path: '/posts',
+    icon: 'Megaphone',
+    subMenus: []
   }
 ];
