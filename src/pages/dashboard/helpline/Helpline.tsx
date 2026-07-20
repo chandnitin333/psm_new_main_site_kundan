@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Pencil, Trash2, Phone, X, Save, LifeBuoy } from 'lucide-react';
 import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
@@ -41,10 +41,14 @@ const Helpline = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  const didLoad = useRef(false);
   useEffect(() => {
     document.title = 'हेल्पलाईन व्यवस्थापन / Helpline';
+    if (didLoad.current) return;   // guard StrictMode double-invoke in dev
+    didLoad.current = true;
     load();
   }, [load]);
 

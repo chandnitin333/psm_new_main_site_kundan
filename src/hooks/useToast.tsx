@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import type { ToastMessage } from '../interfaces';
 import Toast from '../components/custom/Toast';
 
@@ -32,13 +32,14 @@ export const useToast = () => {
     </div>
   );
 
-  return {
-    toast: {
-      success: (message: string, duration?: number) => addToast('success', message, duration),
-      error: (message: string, duration?: number) => addToast('error', message, duration),
-      info: (message: string, duration?: number) => addToast('info', message, duration),
-      warning: (message: string, duration?: number) => addToast('warning', message, duration),
-    },
-    ToastContainer,
-  };
+  // Stable `toast` object — recreating it every render made callbacks/effects
+  // that depend on `toast` fire endlessly (e.g. a load() in useEffect looping).
+  const toast = useMemo(() => ({
+    success: (message: string, duration?: number) => addToast('success', message, duration),
+    error: (message: string, duration?: number) => addToast('error', message, duration),
+    info: (message: string, duration?: number) => addToast('info', message, duration),
+    warning: (message: string, duration?: number) => addToast('warning', message, duration),
+  }), [addToast]);
+
+  return { toast, ToastContainer };
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Pencil, Trash2, X, Save, Megaphone, Pin, Upload } from 'lucide-react';
 import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
@@ -38,9 +38,16 @@ const Posts = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  useEffect(() => { document.title = 'सूचना व्यवस्थापन / Posts'; load(); }, [load]);
+  const didLoad = useRef(false);
+  useEffect(() => {
+    document.title = 'सूचना व्यवस्थापन / Posts';
+    if (didLoad.current) return;   // guard StrictMode double-invoke in dev
+    didLoad.current = true;
+    load();
+  }, [load]);
 
   useEffect(() => {
     if (drawerOpen) {
