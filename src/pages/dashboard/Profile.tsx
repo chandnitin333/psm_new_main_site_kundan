@@ -7,6 +7,7 @@ import { useToast } from '../../hooks/useToast';
 import { commonDdlService } from '../../services/commonDdlService';
 import { config } from '../../config';
 import { trackAction } from '../../utils/tracker';
+import AppLockSettings from '../../components/applock/AppLockSettings';
 
 const backendBase = config.api.baseUrl.replace(/\/api$/, '');
 
@@ -360,6 +361,9 @@ const Profile = () => {
                 </div>
               </div>
             </div>
+
+            {/* App lock (MPIN/WPIN) */}
+            <AppLockSettings />
           </div>
         )}
        </div>
