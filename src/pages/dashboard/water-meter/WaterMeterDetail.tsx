@@ -60,38 +60,7 @@ const WaterMeterDetail = () => {
 
   const round2 = (n: number) => Math.round(n * 100) / 100;
 
-  // recompute a row's derived amounts from the current settings.
-  // value नसेल तर null ठेवा (0 न दाखवता रिकामे दिसेल).
-  const computeRow = (r: WaterReading, rt = readingType, vt = vilambType, vv = vilambVal): WaterReading => {
-    const rate = num(r.rate);
-    let cc: number | null, ar: number | null, ek = r.ekun_reading ?? '';
-    if (rt === 'reading') {
-      const hasCur = String(r.current_reading ?? '') !== '';
-      const hasPrev = String(r.previous_reading ?? '') !== '';
-      const cr = num(r.current_reading), pr = num(r.previous_reading);
-      ek = (hasCur || hasPrev) ? String(cr + pr) : '';
-      cc = (hasCur && r.rate != null) ? round2(cr * rate) : null;
-      ar = (hasPrev && r.rate != null) ? round2(pr * rate) : null;
-    } else {
-      cc = String(r.current_charge ?? '') === '' ? null : num(r.current_charge);
-      ar = String(r.arrears ?? '') === '' ? null : num(r.arrears);
-    }
-    const hasAmt = cc != null || ar != null;
-    const late = !hasAmt ? null : (vt === 'percent' ? round2(num(ar) * num(vv) / 100) : num(vv));
-    const total = !hasAmt ? null : round2(num(cc) + num(ar) + num(late));
-    return {
-      ...r,
-      ekun_reading: ek,
-      current_charge: rt === 'reading' ? cc : r.current_charge,
-      arrears: rt === 'reading' ? ar : r.arrears,
-      late_fee: late,
-      total,
-      balance: total,
-    };
-  };
-
   // row मध्ये काहीही entry आहे का (जतन button फक्त भरलेल्या row ला दाखवा).
-  // average चे default text (आवरेज/बिल) ला "रिकामे" धरा.
   const rowFilled = (r: WaterReading): boolean => {
     const cr = String(r.current_reading ?? '');
     const pr = String(r.previous_reading ?? '');
@@ -103,33 +72,85 @@ const WaterMeterDetail = () => {
     ].some((v) => String(v ?? '') !== '');
   };
 
-  // row मध्ये data आहे का (रिकाम्या row ला दर/विलंब लागणार नाही)
-  const rowHasData = (r: WaterReading, rt: 'average' | 'reading'): boolean =>
-    rt === 'reading'
-      ? (String(r.current_reading ?? '') !== '' || String(r.previous_reading ?? '') !== '')
-      : (String(r.current_charge ?? '') !== '' || String(r.arrears ?? '') !== '');
+  // पेमेंट झाले का — भरणा रक्कम + पावती क्रमांक दोन्ही असल्यास.
+  const isPaid = (r: WaterReading): boolean =>
+    String(r.paid_amount ?? '') !== '' && num(r.paid_amount) > 0 && String(r.receipt_no ?? '').trim() !== '';
 
-  // whole-array recompute: reading mode मध्ये प्रत्येक महिन्याची मागील रिडिंग = मागच्या महिन्याची चालु रिडिंग (locked chain).
-  // दर top वरून येतो पण फक्त data असलेल्या row ला लागतो, बाकी रिकामे.
+  // whole-array recompute with CARRYOVER (महिना-क्रमाने):
+  //  थकीत(row) = मागील row ची थकबाकी  (पहिली row = opening; reading मध्ये पहिली = मागील×दर)
+  //  एकूण = चालु आकारणी + थकीत + विलंब दंड
+  //  थकबाकी = एकूण − भरणा
+  //  reading: चालु आकारणी = चालु रीडिंग×दर;  पुढील मागील रीडिंग = एकूण रीडिंग × न भरलेले प्रमाण (partial payment)
   const recompute = (list: WaterReading[], rt = readingType, vt = vilambType, vv = vilambVal, rateStr = topRate): WaterReading[] => {
     const rateNum = String(rateStr ?? '') === '' ? null : num(rateStr);
+    const vilNum = String(vv ?? '') === '' ? null : num(vv);
     const ordered = [...list].sort((a, b) => a.month_seq - b.month_seq);
+    let prevBal: number | null = null;           // थकबाकी → पुढील थकीत
+    let prevUnpaidReading: number | null = null; // reading: न भरलेली युनिट्स → पुढील मागील रीडिंग
+
     return ordered.map((r, i) => {
-      let row = { ...r };
+      const row: WaterReading = { ...r };
+      const first = i === 0;
+      const lateOf = (base: number | null): number | null =>
+        vt === 'percent' ? (base != null ? round2(num(base) * num(vilNum) / 100) : null) : vilNum;
+
       if (rt === 'average') {
-        // average: चालु/मागील मध्ये default text दाखवा (रिकामे असेल तर)
-        if (String(row.current_reading ?? '') === '') row.current_reading = 'आवरेज';
-        if (String(row.previous_reading ?? '') === '') row.previous_reading = 'बिल';
-      } else {
-        // reading: default text काढा; मागील रिडिंग = मागच्या महिन्याची चालु (चालु टाकल्यावरच)
-        if (row.current_reading === 'आवरेज') row.current_reading = '';
-        if (row.previous_reading === 'बिल') row.previous_reading = '';
-        if (i > 0 && String(row.current_reading ?? '') !== '') {
-          row.previous_reading = ordered[i - 1].current_reading ?? '';
+        row.current_reading = 'आवरेज';
+        row.previous_reading = 'बिल';
+        const cc = String(row.current_charge ?? '') === '' ? null : num(row.current_charge);
+        const openThak = first && String(row.arrears ?? '') !== '' ? num(row.arrears) : null;
+        // row तेव्हाच active — जेव्हा या row मध्ये user ने स्वतः काही भरले (फक्त carryover ने नाही)
+        const active = cc != null || String(row.ekun_reading ?? '') !== '' || openThak != null;
+        if (!active) {
+          if (!first) row.arrears = null;
+          row.rate = null; row.late_fee = null; row.total = null; row.balance = null;
+          return row;
         }
+        const thak = first ? openThak : prevBal;
+        row.rate = rateNum;
+        row.arrears = thak;
+        const late = lateOf(thak);
+        row.late_fee = late;
+        const total = round2(num(cc) + num(thak) + num(late));
+        row.total = total;
+        const bal = round2(total - num(row.paid_amount));
+        row.balance = bal;
+        prevBal = bal;
+        return row;
       }
-      row.rate = rowHasData(row, rt) ? rateNum : null;
-      return computeRow(row, rt, vt, vv);
+
+      // reading mode
+      if (row.current_reading === 'आवरेज') row.current_reading = '';
+      if (first) { if (row.previous_reading === 'बिल') row.previous_reading = ''; }
+      else row.previous_reading = prevUnpaidReading != null ? String(prevUnpaidReading) : '';
+      const hasCur = String(row.current_reading ?? '') !== '';
+      const hasPrev = String(row.previous_reading ?? '') !== '';
+      const active = hasCur || (first && hasPrev);
+      if (!active) {
+        row.ekun_reading = ''; row.rate = null; row.current_charge = null; row.arrears = null;
+        row.late_fee = null; row.total = null; row.balance = null;
+        return row;
+      }
+      const cr = num(row.current_reading);
+      const mr = num(row.previous_reading);
+      const ekunReading = cr + mr;
+      row.ekun_reading = String(ekunReading);
+      row.rate = rateNum;
+      const cc = rateNum != null ? round2(cr * rateNum) : null;
+      row.current_charge = cc;
+      const thak = first ? (rateNum != null ? round2(mr * rateNum) : null) : (prevBal ?? 0);
+      row.arrears = thak;
+      const late = lateOf(thak);
+      row.late_fee = late;
+      const total = round2(num(cc) + num(thak) + num(late));
+      row.total = total;
+      const bharana = num(row.paid_amount);
+      const bal = round2(total - bharana);
+      row.balance = bal;
+      const paidFrac = total > 0 ? Math.min(1, bharana / total) : 0;
+      prevUnpaidReading = round2(ekunReading * (1 - paidFrac));
+      prevBal = bal;
+      return row;
     });
   };
 
@@ -368,8 +389,8 @@ const WaterMeterDetail = () => {
           </div>
           <p className="mt-2 text-[11px] text-gray-400">
             {readingType === 'reading'
-              ? 'रीडिंग: चालु व मागील रिडिंग टाका → एकूण, चालु आकारणी (चालु×दर), थकीत (मागील×दर) आपोआप. विलंब = थकीत वर लागू.'
-              : 'आवरेज: सर्व महिन्यांना "आवरेज"/"बिल". चालु आकारणी व थकीत रक्कम स्वतः टाका.'}
+              ? 'रीडिंग: चालु रीडिंग टाका → एकूण=चालु+मागील, चालु आकारणी=चालु×दर आपोआप. थकीत=मागील महिन्याची थकबाकी. एकूण=चालु आकारणी+थकीत+विलंब. थकबाकी=एकूण−भरणा. आंशिक भरणा केल्यास न भरलेली युनिट्स पुढील महिन्याची मागील रीडिंग होते. भरणा + पावती क्र. टाकल्यास पेमेंट नोंद होते.'
+              : 'आवरेज: चालु="आवरेज"/मागील="बिल". एकूण रीडिंग 0/15 (free). चालु आकारणी स्वतः टाका. थकीत=मागील थकबाकी (पहिला महिना opening). एकूण=चालु आकारणी+थकीत+विलंब. थकबाकी=एकूण−भरणा.'}
           </p>
         </div>
         <div className="overflow-x-auto rounded-lg bg-white p-2 shadow-sm dark:bg-gray-800">
@@ -391,24 +412,38 @@ const WaterMeterDetail = () => {
                       {r.month_name}
                     </span>
                   </td>
-                  <td className="border border-gray-200 dark:border-gray-600"><input disabled={!canEdit} inputMode={isReading ? 'decimal' : 'text'} value={String(r.current_reading ?? '')} onChange={(e) => setCell(r.month_seq, 'current_reading', isReading ? e.target.value.replace(/[^0-9.]/g, '') : e.target.value)} className={inp} /></td>
-                  <td className="border border-gray-200 dark:border-gray-600" title={isReading && r.month_seq !== 1 ? 'मागील महिन्याच्या चालु रिडिंगवरून आपोआप' : undefined}>
-                    {isReading && r.month_seq !== 1
-                      ? <div className={inpRO}>{r.previous_reading ?? ''}</div>
-                      : <input disabled={!canEdit} inputMode={isReading ? 'decimal' : 'text'} value={String(r.previous_reading ?? '')} onChange={(e) => setCell(r.month_seq, 'previous_reading', isReading ? e.target.value.replace(/[^0-9.]/g, '') : e.target.value)} className={inp} />}
+                  {/* चालु रीडिंग: reading → editable; average → "आवरेज" readonly */}
+                  <td className="border border-gray-200 dark:border-gray-600">
+                    {isReading
+                      ? <input disabled={!canEdit} inputMode="decimal" value={String(r.current_reading ?? '')} onChange={(e) => setCell(r.month_seq, 'current_reading', e.target.value.replace(/[^0-9.]/g, ''))} className={inp} />
+                      : <div className={inpRO}>{r.current_reading ?? ''}</div>}
                   </td>
+                  {/* मागील रीडिंग: reading पहिला महिना editable, बाकी आपोआप (न भरलेली युनिट्स); average → "बिल" readonly */}
+                  <td className="border border-gray-200 dark:border-gray-600" title={isReading && r.month_seq !== 1 ? 'मागील महिन्याच्या न भरलेल्या युनिट्सवरून आपोआप' : undefined}>
+                    {isReading && r.month_seq === 1
+                      ? <input disabled={!canEdit} inputMode="decimal" value={String(r.previous_reading ?? '')} onChange={(e) => setCell(r.month_seq, 'previous_reading', e.target.value.replace(/[^0-9.]/g, ''))} className={inp} />
+                      : <div className={inpRO}>{r.previous_reading ?? ''}</div>}
+                  </td>
+                  {/* एकूण रीडिंग: reading → चालु+मागील (आपोआप); average → free text 0/15 */}
                   <td className="border border-gray-200 dark:border-gray-600">
                     {isReading
                       ? <div className={inpRO}>{r.ekun_reading ?? ''}</div>
                       : <input disabled={!canEdit} value={String(r.ekun_reading ?? '')} onChange={(e) => setCell(r.month_seq, 'ekun_reading', e.target.value)} className={inp} placeholder="उदा. 0/15" />}
                   </td>
+                  {/* दर: top वरून (readonly) */}
                   <td className="border border-gray-200 dark:border-gray-600"><div className={inpRO}>{r.rate ?? ''}</div></td>
-                  {(['current_charge', 'arrears'] as const).map((k) => (
-                    <td key={k} className="border border-gray-200 dark:border-gray-600">
-                      {isReading
-                        ? <div className={inpRO}>{r[k] ?? ''}</div>
-                        : <input disabled={!canEdit} inputMode="decimal" value={String(r[k] ?? '')} onChange={(e) => setCell(r.month_seq, k, e.target.value.replace(/[^0-9.]/g, ''))} className={inp} />}
-                    </td>))}
+                  {/* चालु आकारणी: average → editable; reading → चालु×दर (आपोआप) */}
+                  <td className="border border-gray-200 dark:border-gray-600">
+                    {isReading
+                      ? <div className={inpRO}>{r.current_charge ?? ''}</div>
+                      : <input disabled={!canEdit} inputMode="decimal" value={String(r.current_charge ?? '')} onChange={(e) => setCell(r.month_seq, 'current_charge', e.target.value.replace(/[^0-9.]/g, ''))} className={inp} />}
+                  </td>
+                  {/* थकीत: पहिला महिना opening (average मध्ये editable), बाकी = मागील थकबाकी (आपोआप) */}
+                  <td className="border border-gray-200 dark:border-gray-600" title={r.month_seq !== 1 ? 'मागील महिन्याच्या थकबाकीवरून आपोआप' : undefined}>
+                    {(!isReading && r.month_seq === 1)
+                      ? <input disabled={!canEdit} inputMode="decimal" value={String(r.arrears ?? '')} onChange={(e) => setCell(r.month_seq, 'arrears', e.target.value.replace(/[^0-9.]/g, ''))} className={inp} />
+                      : <div className={inpRO}>{r.arrears ?? ''}</div>}
+                  </td>
                   <td className="border border-gray-200 dark:border-gray-600"><div className={inpRO}>{r.late_fee ?? ''}</div></td>
                   <td className="border border-gray-200 px-1.5 py-1 text-center font-semibold dark:border-gray-600">{r.total ?? ''}</td>
                   <td className="border border-gray-200 dark:border-gray-600"><input disabled={!canEdit} value={String(r.receipt_no ?? '')} onChange={(e) => setCell(r.month_seq, 'receipt_no', e.target.value)} className={inp} /></td>
