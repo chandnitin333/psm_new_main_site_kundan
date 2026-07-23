@@ -20,7 +20,10 @@ const th = 'border border-black px-1 py-0.5 text-[10px] align-middle text-center
 const colW = [44, 138, 81, 75, 75, 69, 119, 63, 69, 56, 56, 69, 63, 119, 63, 63, 56, 56, 69, 69];
 const tableW = colW.reduce((a, b) => a + b, 0);
 
-const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; taluka: string; gramPanchayat: string }; cy: number; qrUrl?: string }) => {
+const RecordBlock = ({ n, loc, cy, qrUrl, blank = false }: { n: Row; loc: { district: string; taluka: string; gramPanchayat: string }; cy: number; qrUrl?: string; blank?: boolean }) => {
+  // blank form: value cells रिकामे (0 सुद्धा नको), fixed structure/labels तसेच राहतील
+  const sv = (v: unknown) => (blank ? '' : s(v));
+  const fv = (v: unknown) => (blank ? '' : f(v));
   const sj = (n.sillak_joda as Row) || {};
   const sjn = (k: string) => Number(sj[k] || 0);
   const gruhkar = sjn('gruhkar_v_bhumikar');
@@ -86,8 +89,8 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
   const ekSubtotal4 = rr(ekGruhkar) + rr(ekViz) + rr(ekAarogya) + rr(ekSafai);
   const ekTotalAll = ekSubtotal4 + rr(ekSamanya) + rr(ekVishesh) + rr(ekEtar) + rr(ekNotice);
   // इत्तर फी / नोटीस फी rows: only show when they have a value (> 0)
-  const showEtar = numOr0(M.etar) > 0 || numOr0(etar) > 0 || rr(ekEtar) > 0;
-  const showNotice = numOr0(M.notice) > 0 || numOr0(notice) > 0 || rr(ekNotice) > 0;
+  const showEtar = blank || numOr0(M.etar) > 0 || numOr0(etar) > 0 || rr(ekEtar) > 0;
+  const showNotice = blank || numOr0(M.notice) > 0 || numOr0(notice) > 0 || rr(ekNotice) > 0;
 
   const vasuliBlanks = (key: string) => Array.from({ length: 6 }).map((_, k) => <td key={`${key}-${k}`} className={td} />);
 
@@ -98,7 +101,7 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
         <p className="text-sm">सन {cy} - {cy + 1} या वर्षाची आकारणी केलेल्या कराची मागणी नोंदवही</p>
       </div>
       <div className="flex justify-between text-sm mt-1 mb-0.5">
-        <span>वार्ड नं :- {s(n.ward_kramnak)}</span>
+        <span>वार्ड नं :- {sv(n.ward_kramnak)}</span>
         <span>जिल्हा :- {loc.district}</span>
         <span>तालुका :- {loc.taluka}</span>
         <span className="relative">
@@ -143,34 +146,34 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
         </thead>
         <tbody>
           <tr>
-            <td className={td} rowSpan={10}>{s(n.anu_kramank)}</td>
-            <td className={td} rowSpan={4}>{s(n.ghar_malkache_nav)}</td>
-            <td className={td}>{s(n.malmatta_number)}</td>
-            <td className={td}>{s(n.khasara_number)}</td>
-            <td className={td}>{s(n.survey_number)}</td>
-            <td className={td}>{s(n.plot_number)}</td>
+            <td className={td} rowSpan={10}>{sv(n.anu_kramank)}</td>
+            <td className={td} rowSpan={4}>{sv(n.ghar_malkache_nav)}</td>
+            <td className={td}>{sv(n.malmatta_number)}</td>
+            <td className={td}>{sv(n.khasara_number)}</td>
+            <td className={td}>{sv(n.survey_number)}</td>
+            <td className={td}>{sv(n.plot_number)}</td>
             <td className={td}>गृहकर व भूमीकर</td>
-            <td className={td}>{f(M.gruhkar)}</td><td className={td}>{f(gruhkar)}</td><td className={td}>{f(dandAmt(M.gruhkar, D.gruhkar[0]))}</td><td className={td}>{f(sutAmt(gruhkar, D.gruhkar[1]))}</td><td className={td}>{f(ekGruhkar)}</td>
+            <td className={td}>{fv(M.gruhkar)}</td><td className={td}>{fv(gruhkar)}</td><td className={td}>{fv(dandAmt(M.gruhkar, D.gruhkar[0]))}</td><td className={td}>{fv(sutAmt(gruhkar, D.gruhkar[1]))}</td><td className={td}>{fv(ekGruhkar)}</td>
             <td className={td} rowSpan={5} />
             <td className={td}>गृहकर व भूमीकर</td>
             {vasuliBlanks('r1')}
           </tr>
           <tr>
-            <td className={td} rowSpan={3} colSpan={4}>{s(n.patta_nagar_layout_society)}</td>
+            <td className={td} rowSpan={3} colSpan={4}>{sv(n.patta_nagar_layout_society)}</td>
             <td className={td}>दिवाबत्ती/वीज कर</td>
-            <td className={td}>{f(M.viz)}</td><td className={td}>{f(viz)}</td><td className={td}>{f(dandAmt(M.viz, D.viz[0]))}</td><td className={td}>{f(sutAmt(viz, D.viz[1]))}</td><td className={td}>{f(ekViz)}</td>
+            <td className={td}>{fv(M.viz)}</td><td className={td}>{fv(viz)}</td><td className={td}>{fv(dandAmt(M.viz, D.viz[0]))}</td><td className={td}>{fv(sutAmt(viz, D.viz[1]))}</td><td className={td}>{fv(ekViz)}</td>
             <td className={td}>दिवाबत्ती/वीज कर</td>
             {vasuliBlanks('r2')}
           </tr>
           <tr>
             <td className={td}>आरोग्य रक्षण कर</td>
-            <td className={td}>{f(M.aarogya)}</td><td className={td}>{f(aarogya)}</td><td className={td}>{f(dandAmt(M.aarogya, D.aarogya[0]))}</td><td className={td}>{f(sutAmt(aarogya, D.aarogya[1]))}</td><td className={td}>{f(ekAarogya)}</td>
+            <td className={td}>{fv(M.aarogya)}</td><td className={td}>{fv(aarogya)}</td><td className={td}>{fv(dandAmt(M.aarogya, D.aarogya[0]))}</td><td className={td}>{fv(sutAmt(aarogya, D.aarogya[1]))}</td><td className={td}>{fv(ekAarogya)}</td>
             <td className={td}>आरोग्य रक्षण कर</td>
             {vasuliBlanks('r3')}
           </tr>
           <tr>
             <td className={td}>सफाई कर</td>
-            <td className={td}>{f(M.safai)}</td><td className={td}>{f(safai)}</td><td className={td}>{f(dandAmt(M.safai, D.safai[0]))}</td><td className={td}>{f(sutAmt(safai, D.safai[1]))}</td><td className={td}>{f(ekSafai)}</td>
+            <td className={td}>{fv(M.safai)}</td><td className={td}>{fv(safai)}</td><td className={td}>{fv(dandAmt(M.safai, D.safai[0]))}</td><td className={td}>{fv(sutAmt(safai, D.safai[1]))}</td><td className={td}>{fv(ekSafai)}</td>
             <td className={td}>सफाई कर</td>
             {vasuliBlanks('r4')}
           </tr>
@@ -178,29 +181,29 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
             <td className={td}>भोगवटदाराचे नाव</td>
             <td className={td} colSpan={4}>मिलकत प्रकार</td>
             <td className={td}>एकूण</td>
-            <td className={td}>{f(mSubtotal4)}</td><td className={td}>{f(subtotal4)}</td><td className={td} /><td className={td} /><td className={td}>{f(ekSubtotal4)}</td>
+            <td className={td}>{fv(mSubtotal4)}</td><td className={td}>{fv(subtotal4)}</td><td className={td} /><td className={td} /><td className={td}>{fv(ekSubtotal4)}</td>
             <td className={td}>एकूण</td>
             {vasuliBlanks('r7')}
           </tr>
           <tr>
-            <td className={td} rowSpan={5}>{s(n.bhogavat_darache_nav)}</td>
-            <td className={td} rowSpan={5} colSpan={4}>{s(n.milkat_prakar)}</td>
+            <td className={td} rowSpan={5}>{sv(n.bhogavat_darache_nav)}</td>
+            <td className={td} rowSpan={5} colSpan={4}>{sv(n.milkat_prakar)}</td>
             <td className={td}>सामान्य पाणी कर</td>
-            <td className={td}>{f(M.samanya)}</td><td className={td}>{f(samanya)}</td><td className={td}>{f(dandAmt(M.samanya, D.samanya[0]))}</td><td className={td}>{f(sutAmt(samanya, D.samanya[1]))}</td><td className={td}>{f(ekSamanya)}</td>
+            <td className={td}>{fv(M.samanya)}</td><td className={td}>{fv(samanya)}</td><td className={td}>{fv(dandAmt(M.samanya, D.samanya[0]))}</td><td className={td}>{fv(sutAmt(samanya, D.samanya[1]))}</td><td className={td}>{fv(ekSamanya)}</td>
             <td className={td} rowSpan={5} />
             <td className={td}>सामान्य पाणी कर</td>
             {vasuliBlanks('r8')}
           </tr>
           <tr>
             <td className={td}>विशेष पाणी कर</td>
-            <td className={td}>{f(M.vishesh)}</td><td className={td}>{f(vishesh)}</td><td className={td}>{f(dandAmt(M.vishesh, D.vishesh[0]))}</td><td className={td}>{f(sutAmt(vishesh, D.vishesh[1]))}</td><td className={td}>{f(ekVishesh)}</td>
+            <td className={td}>{fv(M.vishesh)}</td><td className={td}>{fv(vishesh)}</td><td className={td}>{fv(dandAmt(M.vishesh, D.vishesh[0]))}</td><td className={td}>{fv(sutAmt(vishesh, D.vishesh[1]))}</td><td className={td}>{fv(ekVishesh)}</td>
             <td className={td}>विशेष पाणी कर</td>
             {vasuliBlanks('r9')}
           </tr>
           {showEtar && (
           <tr>
             <td className={td}>इत्तर फी</td>
-            <td className={td}>{f(M.etar)}</td><td className={td}>{f(etar)}</td><td className={td}>{f(D.etar[0])}</td><td className={td}>{f(D.etar[1])}</td><td className={td}>{f(ekEtar)}</td>
+            <td className={td}>{fv(M.etar)}</td><td className={td}>{fv(etar)}</td><td className={td}>{fv(D.etar[0])}</td><td className={td}>{fv(D.etar[1])}</td><td className={td}>{fv(ekEtar)}</td>
             <td className={td}>इत्तर फी</td>
             {vasuliBlanks('r10')}
           </tr>
@@ -208,14 +211,14 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
           {showNotice && (
           <tr>
             <td className={td}>नोटीस फी</td>
-            <td className={td}>{f(M.notice)}</td><td className={td}>{f(notice)}</td><td className={td}>{f(D.notice[0])}</td><td className={td}>{f(D.notice[1])}</td><td className={td}>{f(ekNotice)}</td>
+            <td className={td}>{fv(M.notice)}</td><td className={td}>{fv(notice)}</td><td className={td}>{fv(D.notice[0])}</td><td className={td}>{fv(D.notice[1])}</td><td className={td}>{fv(ekNotice)}</td>
             <td className={td}>नोटीस फी</td>
             {vasuliBlanks('r11')}
           </tr>
           )}
           <tr className="font-bold">
             <td className={td}>एकूण मागणी</td>
-            <td className={td}>{f(mTotalAll)}</td><td className={td}>{f(totalAll)}</td><td className={td} /><td className={td} /><td className={td}>{f(ekTotalAll)}</td>
+            <td className={td}>{fv(mTotalAll)}</td><td className={td}>{fv(totalAll)}</td><td className={td} /><td className={td} /><td className={td}>{fv(ekTotalAll)}</td>
             <td className={td}>एकूण मागणी</td>
             {vasuliBlanks('r12')}
           </tr>
@@ -316,7 +319,11 @@ const Namuna9MultiReport = () => {
               {loading ? 'लोड होत आहे...' : 'या निवडीसाठी माहिती उपलब्ध नाही'}
             </p>
           ) : (
-            records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} cy={reportYear} qrUrl={qrUrl} />)
+            <>
+              {records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} cy={reportYear} qrUrl={qrUrl} />)}
+              {/* शेवटी एक कोरी (blank) नोंदवही — जिल्हा/तालुका/ग्रा.पं. dynamic, बाकी हाताने भरण्यासाठी रिकामी */}
+              <RecordBlock key="blank" n={{}} loc={loc} cy={reportYear} blank />
+            </>
           )}
         </div>
       </div>

@@ -27,10 +27,15 @@ const thc = `${td} font-bold bg-gray-100`;
 const colW = [55, 70, 80, 75, 90, 75, 75, 85, 75, 90, 70, 80, 80, 75, 90];
 const tableW = colW.reduce((x, y) => x + y, 0);
 
-const RecordBlock = ({ n, loc, qrUrl }: { n: Row; loc: { district: string; taluka: string; gramPanchayat: string }; qrUrl?: string }) => {
-  const land = (n.khula_bhukhand_kar_aakarani as Row[]) || [];
-  const cons = (n.bandkamachi_kar_aakarani as Row[]) || [];
-  const manora = (n.manoryache_kar_aakarani as Row[]) || [];
+const RecordBlock = ({ n, loc, qrUrl, blank = false }: { n: Row; loc: { district: string; taluka: string; gramPanchayat: string }; qrUrl?: string; blank?: boolean }) => {
+  // blank form: value cells रिकामे (0 सुद्धा नको), header dynamic
+  const sv = (v: unknown) => (blank ? '' : s(v));
+  const fv = (v: unknown) => (blank ? '' : f(v));
+  const blankH = blank ? { height: '30px' } : undefined;
+  const BLANK_DESC_ROWS = 8;
+  const land = blank ? [] : ((n.khula_bhukhand_kar_aakarani as Row[]) || []);
+  const cons = blank ? [] : ((n.bandkamachi_kar_aakarani as Row[]) || []);
+  const manora = blank ? [] : ((n.manoryache_kar_aakarani as Row[]) || []);
   const otherTax = (n.other_tax_calculation as Row[]) || [];
   const taxAmt = (id: number) => {
     const r = otherTax.find((t) => Number(t.tax_id) === id);
@@ -82,44 +87,52 @@ const RecordBlock = ({ n, loc, qrUrl }: { n: Row; loc: { district: string; taluk
             <td className={thc}>बांधकाम</td>
           </tr>
 
+          {/* blank form: हाताने भरण्यासाठी रिकाम्या ओळी (15 columns) */}
+          {blank && Array.from({ length: BLANK_DESC_ROWS }).map((_, i) => (
+            <tr key={`blank-desc-${i}`} style={{ height: '28px' }}>
+              <td className={td} colSpan={2}>&nbsp;</td>
+              {Array.from({ length: 11 }).map((__, j) => <td key={j} className={td}>&nbsp;</td>)}
+              <td className={td} colSpan={2}>&nbsp;</td>
+            </tr>
+          ))}
           {landRows.map((it, i) => (
-            <tr key={`l1-${i}`}>
+            <tr key={`l1-${i}`} style={blankH}>
               {i === 0 && (
                 <>
-                  <td className={td} rowSpan={a}>{s(n.anu_kramank)}</td>
+                  <td className={td} rowSpan={a}>{sv(n.anu_kramank)}</td>
                   <td className={td} rowSpan={a} />
-                  <td className={td} rowSpan={a}>{s(n.survey_number)}</td>
-                  <td className={td} rowSpan={a}>{s(n.malmatta_number)}</td>
-                  <td className={td} rowSpan={a} colSpan={3}>{s(n.ghar_malkache_nav)}</td>
-                  <td className={td} rowSpan={a} colSpan={2}>{s(n.bhogavat_darache_nav)}</td>
+                  <td className={td} rowSpan={a}>{sv(n.survey_number)}</td>
+                  <td className={td} rowSpan={a}>{sv(n.malmatta_number)}</td>
+                  <td className={td} rowSpan={a} colSpan={3}>{sv(n.ghar_malkache_nav)}</td>
+                  <td className={td} rowSpan={a} colSpan={2}>{sv(n.bhogavat_darache_nav)}</td>
                 </>
               )}
-              <td className={td}>{s(it.malmatteche_varnan_name)}</td>
+              <td className={td}>{sv(it.malmatteche_varnan_name)}</td>
               <td className={td} />
-              <td className={td}>{f(it.ekun_shetrafal_choras_foot)}<br />{f(sqmOf(it))}</td>
-              <td className={td}>{f(it.jaminiche_varshik_mulya)}</td>
+              <td className={td}>{fv(it.ekun_shetrafal_choras_foot)}<br />{fv(sqmOf(it))}</td>
+              <td className={td}>{fv(it.jaminiche_varshik_mulya)}</td>
               <td className={td} />
               <td className={td} />
             </tr>
           ))}
           {cons.map((it, i) => (
-            <tr key={`c1-${i}`}>
-              <td className={td}>{s(it.malmatteche_varnan_name)}</td>
-              <td className={td}>{s(it.vayoman)}</td>
-              <td className={td}>{f(it.ekun_shetrafal_choras_foot)}<br />{f(sqmOf(it))}</td>
+            <tr key={`c1-${i}`} style={blankH}>
+              <td className={td}>{sv(it.malmatteche_varnan_name)}</td>
+              <td className={td}>{sv(it.vayoman)}</td>
+              <td className={td}>{fv(it.ekun_shetrafal_choras_foot)}<br />{fv(sqmOf(it))}</td>
               <td className={td} />
-              <td className={td}>{f(it.imaratiche_varshik_mulya)}</td>
-              <td className={td}>{s(it.bandkam_majla_name)}</td>
+              <td className={td}>{fv(it.imaratiche_varshik_mulya)}</td>
+              <td className={td}>{sv(it.bandkam_majla_name)}</td>
             </tr>
           ))}
           {manora.map((it, i) => (
-            <tr key={`m1-${i}`}>
-              <td className={td}>{s(it.malmatteche_varnan_name)}</td>
+            <tr key={`m1-${i}`} style={blankH}>
+              <td className={td}>{sv(it.malmatteche_varnan_name)}</td>
               <td className={td} />
-              <td className={td}>{f(it.ekun_shetrafal_choras_foot)}<br />{f(sqmOf(it))}</td>
+              <td className={td}>{fv(it.ekun_shetrafal_choras_foot)}<br />{fv(sqmOf(it))}</td>
               <td className={td} />
               <td className={td} />
-              <td className={td}>{s(it.manoryache_bhag_name)}</td>
+              <td className={td}>{sv(it.manoryache_bhag_name)}</td>
             </tr>
           ))}
 
@@ -148,18 +161,18 @@ const RecordBlock = ({ n, loc, qrUrl }: { n: Row; loc: { district: string; taluk
           </tr>
 
           {landRows.map((it, i) => (
-            <tr key={`l2-${i}`}>
+            <tr key={`l2-${i}`} style={blankH}>
               <td className={td} />
               <td className={td} />
-              <td className={td}>{f(landBhandvali(it))}</td>
-              <td className={td}>{s(it.aakarani_dar)}</td>
-              <td className={td}>{f(landBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
+              <td className={td}>{fv(landBhandvali(it))}</td>
+              <td className={td}>{sv(it.aakarani_dar)}</td>
+              <td className={td}>{fv(landBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
               {i === 0 && (
                 <>
-                  <td className={td} rowSpan={a}>{f(vizAmt)}</td>
-                  <td className={td} rowSpan={a}>{f(aarogyaAmt)}</td>
-                  <td className={td} rowSpan={a}>{f(samanyaPaniAmt)}<br /><br />{f(visheshPaniAmt)}</td>
-                  <td className={td} rowSpan={a}>{f(n.ekun_kar_bharne)}</td>
+                  <td className={td} rowSpan={a}>{fv(vizAmt)}</td>
+                  <td className={td} rowSpan={a}>{fv(aarogyaAmt)}</td>
+                  <td className={td} rowSpan={a}>{fv(samanyaPaniAmt)}<br /><br />{fv(visheshPaniAmt)}</td>
+                  <td className={td} rowSpan={a}>{fv(n.ekun_kar_bharne)}</td>
                   <td className={td} rowSpan={a} />
                   <td className={td} rowSpan={a} />
                   <td className={td} rowSpan={a} />
@@ -171,26 +184,26 @@ const RecordBlock = ({ n, loc, qrUrl }: { n: Row; loc: { district: string; taluk
             </tr>
           ))}
           {cons.map((it, i) => (
-            <tr key={`c2-${i}`}>
-              <td className={td}>{s(it.ghasara_dar)}</td>
-              <td className={td}>{s(it.bharank)}</td>
-              <td className={td}>{f(consBhandvali(it))}</td>
-              <td className={td}>{s(it.aakarani_dar)}</td>
-              <td className={td}>{f(consBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
+            <tr key={`c2-${i}`} style={blankH}>
+              <td className={td}>{sv(it.ghasara_dar)}</td>
+              <td className={td}>{sv(it.bharank)}</td>
+              <td className={td}>{fv(consBhandvali(it))}</td>
+              <td className={td}>{sv(it.aakarani_dar)}</td>
+              <td className={td}>{fv(consBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
             </tr>
           ))}
           {manora.map((it, i) => (
-            <tr key={`m2-${i}`}>
+            <tr key={`m2-${i}`} style={blankH}>
               <td className={td} />
               <td className={td} />
               <td className={td} />
-              <td className={td}>{s(it.aakarani_dar)}</td>
-              <td className={td}>{f(manoraKar(it))}</td>
+              <td className={td}>{sv(it.aakarani_dar)}</td>
+              <td className={td}>{fv(manoraKar(it))}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div className="text-right text-sm mt-1">पान नंबर : {s(n.anu_kramank)}</div>
+      <div className="text-right text-sm mt-1">पान नंबर : {sv(n.anu_kramank)}</div>
     </div>
   );
 };
@@ -280,7 +293,11 @@ const Namuna8SarkariMultiReport = () => {
               {loading ? 'लोड होत आहे...' : 'या निवडीसाठी माहिती उपलब्ध नाही'}
             </p>
           ) : (
-            records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} qrUrl={qrUrl} />)
+            <>
+              {records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} qrUrl={qrUrl} />)}
+              {/* शेवटी एक कोरी (blank) यादी — जिल्हा/तालुका/ग्रा.पं. dynamic, बाकी हाताने भरण्यासाठी रिकामी */}
+              <RecordBlock key="blank" n={{}} loc={loc} blank />
+            </>
           )}
         </div>
       </div>

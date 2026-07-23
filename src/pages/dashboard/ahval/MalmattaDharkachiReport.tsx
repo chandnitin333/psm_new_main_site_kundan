@@ -25,10 +25,17 @@ const manoraKar = (it: Row) =>
 const td = 'border border-black px-1 py-1 text-[11px] align-middle text-center';
 const tdb = `${td} font-bold`;
 
-const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; taluka: string; gramPanchayat: string }; cy: number; qrUrl?: string }) => {
-  const land = (n.khula_bhukhand_kar_aakarani as Row[]) || [];
-  const cons = (n.bandkamachi_kar_aakarani as Row[]) || [];
-  const manora = (n.manoryache_kar_aakarani as Row[]) || [];
+const RecordBlock = ({ n, loc, cy, qrUrl, blank = false }: { n: Row; loc: { district: string; taluka: string; gramPanchayat: string }; cy: number; qrUrl?: string; blank?: boolean }) => {
+  // blank form: सर्व value cells रिकामे (0 सुद्धा नको), header मात्र dynamic
+  const sv = (v: unknown) => (blank ? '' : s(v));
+  const fv = (v: unknown) => (blank ? '' : f(v));
+  // blank form: value ओळींना उंची द्या (हाताने लिहायला जागा)
+  const blankH = blank ? { height: '30px' } : undefined;
+  // blank असल्यास मालमत्तेचे वर्णन विभागात हाताने भरण्यासाठी अनेक रिकाम्या ओळी (खाली) दाखवतो
+  const land = blank ? [] : ((n.khula_bhukhand_kar_aakarani as Row[]) || []);
+  const cons = blank ? [] : ((n.bandkamachi_kar_aakarani as Row[]) || []);
+  const manora = blank ? [] : ((n.manoryache_kar_aakarani as Row[]) || []);
+  const BLANK_DESC_ROWS = 8;
   const otherTax = (n.other_tax_calculation as Row[]) || [];
   const taxAmt = (id: number) => {
     const r = otherTax.find((t) => Number(t.tax_id) === id);
@@ -63,77 +70,77 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
       <table className="w-full border-collapse">
         <tbody>
           {/* Basic Info */}
-          <tr>
+          <tr style={blankH}>
             <td className={td}>अ.क्र</td>
-            <td className={td}>{s(n.anu_kramank)}</td>
+            <td className={td}>{sv(n.anu_kramank)}</td>
             <td className={td}>मालमत्ता क्र.</td>
-            <td className={td}>{s(n.malmatta_number)}</td>
+            <td className={td}>{sv(n.malmatta_number)}</td>
             <td className={td}>वार्ड क्र.</td>
-            <td className={td}>{s(n.ward_kramnak)}</td>
+            <td className={td}>{sv(n.ward_kramnak)}</td>
             <td className={td}>प्लॉट क्र.</td>
-            <td className={td}>{s(n.plot_number)}</td>
+            <td className={td}>{sv(n.plot_number)}</td>
             <td className={td}>खसरा न.</td>
-            <td className={td}>{s(n.khasara_number)}</td>
+            <td className={td}>{sv(n.khasara_number)}</td>
             <td className={td}>सर्वे क्र.</td>
-            <td className={td}>{s(n.survey_number)}</td>
+            <td className={td}>{sv(n.survey_number)}</td>
             <td className={td}>पाणी व्यवस्ता</td>
-            <td className={td}>{s(n.pinyacha_panyachi_vyavastha)}</td>
+            <td className={td}>{sv(n.pinyacha_panyachi_vyavastha)}</td>
             <td className={td}>शौचालय</td>
-            <td className={td}>{s(n.ghari_souychalaya)}</td>
+            <td className={td}>{sv(n.ghari_souychalaya)}</td>
             <td className={td}>मिलकत प्रकार</td>
-            <td className={td}>{s(n.milkat_prakar)}</td>
+            <td className={td}>{sv(n.milkat_prakar)}</td>
           </tr>
 
           {/* Owner Info + chatur seema */}
-          <tr>
+          <tr style={blankH}>
             <td className={tdb} colSpan={2}>घरमालकाचे नाव</td>
-            <td className={td} colSpan={7}>{s(n.ghar_malkache_nav)}</td>
+            <td className={td} colSpan={7}>{sv(n.ghar_malkache_nav)}</td>
             <td className={td} rowSpan={4}>चतुर : सीमा</td>
             <td className={td} colSpan={2}>पूर्वेस</td>
-            <td className={td} colSpan={10}>{s(n.purv)}</td>
+            <td className={td} colSpan={10}>{sv(n.purv)}</td>
           </tr>
-          <tr>
+          <tr style={blankH}>
             <td className={tdb} colSpan={2}>पत्नी / मुलांचे नाव</td>
-            <td className={td} colSpan={7}>{s(n.patni_mulache_nav)}</td>
+            <td className={td} colSpan={7}>{sv(n.patni_mulache_nav)}</td>
             <td className={td} colSpan={2}>पश्चिमेस</td>
-            <td className={td} colSpan={10}>{s(n.paschim)}</td>
+            <td className={td} colSpan={10}>{sv(n.paschim)}</td>
           </tr>
-          <tr>
+          <tr style={blankH}>
             <td className={tdb} colSpan={2}>भोगवटदाराचे नाव</td>
-            <td className={td} colSpan={7}>{s(n.bhogavat_darache_nav)}</td>
+            <td className={td} colSpan={7}>{sv(n.bhogavat_darache_nav)}</td>
             <td className={td} colSpan={2}>उत्तरेस</td>
-            <td className={td} colSpan={10}>{s(n.uttar)}</td>
+            <td className={td} colSpan={10}>{sv(n.uttar)}</td>
           </tr>
-          <tr>
+          <tr style={blankH}>
             <td className={tdb} colSpan={2}>पत्ता</td>
-            <td className={td} colSpan={7}>{s(n.patta_nagar_layout_society)}</td>
+            <td className={td} colSpan={7}>{sv(n.patta_nagar_layout_society)}</td>
             <td className={td} colSpan={2}>दक्षिणेस</td>
-            <td className={td} colSpan={10}>{s(n.dakshin)}</td>
+            <td className={td} colSpan={10}>{sv(n.dakshin)}</td>
           </tr>
 
           {/* Area and Contact Info */}
           <tr>
-            <td className={tdb} rowSpan={2} colSpan={2}>एकूण जागेचे क्षेत्रफळ</td>
-            <td className={td}>लांबी (चौ. फु .)</td>
-            <td className={td}>रुंदी (चौ. फु .)</td>
-            <td className={td} colSpan={2}>क्षेत्रफळ(चौ. फु .)</td>
-            <td className={td} colSpan={2}>मीटर(चौ. मीटर)</td>
-            <td className={td} colSpan={2}>उर्वरित(चौ. फु .)</td>
-            <td className={td} colSpan={2}>उर्वरित मीटर(चौ. मीटर )</td>
+            <td className={`${tdb} whitespace-nowrap`} rowSpan={2} colSpan={2}>एकूण जागेचे क्षेत्रफळ</td>
+            <td className={`${td} whitespace-nowrap`}>लांबी (चौ. फु .)</td>
+            <td className={`${td} whitespace-nowrap`}>रुंदी (चौ. फु .)</td>
+            <td className={`${td} whitespace-nowrap`} colSpan={2}>क्षेत्रफळ(चौ. फु .)</td>
+            <td className={`${td} whitespace-nowrap`} colSpan={2}>मीटर(चौ. मीटर)</td>
+            <td className={`${td} whitespace-nowrap`} colSpan={2}>उर्वरित(चौ. फु .)</td>
+            <td className={`${td} whitespace-nowrap`} colSpan={2}>उर्वरित मीटर(चौ. मीटर )</td>
             <td className={td} colSpan={2}>मोबाईल</td>
             <td className={td} colSpan={3}>आधार</td>
             <td className={td} colSpan={3}>वोटर</td>
           </tr>
-          <tr>
-            <td className={td}>{f(n.lambi)}</td>
-            <td className={td}>{f(n.rundi)}</td>
-            <td className={td} colSpan={2}>{f(n.shetrafal_choras_foot)}</td>
-            <td className={td} colSpan={2}>{f(n.shetrafal_choras_meter)}</td>
-            <td className={td} colSpan={2}>{f(n.urvarit_khali_jaga_choras_foot)}</td>
-            <td className={td} colSpan={2}>{f(Number(n.urvarit_khali_jaga_choras_foot || 0) * 0.092903)}</td>
-            <td className={td} colSpan={2}>{s(n.mobile_number)}</td>
-            <td className={td} colSpan={3}>{s(n.aadahar_card_number)}</td>
-            <td className={td} colSpan={4}>{s(n.matdar_card_number)}</td>
+          <tr style={blankH}>
+            <td className={td}>{fv(n.lambi)}</td>
+            <td className={td}>{fv(n.rundi)}</td>
+            <td className={td} colSpan={2}>{fv(n.shetrafal_choras_foot)}</td>
+            <td className={td} colSpan={2}>{fv(n.shetrafal_choras_meter)}</td>
+            <td className={td} colSpan={2}>{fv(n.urvarit_khali_jaga_choras_foot)}</td>
+            <td className={td} colSpan={2}>{fv(Number(n.urvarit_khali_jaga_choras_foot || 0) * 0.092903)}</td>
+            <td className={td} colSpan={2}>{sv(n.mobile_number)}</td>
+            <td className={td} colSpan={3}>{sv(n.aadahar_card_number)}</td>
+            <td className={td} colSpan={4}>{sv(n.matdar_card_number)}</td>
           </tr>
 
           {/* Description Heading */}
@@ -156,69 +163,78 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
             <td className={td} colSpan={4}>कर आकारणी</td>
           </tr>
 
+          {/* blank form: हाताने भरण्यासाठी रिकाम्या ओळी (20 columns प्रत्येकी) */}
+          {blank && Array.from({ length: BLANK_DESC_ROWS }).map((_, i) => (
+            <tr key={`blank-desc-${i}`} style={{ height: '26px' }}>
+              <td className={td} colSpan={2}>&nbsp;</td>
+              {Array.from({ length: 14 }).map((__, j) => <td key={j} className={td}>&nbsp;</td>)}
+              <td className={td} colSpan={4}>&nbsp;</td>
+            </tr>
+          ))}
+
           {/* Land (taxationLandRS4) */}
           {land.map((it, i) => (
             <tr key={`l${i}`}>
-              <td className={td} colSpan={2}>{s(it.malmatteche_varnan_name)}</td>
-              <td className={td}>{s(it.malmatteche_prakar_name)}</td>
+              <td className={td} colSpan={2}>{sv(it.malmatteche_varnan_name)}</td>
+              <td className={td}>{sv(it.malmatteche_prakar_name)}</td>
               <td className={td}>एकूण जागा</td>
               <td className={td}>&nbsp;</td>
               <td className={td}>&nbsp;</td>
-              <td className={td}>{f(it.shetrafal_purv_paschim_foot)}</td>
-              <td className={td}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
-              <td className={td}>{f(it.ekun_shetrafal_choras_foot)}</td>
-              <td className={td}>{f(sqmOf(it))}</td>
-              <td className={td}>{f(it.jaminiche_varshik_mulya)}</td>
+              <td className={td}>{fv(it.shetrafal_purv_paschim_foot)}</td>
+              <td className={td}>{fv(it.shetrafal_uttar_dakshin_foot)}</td>
+              <td className={td}>{fv(it.ekun_shetrafal_choras_foot)}</td>
+              <td className={td}>{fv(sqmOf(it))}</td>
+              <td className={td}>{fv(it.jaminiche_varshik_mulya)}</td>
               <td className={td}>&nbsp;</td>
               <td className={td}>&nbsp;</td>
-              <td className={td}>{f(landBhandvali(it))}</td>
-              <td className={td}>{s(it.aakarani_dar)}</td>
-              <td className={td}>{f(landBhandvali(it) / 1000)}</td>
-              <td className={td} colSpan={4}>{f(landBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
+              <td className={td}>{fv(landBhandvali(it))}</td>
+              <td className={td}>{sv(it.aakarani_dar)}</td>
+              <td className={td}>{fv(landBhandvali(it) / 1000)}</td>
+              <td className={td} colSpan={4}>{fv(landBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
             </tr>
           ))}
 
           {/* Construction (constructionTaxRS5) */}
           {cons.map((it, i) => (
             <tr key={`c${i}`}>
-              <td className={td} colSpan={2}>{s(it.malmatteche_prakar_name)}</td>
-              <td className={td}>{s(it.malmatteche_varnan_name)}</td>
-              <td className={td}>{s(it.vapar_prakar)}</td>
-              <td className={td}>{s(it.bandkam_majla_name)}</td>
-              <td className={td}>{s(it.vayoman)}</td>
-              <td className={td}>{f(it.shetrafal_purv_paschim_foot)}</td>
-              <td className={td}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
-              <td className={td}>{f(it.ekun_shetrafal_choras_foot)}</td>
-              <td className={td}>{f(sqmOf(it))}</td>
-              <td className={td}>{f(it.imaratiche_varshik_mulya)}</td>
-              <td className={td}>{s(it.ghasara_dar)}</td>
-              <td className={td}>{s(it.bharank)}</td>
-              <td className={td}>{f(consBhandvali(it))}</td>
-              <td className={td}>{s(it.aakarani_dar)}</td>
-              <td className={td}>{f(consBhandvali(it) / 1000)}</td>
-              <td className={td} colSpan={4}>{f(consBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
+              <td className={td} colSpan={2}>{sv(it.malmatteche_prakar_name)}</td>
+              <td className={td}>{sv(it.malmatteche_varnan_name)}</td>
+              <td className={td}>{sv(it.vapar_prakar)}</td>
+              <td className={td}>{sv(it.bandkam_majla_name)}</td>
+              <td className={td}>{sv(it.vayoman)}</td>
+              <td className={td}>{fv(it.shetrafal_purv_paschim_foot)}</td>
+              <td className={td}>{fv(it.shetrafal_uttar_dakshin_foot)}</td>
+              <td className={td}>{fv(it.ekun_shetrafal_choras_foot)}</td>
+              <td className={td}>{fv(sqmOf(it))}</td>
+              <td className={td}>{fv(it.imaratiche_varshik_mulya)}</td>
+              <td className={td}>{sv(it.ghasara_dar)}</td>
+              <td className={td}>{sv(it.bharank)}</td>
+              <td className={td}>{fv(consBhandvali(it))}</td>
+              <td className={td}>{sv(it.aakarani_dar)}</td>
+              <td className={td}>{fv(consBhandvali(it) / 1000)}</td>
+              <td className={td} colSpan={4}>{fv(consBhandvali(it) * Number(it.aakarani_dar || 0) / 1000)}</td>
             </tr>
           ))}
 
           {/* Manora (taxPayerRS6) */}
           {manora.map((it, i) => (
             <tr key={`m${i}`}>
-              <td className={td} colSpan={2}>{s(it.malmatteche_varnan_name)}</td>
-              <td className={td}>{s(it.malmatteche_prakar_name)}</td>
-              <td className={td}>{s(it.vapar_prakar)}</td>
-              <td className={td}>{s(it.manoryache_bhag_name)}</td>
+              <td className={td} colSpan={2}>{sv(it.malmatteche_varnan_name)}</td>
+              <td className={td}>{sv(it.malmatteche_prakar_name)}</td>
+              <td className={td}>{sv(it.vapar_prakar)}</td>
+              <td className={td}>{sv(it.manoryache_bhag_name)}</td>
               <td className={td}>&nbsp;</td>
-              <td className={td}>{f(it.shetrafal_purv_paschim_foot)}</td>
-              <td className={td}>{f(it.shetrafal_uttar_dakshin_foot)}</td>
-              <td className={td}>{f(it.ekun_shetrafal_choras_foot)}</td>
-              <td className={td}>{f(sqmOf(it))}</td>
-              <td className={td}>&nbsp;</td>
-              <td className={td}>&nbsp;</td>
+              <td className={td}>{fv(it.shetrafal_purv_paschim_foot)}</td>
+              <td className={td}>{fv(it.shetrafal_uttar_dakshin_foot)}</td>
+              <td className={td}>{fv(it.ekun_shetrafal_choras_foot)}</td>
+              <td className={td}>{fv(sqmOf(it))}</td>
               <td className={td}>&nbsp;</td>
               <td className={td}>&nbsp;</td>
-              <td className={td}>{s(it.aakarani_dar)}</td>
               <td className={td}>&nbsp;</td>
-              <td className={td} colSpan={4}>{f(manoraKar(it))}</td>
+              <td className={td}>&nbsp;</td>
+              <td className={td}>{sv(it.aakarani_dar)}</td>
+              <td className={td}>&nbsp;</td>
+              <td className={td} colSpan={4}>{fv(manoraKar(it))}</td>
             </tr>
           ))}
 
@@ -227,7 +243,7 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
             <td className={td} colSpan={8}>कराची रक्क्म</td>
             <td className={td} colSpan={6}>अपिलाचे निकाल आणि त्यानंतर केलेले फेरफार (रुपये)</td>
             <td className={td} colSpan={2}>गृह व भूमीकर</td>
-            <td className={td} colSpan={4}>{f(gruhkarAmt)}</td>
+            <td className={td} colSpan={4}>{fv(gruhkarAmt)}</td>
           </tr>
           <tr className="font-bold bg-gray-100">
             <td className={td} colSpan={2}>गृह व भूमीकर</td>
@@ -247,15 +263,15 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
             <td className={td}>एकूण</td>
             <td className={td} colSpan={4}>एकूण कर</td>
           </tr>
-          <tr>
-            <td className={td} colSpan={2}>{f(gruhkarAmt)}</td>
-            <td className={td}>{f(vizAmt)}</td>
-            <td className={td}>{f(aarogyaAmt)}</td>
-            <td className={td}>{f(safaiAmt)}</td>
-            <td className={td}>{f(samanyaPaniAmt)}</td>
-            <td className={td}>{f(visheshPaniAmt)}</td>
-            <td className={td}>{f(ekunTaxAmt)}</td>
-            <td className={td}>{f(n.ekun_kar_bharne)}</td>
+          <tr style={blankH}>
+            <td className={td} colSpan={2}>{fv(gruhkarAmt)}</td>
+            <td className={td}>{fv(vizAmt)}</td>
+            <td className={td}>{fv(aarogyaAmt)}</td>
+            <td className={td}>{fv(safaiAmt)}</td>
+            <td className={td}>{fv(samanyaPaniAmt)}</td>
+            <td className={td}>{fv(visheshPaniAmt)}</td>
+            <td className={td}>{fv(ekunTaxAmt)}</td>
+            <td className={td}>{fv(n.ekun_kar_bharne)}</td>
             <td className={td} colSpan={2}>&nbsp;</td>
             <td className={td}>&nbsp;</td>
             <td className={td}>&nbsp;</td>
@@ -265,14 +281,14 @@ const RecordBlock = ({ n, loc, cy, qrUrl }: { n: Row; loc: { district: string; t
             <td className={td}>&nbsp;</td>
             <td className={td} colSpan={4}>&nbsp;</td>
           </tr>
-          <tr>
+          <tr style={blankH}>
             <td className={tdb} colSpan={2}>फेरफार / शेरा</td>
-            <td className={`${td} text-left`} colSpan={18}>{s(n.magahun_ghat_kiva_badal)}</td>
+            <td className={`${td} text-left`} colSpan={18}>{sv(n.magahun_ghat_kiva_badal)}</td>
           </tr>
         </tbody>
       </table>
 
-      <div className="text-right text-sm mt-1">पान नंबर : {s(n.anu_kramank)}</div>
+      <div className="text-right text-sm mt-1">पान नंबर : {blank ? '' : sv(n.anu_kramank)}</div>
     </div>
   );
 };
@@ -357,7 +373,11 @@ const MalmattaDharkachiReport = () => {
             {loading ? 'लोड होत आहे...' : 'या निवडीसाठी माहिती उपलब्ध नाही'}
           </p>
         ) : (
-          records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} cy={reportYear} qrUrl={qrUrl} />)
+          <>
+            {records.map((n, i) => <RecordBlock key={i} n={n} loc={loc} cy={reportYear} qrUrl={qrUrl} />)}
+            {/* शेवटी एक कोरी (blank) यादी — जिल्हा/तालुका/ग्रा.पं. dynamic, बाकी हाताने भरण्यासाठी रिकामी */}
+            <RecordBlock key="blank" n={{}} loc={loc} cy={reportYear} blank />
+          </>
         )}
       </div>
     </div>

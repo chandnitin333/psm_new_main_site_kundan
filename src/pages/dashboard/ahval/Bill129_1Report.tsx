@@ -52,12 +52,15 @@ const td = 'border border-black px-1 py-0.5 text-[11px] align-middle text-center
 const PMODE: Record<string, string> = { cash: 'रोख', cheque: 'चेक', dd: 'डीडी', online: 'ऑनलाइन' };
 
 const Receipt = ({
-  n, loc, cy, dates, bharna, copy, qrUrl,
+  n, loc, cy, dates, bharna, copy, qrUrl, blank = false,
 }: {
   n: Row; loc: { district: string; taluka: string; gramPanchayat: string };
   cy: number; dates: { start: string; end: string }; bharna: string; copy: 'left' | 'right';
-  qrUrl?: string;
+  qrUrl?: string; blank?: boolean;
 }) => {
+  // blank form: value cells रिकामे (0 सुद्धा नको), labels/structure तसेच
+  const sv = (v: unknown) => (blank ? '' : s(v));
+  const rv = (v: number) => (blank ? '' : r0(v));
   const { rows, tot } = computeRows(n);
   const pay = n.payment as {
     paid_total?: number; jama?: number; sillak?: number; pavti_number?: string;
@@ -87,24 +90,24 @@ const Receipt = ({
         <colgroup>{Array.from({ length: 12 }).map((_, i) => <col key={i} style={{ width: `${100 / 12}%` }} />)}</colgroup>
         <tbody>
           <tr>
-            <td className={td}>अ.क्र.</td><td className={td}>{s(n.anu_kramank)}</td>
-            <td className={td}>मा.क्र.</td><td className={td}>{s(n.malmatta_number)}</td>
-            <td className={td}>वार्ड क्र.</td><td className={td}>{s(n.ward_kramnak)}</td>
-            <td className={td}>प्लॉट क्र</td><td className={td}>{s(n.plot_number)}</td>
-            <td className={td}>खसरा न.</td><td className={td}>{s(n.khasara_number)}</td>
-            <td className={td}>सर्वे क्र.</td><td className={td}>{s(n.survey_number)}</td>
+            <td className={td}>अ.क्र.</td><td className={td}>{sv(n.anu_kramank)}</td>
+            <td className={td}>मा.क्र.</td><td className={td}>{sv(n.malmatta_number)}</td>
+            <td className={td}>वार्ड क्र.</td><td className={td}>{sv(n.ward_kramnak)}</td>
+            <td className={td}>प्लॉट क्र</td><td className={td}>{sv(n.plot_number)}</td>
+            <td className={td}>खसरा न.</td><td className={td}>{sv(n.khasara_number)}</td>
+            <td className={td}>सर्वे क्र.</td><td className={td}>{sv(n.survey_number)}</td>
           </tr>
           <tr>
             <td className={td} colSpan={2}>खातेधारकाचे नाव</td>
-            <td className={td} colSpan={10}>{s(n.ghar_malkache_nav)}</td>
+            <td className={td} colSpan={10}>{sv(n.ghar_malkache_nav)}</td>
           </tr>
           <tr>
             <td className={td} colSpan={2}>भोगवतधाराचे नाव</td>
-            <td className={td} colSpan={10}>{s(n.bhogavat_darache_nav)}</td>
+            <td className={td} colSpan={10}>{sv(n.bhogavat_darache_nav)}</td>
           </tr>
           <tr>
             <td className={td} colSpan={2}>पत्ता</td>
-            <td className={td} colSpan={10}>{s(n.patta_nagar_layout_society)}</td>
+            <td className={td} colSpan={10}>{sv(n.patta_nagar_layout_society)}</td>
           </tr>
           <tr>
             <td className="px-1 py-0.5" colSpan={2} />
@@ -132,34 +135,34 @@ const Receipt = ({
           {rows.map((row) => (
             <tr key={row.label}>
               <td className={td} colSpan={3}>{row.label}</td>
-              <td className={td} colSpan={2}>{r0(row.thak)}</td>
-              <td className={td} colSpan={2}>{r0(row.chalu)}</td>
-              <td className={td}>{r0(row.vadh)}</td>
-              <td className={td}>{r0(row.sut)}</td>
-              <td className={td} colSpan={3}>{r0(row.ekun)}</td>
+              <td className={td} colSpan={2}>{rv(row.thak)}</td>
+              <td className={td} colSpan={2}>{rv(row.chalu)}</td>
+              <td className={td}>{rv(row.vadh)}</td>
+              <td className={td}>{rv(row.sut)}</td>
+              <td className={td} colSpan={3}>{rv(row.ekun)}</td>
             </tr>
           ))}
           <tr className="font-bold">
             <td className={td} colSpan={3}>{tot.label}</td>
-            <td className={td} colSpan={2}>{r0(tot.thak)}</td>
-            <td className={td} colSpan={2}>{r0(tot.chalu)}</td>
-            <td className={td}>{r0(tot.vadh)}</td>
-            <td className={td}>{r0(tot.sut)}</td>
-            <td className={td} colSpan={3}>{r0(tot.ekun)}</td>
+            <td className={td} colSpan={2}>{rv(tot.thak)}</td>
+            <td className={td} colSpan={2}>{rv(tot.chalu)}</td>
+            <td className={td}>{rv(tot.vadh)}</td>
+            <td className={td}>{rv(tot.sut)}</td>
+            <td className={td} colSpan={3}>{rv(tot.ekun)}</td>
           </tr>
           {pay && (
             <>
               <tr className="font-bold">
                 <td className={td} colSpan={3}>एकूण भरणा (जमा)</td>
-                <td className={td} colSpan={4}>{r0((pay.payments?.length ?? 0) > 0 ? num(pay.paid_total) : num(pay.jama ?? 0))}</td>
+                <td className={td} colSpan={4}>{rv((pay.payments?.length ?? 0) > 0 ? num(pay.paid_total) : num(pay.jama ?? 0))}</td>
                 <td className={td} colSpan={2}>शिल्लक</td>
-                <td className={td} colSpan={3}>{r0(num(pay.sillak ?? 0))}</td>
+                <td className={td} colSpan={3}>{rv(num(pay.sillak ?? 0))}</td>
               </tr>
               {(pay.payments?.length ?? 0) > 0 && (
                 <tr>
                   <td className="border border-black px-1 py-0.5 text-[10px] align-top text-left" colSpan={12}>
                     भरणा तपशील: {pay.payments!.map((p) =>
-                      `${p.date || ''} ₹${r0(num(p.amount))} (${PMODE[p.type || ''] || p.type || ''}${p.ref ? ` ${p.ref}` : ''})`
+                      `${p.date || ''} ₹${rv(num(p.amount))} (${PMODE[p.type || ''] || p.type || ''}${p.ref ? ` ${p.ref}` : ''})`
                     ).join('   |   ')}
                     {pay.pavti_number ? `   •   पावती क्र.: ${pay.pavti_number}` : ''}
                   </td>
@@ -289,6 +292,11 @@ const Bill129_1Report = () => {
               <Receipt n={n} loc={loc} cy={cy} dates={dates} bharna={bharna} copy="right" qrUrl={qrUrl} />
             </div>
           ))}
+          {/* शेवटी एक कोरी (blank) पावती — हाताने भरण्यासाठी, header dynamic */}
+          <div className="bill1-page grid grid-cols-2 gap-0">
+            <Receipt n={{}} loc={loc} cy={cy} dates={dates} bharna={bharna} copy="left" blank />
+            <Receipt n={{}} loc={loc} cy={cy} dates={dates} bharna={bharna} copy="right" blank />
+          </div>
         </div>
       )}
     </div>
