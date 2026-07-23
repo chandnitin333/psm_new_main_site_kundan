@@ -145,5 +145,12 @@ export const CITIZEN_MENU_ITEMS: MenuItem[] = [
     path: '/posts',
     icon: 'Megaphone',
     subMenus: []
+  },
+  {
+    id: 'water-bill',
+    label: 'पाणी बिल',
+    path: '/water-bill',
+    icon: 'Droplet',
+    subMenus: []
   }
 ];

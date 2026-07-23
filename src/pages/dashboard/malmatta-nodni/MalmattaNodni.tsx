@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Edit2, Trash2, Printer, Image, FileText, History } from 'lucide-react';
+import { Edit2, Trash2, Printer, Image, FileText, History, Droplet } from 'lucide-react';
 import MagilKarJodaModal from './MagilKarJodaModal';
 import PrintModal from './PrintModal';
 import ImageUploadModal from './ImageUploadModal';
@@ -8,7 +8,7 @@ import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
 import { can } from '../../../utils/permissions';
 import { trackAction } from '../../../utils/tracker';
-import { nodniService } from '../../../services';
+import { nodniService, waterMeterService } from '../../../services';
 import { config } from '../../../config';
 import { MarathiInput } from '../../../components/common';
 import type { MalmattaRecord } from '../../../interfaces/dashboard/malmatta-nodni/MalmattaNodni.types';
@@ -215,6 +215,27 @@ const MalmattaNodni = () => {
   // Cancel Delete
   const cancelDelete = () => {
     setDeleteConfirmation({ show: false, id: null });
+  };
+
+  // Open water meter (reading register + demand bill) for this property
+  const handleWaterMeter = async (record: MalmattaRecord) => {
+    trackAction(
+      `पाणी मीटर उघडले — खातेदार: ${(record as any).ghar_malkache_nav || '-'}`,
+      { page: '/malmatta-nodni', action: 'water_meter_open', nodni_id: record.id }
+    );
+    showLoader('पाणी मीटर उघडत आहे... (Opening water meter...)');
+    try {
+      const res = await waterMeterService.byNodni(record.id) as { success: boolean; data?: { id: number } };
+      hideLoader();
+      if (res.success && res.data?.id) {
+        navigate(`/water-meter/${res.data.id}`);
+      } else {
+        toast.error('पाणी मीटर उघडता आले नाही (Could not open water meter)');
+      }
+    } catch (error: any) {
+      hideLoader();
+      toast.error(error?.message || 'पाणी मीटर त्रुटी (Water meter error)');
+    }
   };
 
   // Handle Print - Open print modal
@@ -536,6 +557,16 @@ const MalmattaNodni = () => {
                           >
                             <History className="w-5 h-5" />
                           </button>
+                          {can('malmatta_nodni', 'water_meter') && (
+                          <button
+                            type="button"
+                            onClick={() => handleWaterMeter(record)}
+                            className="text-cyan-600 hover:text-cyan-800 dark:text-cyan-400 dark:hover:text-cyan-300 transition-colors"
+                            title="पाणी मीटर / रीडिंग व बिल (Water Meter)"
+                          >
+                            <Droplet className="w-5 h-5" />
+                          </button>
+                          )}
                           {can('malmatta_nodni', 'delete') && (
                           <button
                             type="button"

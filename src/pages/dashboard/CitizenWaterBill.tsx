@@ -1,0 +1,111 @@
+import { useState, useEffect } from 'react';
+import { Droplet, IndianRupee } from 'lucide-react';
+import { useToast } from '../../hooks/useToast';
+import { waterMeterService, type WaterMeter } from '../../services';
+
+const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+const money = (v: number) => `₹ ${Math.round(v).toLocaleString('en-IN')}`;
+
+const CitizenWaterBill = () => {
+  const { toast, ToastContainer } = useToast();
+  const [meters, setMeters] = useState<WaterMeter[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    document.title = 'पाणी बिल / Water Bill';
+    (async () => {
+      try {
+        const res = await waterMeterService.myMeters();
+        setMeters(res?.success && Array.isArray(res.data) ? res.data : []);
+      } catch { setMeters([]); toast.error('माहिती लोड करताना त्रुटी'); }
+      finally { setLoading(false); }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <>
+      <ToastContainer />
+      <div className="-mx-4 min-h-full bg-gray-50 px-4 py-5 dark:bg-gray-900 sm:px-6 sm:py-6">
+        <div className="mx-auto max-w-4xl">
+          <div className="mb-6">
+            <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">
+              <Droplet className="h-7 w-7 text-primary-600" /> पाणी बिल / Water Bill
+            </h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">तुमच्या पाणी मीटरचे रीडिंग व देयक / Your water meter readings & bill</p>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-24"><div className="h-10 w-10 animate-spin rounded-full border-4 border-primary-500 border-t-transparent" /></div>
+          ) : meters.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-gray-300 bg-white py-16 text-center dark:border-gray-600 dark:bg-gray-800">
+              <Droplet className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
+              <p className="mt-3 font-semibold text-gray-700 dark:text-gray-200">कोणतेही पाणी मीटर आढळले नाही</p>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">No water meter linked to your mobile.</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {meters.map((m) => {
+                const readings = (m.readings || []).filter((r) => r.current_charge != null || r.current_reading);
+                const totCur = readings.reduce((s, r) => s + num(r.current_charge), 0);
+                const totArr = readings.reduce((s, r) => s + num(r.arrears), 0);
+                const totLate = readings.reduce((s, r) => s + num(r.late_fee), 0);
+                const grand = totCur + totArr + totLate;
+                return (
+                  <div key={m.id} className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                    <div className="bg-primary-600 px-5 py-4 text-white">
+                      <p className="text-sm font-medium text-white/85">पाणी मीटर बिल {m.water_supply_name ? `· ${m.water_supply_name}` : ''}</p>
+                      <h2 className="mt-1 text-lg font-bold">{m.khatedar_name}</h2>
+                      <p className="text-xs text-white/80">मीटर क्र.: {m.meter_number || '-'} · वॉर्ड: {m.ward || '-'} · मालमत्ता: {m.malmatta_number || '-'}</p>
+                    </div>
+
+                    <div className="overflow-x-auto px-5 py-4">
+                      <table className="min-w-[560px] w-full border-collapse text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-200 text-left text-gray-500 dark:border-gray-600 dark:text-gray-400">
+                            {['महिना', 'चालु', 'मागील', 'एकूण', 'दर', 'चालु आकारणी', 'थकीत', 'एकूण'].map((h) => (
+                              <th key={h} className="py-2 pr-3 font-semibold">{h}</th>))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {readings.length === 0 ? (
+                            <tr><td colSpan={8} className="py-4 text-center text-gray-400">रीडिंग उपलब्ध नाही</td></tr>
+                          ) : readings.map((r) => (
+                            <tr key={r.id} className="border-b border-gray-100 text-gray-800 dark:border-gray-700 dark:text-gray-200">
+                              <td className="py-1.5 pr-3">{r.month_name}</td>
+                              <td className="py-1.5 pr-3">{r.current_reading || '-'}</td>
+                              <td className="py-1.5 pr-3">{r.previous_reading || '-'}</td>
+                              <td className="py-1.5 pr-3">{r.ekun_reading ?? '-'}</td>
+                              <td className="py-1.5 pr-3">{r.rate ?? '-'}</td>
+                              <td className="py-1.5 pr-3">{r.current_charge ?? '-'}</td>
+                              <td className="py-1.5 pr-3">{r.arrears ?? '-'}</td>
+                              <td className="py-1.5 pr-3 font-semibold">{r.total ?? '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="border-t border-gray-100 px-5 py-4 dark:border-gray-700">
+                      <div className="ml-auto max-w-xs space-y-1 text-sm">
+                        <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-300">पाणी वापर देयक</span><span className="font-medium">{money(totCur)}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-300">मागील थकबाकी</span><span className="font-medium">{money(totArr)}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-300">विलंब शुल्क</span><span className="font-medium">{money(totLate)}</span></div>
+                        <div className="mt-2 flex items-center justify-between rounded-xl bg-primary-600 px-4 py-2.5 text-white">
+                          <span className="flex items-center gap-1.5 text-sm font-semibold"><IndianRupee className="h-4 w-4" /> एकुण भरणा देयक</span>
+                          <span className="text-lg font-bold">{money(grand)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default CitizenWaterBill;

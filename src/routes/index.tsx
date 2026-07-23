@@ -83,6 +83,9 @@ import CitizenHelpline from '../pages/dashboard/CitizenHelpline';
 import Helpline from '../pages/dashboard/helpline/Helpline';
 import CitizenPosts from '../pages/dashboard/CitizenPosts';
 import Posts from '../pages/dashboard/posts/Posts';
+import WaterMeter from '../pages/dashboard/water-meter/WaterMeter';
+import WaterMeterDetail from '../pages/dashboard/water-meter/WaterMeterDetail';
+import CitizenWaterBill from '../pages/dashboard/CitizenWaterBill';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -156,6 +159,16 @@ const HelplineHome = () => {
 // /posts: citizens get the notices feed; staff get the management page.
 const PostsHome = () => {
   return isCitizen() ? <CitizenPosts /> : <Posts />;
+};
+
+// Water meter management is staff-only; citizens are bounced to their landing.
+const StaffOnly = ({ children }: { children: React.ReactNode }) => {
+  return isCitizen() ? <Navigate to={getLandingPath()} replace /> : <>{children}</>;
+};
+
+// /water-bill: citizen-only read-only water bill.
+const WaterBillHome = () => {
+  return isCitizen() ? <CitizenWaterBill /> : <Navigate to={getLandingPath()} replace />;
 };
 
 export const createRouter = (handleLogout: () => void) =>
@@ -603,6 +616,29 @@ export const createRouter = (handleLogout: () => void) =>
       ),
       children: [
         { index: true, element: <PostsHome /> },
+      ],
+    },
+    {
+      path: '/water-meter',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <StaffOnly><WaterMeter /></StaffOnly> },
+        { path: ':id', element: <StaffOnly><WaterMeterDetail /></StaffOnly> },
+      ],
+    },
+    {
+      path: '/water-bill',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <WaterBillHome /> },
       ],
     },
     {

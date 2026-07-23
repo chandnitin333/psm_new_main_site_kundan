@@ -246,7 +246,7 @@ const GramSahayak = () => {
       {!open && (
         <button
           onClick={() => { setOpen(true); speakRef.current(WELCOME_VOICE); }}
-          className="no-print fixed bottom-24 right-5 z-[1000] flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg transition-transform hover:scale-105 hover:bg-primary-700"
+          className="gv-float no-print fixed bottom-24 right-5 z-[1000] flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg transition-transform hover:scale-105 hover:bg-primary-700"
           aria-label="ग्राम सहायक"
           title="ग्राम सहायक"
         >
@@ -256,7 +256,7 @@ const GramSahayak = () => {
 
       {/* Chat panel */}
       {open && (
-        <div className="no-print fixed bottom-5 right-5 z-[1001] flex h-[70vh] max-h-[560px] w-[92vw] max-w-sm flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800">
+        <div className="gv-float no-print fixed bottom-5 right-5 z-[1001] flex h-[70vh] max-h-[560px] w-[92vw] max-w-sm flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800">
           {/* header */}
           <div className="flex items-center justify-between bg-primary-600 px-4 py-3 text-white">
             <div className="flex items-center gap-2">

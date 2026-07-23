@@ -15,3 +15,4 @@ export { certificateService } from './certificateService';
 export { helplineService, type HelplineContact, type HelplinePayload } from './helplineService';
 export { postService, type GpPost, type GpPostPayload } from './postService';
 export { appLockService, type LockSettings } from './appLockService';
+export { waterMeterService, WATER_MONTHS, type WaterMeter, type WaterReading, type WaterMeterPayload } from './waterMeterService';
