@@ -8,6 +8,7 @@ import { commonDdlService } from '../../services/commonDdlService';
 import { config } from '../../config';
 import { trackAction } from '../../utils/tracker';
 import AppLockSettings from '../../components/applock/AppLockSettings';
+import { useBranding } from '../../utils/branding';
 
 const backendBase = config.api.baseUrl.replace(/\/api$/, '');
 
@@ -88,6 +89,7 @@ const Tile = ({
 
 const Profile = () => {
   const { toast, ToastContainer } = useToast();
+  const { logo_url: brandLogo } = useBranding();
   const [profileImage, setProfileImage] = useState<string>('');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -263,7 +265,7 @@ const Profile = () => {
                     className="flex h-20 w-20 items-center justify-center rounded-full bg-white/90 p-2 shadow-lg ring-2 ring-white/60 backdrop-blur-sm sm:h-24 sm:w-24"
                     style={{ animation: 'pf-float 5s ease-in-out infinite' }}
                   >
-                    <img src="/psm_logo1.png" alt="PSM" className="h-full w-full object-contain" />
+                    <img src={brandLogo || '/psm_logo1.png'} alt="PSM" className="h-full w-full object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/psm_logo1.png'; }} />
                   </div>
                 </div>
 

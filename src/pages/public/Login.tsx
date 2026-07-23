@@ -8,6 +8,7 @@ import { api } from '../../services/api';
 import { getCmsIcon } from '../../utils/cmsIcons';
 import { getLandingPath } from '../../utils/permissions';
 import { isSuperUser, getActiveGp } from '../../utils/activeGp';
+import { useBranding } from '../../utils/branding';
 
 // fallback icons cycled when an item has no icon chosen in admin
 const FEATURE_ICONS = [Landmark, FileText, ShieldCheck];
@@ -35,6 +36,8 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const { logo_url: brandLogo } = useBranding();
+  const logoSrc = brandLogo || '/psm_logo1.png';
 
   // dynamic left-panel content (managed from admin → Website Content → Login Page)
   const [brand, setBrand] = useState<{ title: string; subtitle: string; features: Feature[] } | null>(null);
@@ -247,7 +250,7 @@ const Login = () => {
 
         <div className="relative z-10 flex flex-col justify-center px-14 text-white">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/95 shadow-lg p-2">
-            <img src="/psm_logo1.png" alt="PSM" className="h-full w-full object-contain" />
+            <img src={logoSrc} alt="PSM" className="h-full w-full object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/psm_logo1.png'; }} />
           </div>
           <h1 className="mt-8 text-4xl font-extrabold leading-tight">
             {brandTitle.split('\n').map((line, i) => (
@@ -282,7 +285,7 @@ const Login = () => {
             {/* Logo */}
             <div className="mb-6 flex flex-col items-center text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 p-2 shadow-md">
-                <img src="/psm_logo1.png" alt="PSM" className="h-full w-full object-contain" />
+                <img src={logoSrc} alt="PSM" className="h-full w-full object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/psm_logo1.png'; }} />
               </div>
               <h2 className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">
                 {step === 'login' ? 'पुन्हा स्वागत आहे' : 'OTP पडताळणी'}

@@ -6,9 +6,9 @@
 import { useSyncExternalStore } from 'react';
 import { config } from '../config';
 
-export interface Branding { name: string; font_en: string; font_mr: string; }
+export interface Branding { name: string; font_en: string; font_mr: string; logo_url: string; }
 
-const DEFAULT: Branding = { name: 'Gram Vikas', font_en: 'Inter', font_mr: 'Noto Sans Devanagari' };
+const DEFAULT: Branding = { name: 'Gram Vikas', font_en: 'Inter', font_mr: 'Noto Sans Devanagari', logo_url: '' };
 const STORAGE_KEY = 'brand_config';
 
 let current: Branding = DEFAULT;
@@ -49,7 +49,8 @@ const normalize = (x: unknown): Branding | null => {
   const name = typeof o.name === 'string' && o.name.trim() ? o.name.trim() : DEFAULT.name;
   const font_en = typeof o.font_en === 'string' && o.font_en.trim() ? o.font_en.trim() : DEFAULT.font_en;
   const font_mr = typeof o.font_mr === 'string' && o.font_mr.trim() ? o.font_mr.trim() : DEFAULT.font_mr;
-  return { name, font_en, font_mr };
+  const logo_url = typeof o.logo_url === 'string' ? o.logo_url.trim() : DEFAULT.logo_url;
+  return { name, font_en, font_mr, logo_url };
 };
 
 let _last = '';

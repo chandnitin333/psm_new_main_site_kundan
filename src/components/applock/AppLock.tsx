@@ -58,7 +58,10 @@ const AppLock = () => {
   useEffect(() => {
     if (!settings?.is_enabled || !isAuthed()) return;
     const onActivity = () => { if (!locked) resetInactivity(); };
-    const onVisibility = () => { if (document.hidden) doLock(); };
+    // Lock on tab-switch / app-close / screen-off ONLY if the user opted in.
+    // Otherwise a quick tab switch won't lock — the app just relies on the
+    // inactivity timer (less frustrating for everyday use).
+    const onVisibility = () => { if (document.hidden && settingsRef.current?.lock_on_background) doLock(); };
     const events: (keyof DocumentEventMap)[] = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
     events.forEach((e) => document.addEventListener(e, onActivity, { passive: true }));
     document.addEventListener('visibilitychange', onVisibility);

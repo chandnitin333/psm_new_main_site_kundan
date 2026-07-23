@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Lock, Fingerprint, ShieldCheck } from 'lucide-react';
+import { Lock, Fingerprint, ShieldCheck, Info } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import { appLockService, type LockSettings } from '../../services';
 import { biometricAvailable, registerBiometric, clearStoredCredential } from '../../utils/biometric';
@@ -39,6 +39,14 @@ const AppLockSettings = () => {
     setS({ ...s, auto_lock_minutes: mins });
     try { await appLockService.setTimeoutMinutes(mins); notifyChanged(); toast.success(`${mins} मिनिटांनी लॉक होईल`); }
     catch { setS({ ...s, auto_lock_minutes: prev }); toast.error('अयशस्वी'); }
+  };
+
+  const toggleBackground = async () => {
+    if (!s) return;
+    const next = !s.lock_on_background;
+    setS({ ...s, lock_on_background: next });
+    try { await appLockService.setBackgroundLock(next); notifyChanged(); toast.success(next ? 'टॅब बदलल्यावर लॉक होईल' : 'टॅब बदलल्यावर लॉक होणार नाही'); }
+    catch { setS({ ...s, lock_on_background: !next }); toast.error('अयशस्वी'); }
   };
 
   const changePin = async () => {
@@ -88,7 +96,8 @@ const AppLockSettings = () => {
         </button>
       </div>
       <p className="text-sm text-gray-500 dark:text-gray-400">
-        ५ मिनिट निष्क्रिय राहिल्यास किंवा अ‍ॅप बंद/स्क्रीन ऑफ केल्यास अ‍ॅप लॉक होईल.
+        ठराविक वेळ निष्क्रिय राहिल्यास अ‍ॅप आपोआप लॉक होईल व अनलॉक करण्यासाठी PIN लागेल.
+        टॅब बदलल्यावर लॉक व्हावे की नाही हे खाली तुम्ही ठरवू शकता.
       </p>
 
       {s.is_default_pin && (
@@ -113,6 +122,28 @@ const AppLockSettings = () => {
                 <option key={m} value={m}>{m} मिनिट</option>
               ))}
             </select>
+          </div>
+
+          {/* lock on tab-switch / background */}
+          <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/40">
+            <div className="flex items-center justify-between gap-3">
+              <span
+                className="flex cursor-help items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-200"
+                title="चालू असल्यास: दुसऱ्या टॅब/अ‍ॅपवर गेल्यास किंवा स्क्रीन बंद केल्यास लगेच लॉक होईल (जास्त सुरक्षा). बंद असल्यास: फक्त निवडलेला वेळ निष्क्रिय राहिल्यावरच लॉक होईल — पटकन टॅब बदलल्यास त्रास होणार नाही."
+              >
+                <Info className="h-4 w-4 text-primary-600" /> टॅब बदलल्यावर / स्क्रीन बंद केल्यावर लॉक करा
+              </span>
+              <button type="button" role="switch" aria-checked={s.lock_on_background} onClick={toggleBackground}
+                title={s.lock_on_background ? 'चालू — टॅब बदलताच लॉक होईल' : 'बंद — फक्त निष्क्रियतेनंतर लॉक होईल'}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${s.lock_on_background ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${s.lock_on_background ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
+            <p className="mt-1.5 text-[12px] leading-snug text-gray-500 dark:text-gray-400">
+              {s.lock_on_background
+                ? '✓ जास्त सुरक्षित: दुसरीकडे गेल्यास किंवा स्क्रीन बंद केल्यास लगेच लॉक होईल.'
+                : 'सोयीस्कर: पटकन टॅब बदलल्यास लॉक होणार नाही, फक्त ' + s.auto_lock_minutes + ' मिनिट निष्क्रिय राहिल्यावरच लॉक होईल.'}
+            </p>
           </div>
 
           {/* change PIN */}
