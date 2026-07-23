@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Printer, Save, Droplet, Receipt } from 'lucide-react';
+import { ArrowLeft, Printer, Save, Droplet, Receipt, Eye } from 'lucide-react';
 import { useToast } from '../../../hooks/useToast';
 import { can } from '../../../utils/permissions';
 import { trackAction } from '../../../utils/tracker';
@@ -42,6 +42,7 @@ const WaterMeterDetail = () => {
   const [savingSeq, setSavingSeq] = useState<number | null>(null);
   const [printMode, setPrintMode] = useState<'' | 'register' | 'bill'>('');
   const [tab, setTab] = useState<'register' | 'bill'>('register');
+  const [showBillPreview, setShowBillPreview] = useState(false); // बिल पहा — on-screen preview
   // extra bill details (Sheet2) — entered before printing the demand bill
   const [bill, setBill] = useState({
     fromSeq: 1, toSeq: 12, dueDate: '', center: '', centerAddr: '', magil: '',
@@ -518,9 +519,22 @@ const WaterMeterDetail = () => {
                 {savingBill ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <Save className="h-4 w-4" />} बिल जतन करा
               </button>
             )}
+            <button onClick={() => setShowBillPreview((v) => !v)} className="flex items-center gap-2 rounded-lg border border-primary-600 px-4 py-2 text-sm font-semibold text-primary-700 hover:bg-primary-50 dark:text-primary-300 dark:hover:bg-primary-900/20">
+              <Eye className="h-4 w-4" /> {showBillPreview ? 'बिल लपवा' : 'बिल पहा'}
+            </button>
             <button onClick={() => doPrint('bill')} className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"><Receipt className="h-4 w-4" /> बिल प्रिंट</button>
           </div>
-          <p className="mt-2 text-[11px] text-gray-400">"बिल जतन" ने DB मध्ये साठवा (tracking). "बिल प्रिंट" दाबल्यावरही आपोआप साठते व २ प्रती छापल्या जातात.</p>
+          <p className="mt-2 text-[11px] text-gray-400">"बिल पहा" ने खाली preview बघा · "बिल जतन" ने DB मध्ये साठवा (tracking) · "बिल प्रिंट" दाबल्यावरही आपोआप साठते व २ प्रती छापल्या जातात.</p>
+
+          {/* on-screen bill preview (fill केल्यावर बघा — print preview ची गरज नाही) */}
+          {showBillPreview && (
+            <div className="no-print mt-4 overflow-x-auto rounded-lg border border-gray-200 bg-white p-3 text-black dark:border-gray-600" style={{ colorScheme: 'light' }}>
+              <p className="mb-2 text-xs font-semibold text-gray-500">बिल पूर्वावलोकन (Preview) — प्रिंट अशीच येईल</p>
+              <div className="min-w-[720px]">
+                <BillDoc H={H} meter={meter} bill={bill} year={year} billRows={billRows} paaniDeyak={paaniDeyak} magilThak={magilThak} ekunDeyak={ekunDeyak} vilamb={vilamb} deyNantar={deyNantar} />
+              </div>
+            </div>
+          )}
         </div>
         )}
       </div>
@@ -587,7 +601,22 @@ const WaterMeterDetail = () => {
       {/* ===== PRINT: DEMAND BILL (Sheet2 — two copies) ===== */}
       {printMode === 'bill' && (
         <div className="print-area bg-white p-2 text-black" style={{ colorScheme: 'light' }}>
-          <div className="grid grid-cols-2 gap-2">
+          <BillDoc H={H} meter={meter} bill={bill} year={year} billRows={billRows} paaniDeyak={paaniDeyak} magilThak={magilThak} ekunDeyak={ekunDeyak} vilamb={vilamb} deyNantar={deyNantar} />
+        </div>
+      )}
+    </>
+  );
+};
+
+const BillDoc = ({ H, meter, bill, year, billRows, paaniDeyak, magilThak, ekunDeyak, vilamb, deyNantar }: {
+  H: { gp: string; samiti: string; district: string };
+  meter: WaterMeter;
+  bill: { fromSeq: number; toSeq: number; dueDate: string; center: string; centerAddr: string; prevReceipt: string; magilMonth: string; notes: string };
+  year: number;
+  billRows: WaterReading[];
+  paaniDeyak: number; magilThak: number; ekunDeyak: number; vilamb: number; deyNantar: number;
+}) => (
+        <div className="grid grid-cols-2 gap-2">
             {['कार्यालय प्रत', 'ग्राहक प्रत'].map((copyLabel, ci) => (
               <div key={ci} className={ci === 0 ? 'pr-1' : 'pl-1'}>
                <div className="border-2 border-black">
@@ -703,10 +732,6 @@ const WaterMeterDetail = () => {
               </div>
             ))}
           </div>
-        </div>
-      )}
-    </>
-  );
-};
+);
 
 export default WaterMeterDetail;
