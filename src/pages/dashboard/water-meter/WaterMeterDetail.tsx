@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Printer, Save, Droplet, Receipt, Eye } from 'lucide-react';
+import { ArrowLeft, Printer, Save, Droplet, Receipt, Eye, Pencil, X } from 'lucide-react';
 import { useToast } from '../../../hooks/useToast';
 import { can } from '../../../utils/permissions';
 import { trackAction } from '../../../utils/tracker';
 import { waterMeterService, WATER_MONTHS, type WaterMeter, type WaterReading } from '../../../services';
 import YearPicker from '../../../components/common/YearPicker';
-import { DatePicker } from '../../../components/common';
+import { DatePicker, MarathiInput } from '../../../components/common';
 
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const fyStart = () => { const d = new Date(); return d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1; };
@@ -43,10 +43,13 @@ const WaterMeterDetail = () => {
   const [printMode, setPrintMode] = useState<'' | 'register' | 'bill'>('');
   const [tab, setTab] = useState<'register' | 'bill'>('register');
   const [showBillPreview, setShowBillPreview] = useState(false); // बिल पहा — on-screen preview
+  const [editOpen, setEditOpen] = useState(false);               // मीटर तपशील संपादन drawer
+  const [savingMeter, setSavingMeter] = useState(false);
+  const [mForm, setMForm] = useState<Partial<WaterMeter>>({});
   // extra bill details (Sheet2) — entered before printing the demand bill
   const [bill, setBill] = useState({
     fromSeq: 1, toSeq: 12, dueDate: '', center: '', centerAddr: '', magil: '',
-    prevReceipt: '', magilMonth: '',
+    prevReceipt: '', prevDate: '', magilMonth: '',
     notes: 'घरगुती वापर प्रतीमहा 15 एम.एस.व्यास नळ कनेक्शन किमान देयक रुपये 100 (शंभर रुपये) आकारणी निश्चीत करण्यात आलेली आहे. (0 ते 15 घ.मी पाणी वर)',
   });
   // top controls for the reading grid
@@ -59,7 +62,14 @@ const WaterMeterDetail = () => {
   const canEdit = can('malmatta_nodni', 'water_meter');
   const H = gpHeader();
 
-  const round2 = (n: number) => Math.round(n * 100) / 100;
+  // register मध्ये दर सोडून सर्व रक्कम पूर्ण संख्येत (round). दर decimal राहतो (round2 मधून जात नाही).
+  const round2 = (n: number) => Math.round(n);
+  // display: जास्तीत जास्त 2 दशांश (रिकामे असल्यास रिकामे)
+  const d2 = (v: unknown): string => {
+    if (v === null || v === undefined || v === '') return '';
+    const n = Number(v);
+    return Number.isFinite(n) ? String(Math.round(n * 100) / 100) : String(v);
+  };
 
   // row मध्ये काहीही entry आहे का (जतन button फक्त भरलेल्या row ला दाखवा).
   const rowFilled = (r: WaterReading): boolean => {
@@ -122,9 +132,11 @@ const WaterMeterDetail = () => {
 
       // reading mode
       if (row.current_reading === 'आवरेज') row.current_reading = '';
-      if (first) { if (row.previous_reading === 'बिल') row.previous_reading = ''; }
-      else row.previous_reading = prevUnpaidReading != null ? String(prevUnpaidReading) : '';
+      if (row.previous_reading === 'बिल') row.previous_reading = '';
       const hasCur = String(row.current_reading ?? '') !== '';
+      // मागील रिडिंग (carryover) फक्त तेव्हा भरा जेव्हा या row मध्ये चालु रिडिंग टाकली असेल —
+      // नाहीतर सर्व रिकाम्या rows मध्ये आधीच दिसते (user perspective ला वाईट).
+      if (!first) row.previous_reading = (hasCur && prevUnpaidReading != null) ? String(prevUnpaidReading) : '';
       const hasPrev = String(row.previous_reading ?? '') !== '';
       const active = hasCur || (first && hasPrev);
       if (!active) {
@@ -134,7 +146,7 @@ const WaterMeterDetail = () => {
       }
       const cr = num(row.current_reading);
       const mr = num(row.previous_reading);
-      const ekunReading = cr + mr;
+      const ekunReading = Math.round(cr + mr);
       row.ekun_reading = String(ekunReading);
       row.rate = rateNum;
       const cc = rateNum != null ? round2(cr * rateNum) : null;
@@ -219,6 +231,7 @@ const WaterMeterDetail = () => {
             centerAddr: (b.center_addr as string) || '',
             magil: b.magil_amount != null ? String(b.magil_amount) : '',
             prevReceipt: (b.prev_receipt as string) || '',
+            prevDate: b.prev_date ? String(b.prev_date).slice(0, 10) : '',
             magilMonth: (b.magil_month as string) || '',
             notes: (b.notes as string) || prev.notes,
           }));
@@ -260,16 +273,18 @@ const WaterMeterDetail = () => {
   const saveBillNow = async (): Promise<boolean> => {
     const fr = rows.filter((r) => (r.current_charge != null || r.current_reading) && r.month_seq >= bill.fromSeq && r.month_seq <= bill.toSeq);
     const base = fr.length ? fr : rows.filter((r) => r.current_charge != null || r.current_reading);
-    const paani = base.reduce((s, r) => s + num(r.current_charge), 0);
-    const magilA = bill.magil !== '' ? num(bill.magil) : base.reduce((s, r) => s + num(r.arrears), 0);
+    const lastR = base[base.length - 1];
+    const paani = Math.round(base.reduce((s, r) => s + num(r.current_charge), 0));
+    const magilA = bill.magil !== '' ? num(bill.magil) : (base[0] ? Math.round(num(base[0].arrears)) : 0); // opening थकबाकी
     const ekun = paani + magilA;
-    const vil = base.reduce((s, r) => s + num(r.late_fee), 0);
+    const vil = Math.round(base.reduce((s, r) => s + num(r.late_fee), 0));
+    const net = lastR ? Math.round(num(lastR.balance)) : 0; // खरी देय रक्कम = शेवटची थकबाकी
     try {
       await waterMeterService.saveBill(meterId, {
         year, from_seq: bill.fromSeq, to_seq: bill.toSeq, due_date: bill.dueDate || null,
         center: bill.center, center_addr: bill.centerAddr, magil_month: bill.magilMonth,
-        magil_amount: magilA, prev_receipt: bill.prevReceipt, notes: bill.notes,
-        paani_deyak: paani, ekun_deyak: ekun, vilamb: vil, dey_nantar: ekun + vil,
+        magil_amount: magilA, prev_receipt: bill.prevReceipt, prev_date: bill.prevDate || null, notes: bill.notes,
+        paani_deyak: paani, ekun_deyak: ekun, vilamb: vil, dey_nantar: net,
       });
       trackAction(`पाणी बिल जतन — ${meter?.khatedar_name}`, { page: '/water-meter', meter_id: meterId, year });
       return true;
@@ -294,16 +309,57 @@ const WaterMeterDetail = () => {
   if (!meter) return <div className="p-8 text-center text-gray-500">मीटर सापडला नाही</div>;
 
   const filled = rows.filter((r) => r.current_charge != null || r.current_reading);
-  // display rows = ALL months within पासून–पर्यंत range (value असेल तर value, नाहीतर रिकामे)
-  const billRows = rows.filter((r) => r.month_seq >= bill.fromSeq && r.month_seq <= bill.toSeq);
+  // bill मध्ये फक्त भरलेले (computed) महिने दाखवा — रिकामे नको (print एका पानावर + मोठा font)
+  const billRows = rows.filter((r) => r.month_seq >= bill.fromSeq && r.month_seq <= bill.toSeq && r.total != null);
   // totals = फक्त data असलेले महिने (रिकामे 0 धरले जातात)
   const billFilled = filled.filter((r) => r.month_seq >= bill.fromSeq && r.month_seq <= bill.toSeq);
   const totCurRead = billFilled.length ? billFilled : filled;
-  const paaniDeyak = totCurRead.reduce((s, r) => s + num(r.current_charge), 0);        // पाणी वापर देयक
-  const magilThak = bill.magil !== '' ? num(bill.magil) : totCurRead.reduce((s, r) => s + num(r.arrears), 0); // मागील थकबाकी
-  const ekunDeyak = paaniDeyak + magilThak;                                            // एकुण भरणा देयक
-  const vilamb = totCurRead.reduce((s, r) => s + num(r.late_fee), 0);                  // विलंब शुल्क
-  const deyNantar = ekunDeyak + vilamb;                                                // देय तारखे नंतर
+  const lastRow = totCurRead[totCurRead.length - 1]; // पर्यंत महिना (शेवटची भरलेली row)
+  // देयक रक्कम box = पर्यंत महिन्याचे मूल्य (carryover मुळे थकीत = मागील थकबाकी असते):
+  //  मागील थकबाकी = पर्यंत महिन्याची थकीत (आधीची थकबाकी) · पाणी वापर देयक = त्या महिन्याची चालू आकारणी
+  //  विलंब = त्या महिन्याचा विलंब · भरणा = त्या महिन्याचा भरणा · एकूण देय = त्या महिन्याची थकबाकी
+  const paaniDeyak = lastRow ? Math.round(num(lastRow.current_charge)) : 0;             // पाणी वापर देयक (पर्यंत महिन्याची चालू आकारणी)
+  const magilThak = bill.magil !== '' ? num(bill.magil) : (lastRow ? Math.round(num(lastRow.arrears)) : 0); // मागील थकबाकी (पर्यंत महिना)
+  const vilamb = lastRow ? Math.round(num(lastRow.late_fee)) : 0;                       // विलंब शुल्क
+  const totalPaid = lastRow ? Math.round(num(lastRow.paid_amount)) : 0;                 // भरणा
+  const ekunDeyak = magilThak + paaniDeyak + vilamb;                                   // एकूण मागणी (थकबाकी + चालू + विलंब)
+  const netDue = lastRow ? Math.round(num(lastRow.balance)) : 0;                        // ← एकूण देय = पर्यंत महिन्याची थकबाकी
+  const deyNantar = netDue;
+
+  // बिल कालावधी दिनांक — पासून महिन्याची 1 तारीख ते पर्यंत महिन्याची शेवटची तारीख (आर्थिक वर्ष एप्रिल→मार्च)
+  const pad2 = (n: number) => String(n).padStart(2, '0');
+  const seqCal = (seq: number) => ({ m: seq <= 9 ? seq + 3 : seq - 9, y: seq <= 9 ? year : year + 1 }); // seq→calendar month(1-12)/year
+  const periodFrom = (() => { const { m, y } = seqCal(bill.fromSeq); return `${pad2(1)}-${pad2(m)}-${y}`; })();
+  const periodTo = (() => { const { m, y } = seqCal(bill.toSeq); return `${pad2(new Date(y, m, 0).getDate())}-${pad2(m)}-${y}`; })();
+
+  // मीटर तपशील संपादन (मीटर क्रमांक इ.) — meter-level म्हणून एकदा जतन केल्यावर सर्व वर्षांना आपोआप लागू
+  // फक्त मीटर क्रमांक व पाणी पुरवठा योजनेचे नाव editable; बाकी nodni form मधून (read-only)
+  const openEditMeter = () => {
+    setMForm({ meter_number: meter?.meter_number || '', water_supply_name: meter?.water_supply_name || '' });
+    setEditOpen(true);
+  };
+  const setMF = (k: keyof WaterMeter, v: string) => setMForm((f) => ({ ...f, [k]: v }));
+  const saveMeter = async () => {
+    setSavingMeter(true);
+    try {
+      const payload = { meter_number: mForm.meter_number || '', water_supply_name: mForm.water_supply_name || '' };
+      const res = await waterMeterService.update(meterId, payload);
+      if (res?.success) {
+        setMeter((m) => (m ? { ...m, ...payload } : m));
+        trackAction(`पाणी मीटर तपशील अद्यतन — ${mForm.khatedar_name || meter?.khatedar_name}`, { page: '/water-meter', meter_id: meterId });
+        toast.success('मीटर तपशील जतन झाले');
+        setEditOpen(false);
+      } else toast.error(res?.message || 'जतन अयशस्वी');
+    } catch (e) { toast.error((e as { message?: string })?.message || 'जतन अयशस्वी'); }
+    setSavingMeter(false);
+  };
+
+  // पासून–पर्यंत range मधील शेवटच्या भरलेल्या महिन्याची मागील थकबाकी (थकीत) — field auto-fill साठी
+  const magilForRange = (fromSeq: number, toSeq: number): string => {
+    const inRange = rows.filter((r) => r.month_seq >= fromSeq && r.month_seq <= toSeq && (r.total != null || r.arrears != null));
+    const last = inRange[inRange.length - 1];
+    return last ? String(Math.round(num(last.arrears))) : '';
+  };
 
   const inp = 'w-full rounded border border-gray-300 bg-white px-1.5 py-1 text-xs text-gray-900 outline-none focus:border-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white';
   // read-only computed cell (auto-calculated in reading mode)
@@ -311,10 +367,58 @@ const WaterMeterDetail = () => {
   // normal-sized field for the bill config panel (matches the DatePicker height)
   const fieldCls = 'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white';
 
+  const lbl = 'mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400';
+
   return (
     <>
       <ToastContainer />
-      <style>{`@media print { @page { size: A4 landscape; margin: 8mm; } .no-print{display:none!important} .print-area{display:block!important} body{background:#fff} }
+
+      {/* मीटर तपशील संपादन drawer (मीटर क्रमांक इ.) — meter-level, सर्व वर्षांना लागू */}
+      {editOpen && (
+        <div className="no-print fixed inset-0 z-[9998]">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setEditOpen(false)} />
+          <div className="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto bg-white p-5 shadow-xl dark:bg-gray-800">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">मीटर तपशील संपादित करा</h3>
+              <button onClick={() => setEditOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
+            </div>
+            <p className="mb-3 text-[11px] text-gray-400">फक्त मीटर क्रमांक व पाणी पुरवठा योजनेचे नाव संपादित करता येईल. बाकी तपशील नोंदणी (nodni) फॉर्ममधून येतो — read-only. एकदाच भरा, सर्व वर्षांना आपोआप लागू.</p>
+            {/* editable — मीटर क्रमांक + पाणी पुरवठा योजनेचे नाव (Marathi translit) */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div><label className={`${lbl} text-primary-700 dark:text-primary-300`}>मीटर क्रमांक</label><MarathiInput name="mn" value={mForm.meter_number || ''} onChange={(e) => setMF('meter_number', e.target.value)} className={fieldCls} placeholder="मीटर क्रमांक" /></div>
+              <div><label className={`${lbl} text-primary-700 dark:text-primary-300`}>पाणी पुरवठा योजनेचे नाव</label><MarathiInput name="ws" value={mForm.water_supply_name || ''} onChange={(e) => setMF('water_supply_name', e.target.value)} className={fieldCls} placeholder="उदा. बोरखेडी (फाटक)" /></div>
+            </div>
+            {/* read-only — nodni form मधून */}
+            <p className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-wide text-gray-400">नोंदणी तपशील (read-only)</p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {[['अनु क्र', meter.anu_kramank], ['मालमत्ता क्र', meter.malmatta_number], ['वॉर्ड क्र', meter.ward], ['प्लॉट क्र', meter.plot_number], ['मोबाईल', meter.mobile], ['खातेदाराचे नाव', meter.khatedar_name], ['भोगवटदाराचे नाव', meter.bhogwatdar_name], ['पत्ता', meter.address]].map(([l, v], i) => (
+                <div key={i} className={l === 'खातेदाराचे नाव' || l === 'भोगवटदाराचे नाव' || l === 'पत्ता' ? 'sm:col-span-2' : ''}>
+                  <label className={lbl}>{l as string}</label>
+                  <input value={(v as string) || '-'} readOnly disabled className={`${fieldCls} cursor-not-allowed bg-gray-100 text-gray-500 dark:bg-gray-700/60`} />
+                </div>
+              ))}
+            </div>
+            <div className="mt-5 flex gap-2">
+              <button onClick={saveMeter} disabled={savingMeter} className="flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50">
+                {savingMeter ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <Save className="h-4 w-4" />} जतन करा
+              </button>
+              <button onClick={() => setEditOpen(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">रद्द</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`@media print { @page { size: A4 landscape; margin: 8mm; } .no-print{display:none!important} .print-area{display:block!important} body{background:#fff}
+        /* even, crisp borders in print — collapsed tables render ~0.8px while div borders are 1px,
+           which looks uneven/dark on paper. Force a single uniform 1px black everywhere. */
+        .print-area table { border-collapse: collapse !important; }
+        .print-area th, .print-area td { border: 1px solid #000 !important; }
+        .print-area .border, .print-area .border-2 { border-width: 1px !important; border-color: #000 !important; }
+        .print-area .border-b { border-bottom-width: 1px !important; border-bottom-color: #000 !important; }
+        .print-area .border-r { border-right-width: 1px !important; border-right-color: #000 !important; }
+        /* मागणी बिल — किमान 15px वाचनीय font (print) */
+        .bill-print td, .bill-print th { font-size: 15px !important; line-height: 1.3 !important; }
+      }
         .print-area{display:none}`}</style>
 
       {/* ===== SCREEN ===== */}
@@ -329,7 +433,7 @@ const WaterMeterDetail = () => {
             <span className="text-sm text-gray-500 dark:text-gray-400">ते</span>
             <input value={year + 1} readOnly title="ते वर्ष (आपोआप)" className="w-24 rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-600 dark:text-gray-200" />
             {tab === 'register'
-              ? <button onClick={() => doPrint('register')} className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200"><Printer className="h-4 w-4" /> रजिस्टर प्रिंट</button>
+              ? <button onClick={() => doPrint('register')} className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"><Printer className="h-4 w-4" /> रजिस्टर प्रिंट</button>
               : <button onClick={() => doPrint('bill')} className="flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"><Receipt className="h-4 w-4" /> बिल प्रिंट</button>}
           </div>
         </div>
@@ -341,7 +445,13 @@ const WaterMeterDetail = () => {
         </div>
 
         {/* meter header */}
-        <div className="rounded-lg bg-white p-4 shadow-sm dark:bg-gray-800">
+        <div className="relative rounded-lg bg-white p-4 shadow-sm dark:bg-gray-800">
+          {canEdit && (
+            <button onClick={openEditMeter} title="मीटर तपशील संपादित करा"
+              className="absolute right-3 top-3 flex items-center gap-1 rounded-lg border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">
+              <Pencil className="h-3.5 w-3.5" /> संपादित करा
+            </button>
+          )}
           <div className="text-center">
             <p className="font-bold text-gray-900 dark:text-white">गट ग्रामपंचायत कार्यालय {H.gp}</p>
             {meter.water_supply_name && <p className="text-sm text-gray-700 dark:text-gray-300">पाणी पुरवठा {meter.water_supply_name}</p>}
@@ -396,10 +506,18 @@ const WaterMeterDetail = () => {
         </div>
         <div className="overflow-x-auto rounded-lg bg-white p-2 shadow-sm dark:bg-gray-800">
           <table className="min-w-[1100px] border-collapse text-xs">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr className="text-gray-600 dark:text-gray-300">
-                {['महिना', 'चालु रिडिंग', 'मागील रिडिंग', 'एकूण', 'दर', 'चालु आकारणी', 'थकीत', 'विलंब दंड', 'एकूण', 'पावती क्र', 'दिनांक', 'भरणा', 'थकबाकी', 'शेरा', ''].map((h, i) => (
-                  <th key={i} className="border border-gray-200 px-1.5 py-1 font-semibold dark:border-gray-600">{h}</th>))}
+            <thead className="text-gray-600 dark:text-gray-300">
+              {/* group header — रीडिंग | आकारणी | भरणा (single table, grouped) */}
+              <tr>
+                <th rowSpan={2} className="border border-gray-300 bg-gray-100 px-1.5 py-1 font-bold dark:border-gray-600 dark:bg-gray-700">महिना</th>
+                <th colSpan={4} className="border border-gray-300 border-l-2 border-l-gray-400 bg-sky-50 px-1.5 py-1 font-bold text-sky-800 dark:border-gray-600 dark:border-l-gray-400 dark:bg-sky-900/30 dark:text-sky-200">रीडिंग</th>
+                <th colSpan={4} className="border border-gray-300 border-l-2 border-l-gray-400 bg-amber-50 px-1.5 py-1 font-bold text-amber-800 dark:border-gray-600 dark:border-l-gray-400 dark:bg-amber-900/30 dark:text-amber-200">आकारणी (रक्कम)</th>
+                <th colSpan={5} className="border border-gray-300 border-l-2 border-l-gray-400 bg-emerald-50 px-1.5 py-1 font-bold text-emerald-800 dark:border-gray-600 dark:border-l-gray-400 dark:bg-emerald-900/30 dark:text-emerald-200">भरणा / वसुली</th>
+                <th rowSpan={2} className="border border-gray-300 border-l-2 border-l-gray-400 bg-gray-100 px-1 dark:border-gray-600 dark:bg-gray-700" />
+              </tr>
+              <tr className="bg-gray-50 dark:bg-gray-700">
+                {['चालु रिडिंग', 'मागील रिडिंग', 'एकूण', 'दर', 'चालु आकारणी', 'थकीत', 'विलंब दंड', 'एकूण', 'पावती क्र', 'दिनांक', 'भरणा', 'थकबाकी', 'शेरा'].map((h, i) => (
+                  <th key={i} className={`border border-gray-200 px-1.5 py-1 font-semibold dark:border-gray-600 ${[0, 4, 8].includes(i) ? 'border-l-2 border-l-gray-400 dark:border-l-gray-400' : ''}`}>{h}</th>))}
               </tr>
             </thead>
             <tbody>
@@ -414,7 +532,7 @@ const WaterMeterDetail = () => {
                     </span>
                   </td>
                   {/* चालु रीडिंग: reading → editable; average → "आवरेज" readonly */}
-                  <td className="border border-gray-200 dark:border-gray-600">
+                  <td className="border border-gray-200 border-l-2 border-l-gray-400 dark:border-gray-600 dark:border-l-gray-400">
                     {isReading
                       ? <input disabled={!canEdit} inputMode="decimal" value={String(r.current_reading ?? '')} onChange={(e) => setCell(r.month_seq, 'current_reading', e.target.value.replace(/[^0-9.]/g, ''))} className={inp} />
                       : <div className={inpRO}>{r.current_reading ?? ''}</div>}
@@ -434,25 +552,25 @@ const WaterMeterDetail = () => {
                   {/* दर: top वरून (readonly) */}
                   <td className="border border-gray-200 dark:border-gray-600"><div className={inpRO}>{r.rate ?? ''}</div></td>
                   {/* चालु आकारणी: average → editable; reading → चालु×दर (आपोआप) */}
-                  <td className="border border-gray-200 dark:border-gray-600">
+                  <td className="border border-gray-200 border-l-2 border-l-gray-400 dark:border-gray-600 dark:border-l-gray-400">
                     {isReading
-                      ? <div className={inpRO}>{r.current_charge ?? ''}</div>
+                      ? <div className={inpRO}>{d2(r.current_charge)}</div>
                       : <input disabled={!canEdit} inputMode="decimal" value={String(r.current_charge ?? '')} onChange={(e) => setCell(r.month_seq, 'current_charge', e.target.value.replace(/[^0-9.]/g, ''))} className={inp} />}
                   </td>
                   {/* थकीत: पहिला महिना opening (average मध्ये editable), बाकी = मागील थकबाकी (आपोआप) */}
                   <td className="border border-gray-200 dark:border-gray-600" title={r.month_seq !== 1 ? 'मागील महिन्याच्या थकबाकीवरून आपोआप' : undefined}>
                     {(!isReading && r.month_seq === 1)
                       ? <input disabled={!canEdit} inputMode="decimal" value={String(r.arrears ?? '')} onChange={(e) => setCell(r.month_seq, 'arrears', e.target.value.replace(/[^0-9.]/g, ''))} className={inp} />
-                      : <div className={inpRO}>{r.arrears ?? ''}</div>}
+                      : <div className={inpRO}>{d2(r.arrears)}</div>}
                   </td>
-                  <td className="border border-gray-200 dark:border-gray-600"><div className={inpRO}>{r.late_fee ?? ''}</div></td>
-                  <td className="border border-gray-200 px-1.5 py-1 text-center font-semibold dark:border-gray-600">{r.total ?? ''}</td>
-                  <td className="border border-gray-200 dark:border-gray-600"><input disabled={!canEdit} value={String(r.receipt_no ?? '')} onChange={(e) => setCell(r.month_seq, 'receipt_no', e.target.value)} className={inp} /></td>
+                  <td className="border border-gray-200 dark:border-gray-600"><div className={inpRO}>{d2(r.late_fee)}</div></td>
+                  <td className="border border-gray-200 px-1.5 py-1 text-center font-semibold dark:border-gray-600">{d2(r.total)}</td>
+                  <td className="border border-gray-200 border-l-2 border-l-gray-400 dark:border-gray-600 dark:border-l-gray-400"><input disabled={!canEdit} value={String(r.receipt_no ?? '')} onChange={(e) => setCell(r.month_seq, 'receipt_no', e.target.value)} className={inp} /></td>
                   <td className="border border-gray-200 dark:border-gray-600 min-w-[130px]">
                     <DatePicker format="DD-MM-YYYY" disabled={!canEdit} value={String(r.receipt_date ?? '').slice(0, 10)} onChange={(v) => setCell(r.month_seq, 'receipt_date', v)} placeholder="दिनांक" />
                   </td>
-                  <td className="border border-gray-200 dark:border-gray-600"><input disabled={!canEdit} inputMode="decimal" value={String(r.paid_amount ?? '')} onChange={(e) => setCell(r.month_seq, 'paid_amount', e.target.value.replace(/[^0-9.]/g, ''))} className={inp} /></td>
-                  <td className="border border-gray-200 px-1.5 py-1 text-center font-semibold text-primary-700 dark:border-gray-600 dark:text-primary-300">{r.balance ?? ''}</td>
+                  <td className="border border-gray-200 dark:border-gray-600"><input disabled={!canEdit} inputMode="numeric" value={String(r.paid_amount ?? '')} onChange={(e) => setCell(r.month_seq, 'paid_amount', e.target.value.replace(/[^0-9]/g, ''))} className={inp} /></td>
+                  <td className="border border-gray-200 px-1.5 py-1 text-center font-semibold text-primary-700 dark:border-gray-600 dark:text-primary-300">{d2(r.balance)}</td>
                   <td className="border border-gray-200 dark:border-gray-600"><input disabled={!canEdit} value={String(r.remark ?? '')} onChange={(e) => setCell(r.month_seq, 'remark', e.target.value)} className={inp} /></td>
                   <td className="border border-gray-200 px-1 dark:border-gray-600">
                     {canEdit && rowFilled(r) && <button onClick={() => saveRow(r)} disabled={savingSeq === r.month_seq} className={`rounded px-2 py-1 text-[11px] font-medium text-white disabled:opacity-50 ${r.id ? 'bg-green-600 hover:bg-green-700' : 'bg-primary-600 hover:bg-primary-700'}`}>{savingSeq === r.month_seq ? '...' : (r.id ? 'अद्यतन' : 'जतन')}</button>}
@@ -474,13 +592,13 @@ const WaterMeterDetail = () => {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <div>
               <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">पासून महिना</label>
-              <select value={bill.fromSeq} onChange={(e) => setBill({ ...bill, fromSeq: Number(e.target.value) })} className={fieldCls}>
+              <select value={bill.fromSeq} onChange={(e) => { const f = Number(e.target.value); setBill({ ...bill, fromSeq: f, magil: magilForRange(f, bill.toSeq) }); }} className={fieldCls}>
                 {WATER_MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
               </select>
             </div>
             <div>
               <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">पर्यंत महिना</label>
-              <select value={bill.toSeq} onChange={(e) => setBill({ ...bill, toSeq: Number(e.target.value) })} className={fieldCls}>
+              <select value={bill.toSeq} onChange={(e) => { const t = Number(e.target.value); setBill({ ...bill, toSeq: t, magil: magilForRange(bill.fromSeq, t) }); }} className={fieldCls}>
                 {WATER_MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
               </select>
             </div>
@@ -494,23 +612,27 @@ const WaterMeterDetail = () => {
             </div>
             <div>
               <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">बिल भरणा केंद्र</label>
-              <input value={bill.center} onChange={(e) => setBill({ ...bill, center: e.target.value })} className={fieldCls} placeholder="उदा. संस्कृती सभागृह" />
+              <MarathiInput name="center" value={bill.center} onChange={(e) => setBill({ ...bill, center: e.target.value })} className={fieldCls} placeholder="उदा. संस्कृती सभागृह" />
             </div>
             <div>
               <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">केंद्र पत्ता</label>
-              <input value={bill.centerAddr} onChange={(e) => setBill({ ...bill, centerAddr: e.target.value })} className={fieldCls} placeholder="पत्ता" />
+              <MarathiInput name="centerAddr" value={bill.centerAddr} onChange={(e) => setBill({ ...bill, centerAddr: e.target.value })} className={fieldCls} placeholder="पत्ता" />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">मागील भरणा पावती क्र/दिनांक</label>
-              <input value={bill.prevReceipt} onChange={(e) => setBill({ ...bill, prevReceipt: e.target.value })} className={fieldCls} placeholder="क्रमांक / दिनांक" />
+              <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">मागील भरणा पावती क्रमांक</label>
+              <input value={bill.prevReceipt} onChange={(e) => setBill({ ...bill, prevReceipt: e.target.value })} className={fieldCls} placeholder="पावती क्रमांक" />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">मागील भरणा दिनांक</label>
+              <DatePicker format="DD-MM-YYYY" value={bill.prevDate} onChange={(v) => setBill({ ...bill, prevDate: v })} placeholder="दिनांक" />
             </div>
             <div>
               <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">थकबाकी माहे</label>
-              <input value={bill.magilMonth} onChange={(e) => setBill({ ...bill, magilMonth: e.target.value })} className={fieldCls} placeholder="उदा. मार्च 2026" />
+              <MarathiInput name="magilMonth" value={bill.magilMonth} onChange={(e) => setBill({ ...bill, magilMonth: e.target.value })} className={fieldCls} placeholder="उदा. मार्च 2026" />
             </div>
             <div className="col-span-2 sm:col-span-3 lg:col-span-6">
               <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">सूचना</label>
-              <textarea value={bill.notes} onChange={(e) => setBill({ ...bill, notes: e.target.value })} className={fieldCls} rows={2} placeholder="सूचना" />
+              <MarathiInput name="notes" multiline rows={2} value={bill.notes} onChange={(e) => setBill({ ...bill, notes: e.target.value })} className={fieldCls} placeholder="सूचना" />
             </div>
           </div>
           <div className="mt-3 flex items-center gap-3">
@@ -531,7 +653,7 @@ const WaterMeterDetail = () => {
             <div className="no-print mt-4 overflow-x-auto rounded-lg border border-gray-200 bg-white p-3 text-black dark:border-gray-600" style={{ colorScheme: 'light' }}>
               <p className="mb-2 text-xs font-semibold text-gray-500">बिल पूर्वावलोकन (Preview) — प्रिंट अशीच येईल</p>
               <div className="min-w-[720px]">
-                <BillDoc H={H} meter={meter} bill={bill} year={year} billRows={billRows} paaniDeyak={paaniDeyak} magilThak={magilThak} ekunDeyak={ekunDeyak} vilamb={vilamb} deyNantar={deyNantar} />
+                <BillDoc H={H} meter={meter} bill={bill} year={year} periodFrom={periodFrom} periodTo={periodTo} billRows={billRows} paaniDeyak={paaniDeyak} magilThak={magilThak} ekunDeyak={ekunDeyak} vilamb={vilamb} deyNantar={deyNantar} totalPaid={totalPaid} netDue={netDue} />
               </div>
             </div>
           )}
@@ -600,137 +722,155 @@ const WaterMeterDetail = () => {
 
       {/* ===== PRINT: DEMAND BILL (Sheet2 — two copies) ===== */}
       {printMode === 'bill' && (
-        <div className="print-area bg-white p-2 text-black" style={{ colorScheme: 'light' }}>
-          <BillDoc H={H} meter={meter} bill={bill} year={year} billRows={billRows} paaniDeyak={paaniDeyak} magilThak={magilThak} ekunDeyak={ekunDeyak} vilamb={vilamb} deyNantar={deyNantar} />
+        <div className="print-area bill-print bg-white pb-2 pr-2 pt-8 pl-10 text-black" style={{ colorScheme: 'light' }}>
+          <BillDoc H={H} meter={meter} bill={bill} year={year} periodFrom={periodFrom} periodTo={periodTo} billRows={billRows} paaniDeyak={paaniDeyak} magilThak={magilThak} ekunDeyak={ekunDeyak} vilamb={vilamb} deyNantar={deyNantar} totalPaid={totalPaid} netDue={netDue} />
         </div>
       )}
     </>
   );
 };
 
-const BillDoc = ({ H, meter, bill, year, billRows, paaniDeyak, magilThak, ekunDeyak, vilamb, deyNantar }: {
+const BillDoc = ({ H, meter, bill, year, periodFrom, periodTo, billRows, paaniDeyak, magilThak, ekunDeyak, vilamb, deyNantar, totalPaid, netDue }: {
   H: { gp: string; samiti: string; district: string };
   meter: WaterMeter;
-  bill: { fromSeq: number; toSeq: number; dueDate: string; center: string; centerAddr: string; prevReceipt: string; magilMonth: string; notes: string };
-  year: number;
+  bill: { fromSeq: number; toSeq: number; dueDate: string; center: string; centerAddr: string; prevReceipt: string; prevDate: string; magilMonth: string; notes: string };
+  year: number; periodFrom: string; periodTo: string;
   billRows: WaterReading[];
-  paaniDeyak: number; magilThak: number; ekunDeyak: number; vilamb: number; deyNantar: number;
+  paaniDeyak: number; magilThak: number; ekunDeyak: number; vilamb: number; deyNantar: number; totalPaid: number; netDue: number;
 }) => (
         <div className="grid grid-cols-2 gap-2">
-            {['कार्यालय प्रत', 'ग्राहक प्रत'].map((copyLabel, ci) => (
+            {['कार्यालय प्रत', 'ग्राहक प्रत'].map((copyLabel, ci) => {
+              // सर्व काही एकाच 9-column border-collapse table मध्ये → सर्व border एकसमान 1px
+              const bc = 'border border-black px-1 py-0.5 text-[9px] align-middle';
+              const bcc = `${bc} text-center`;
+              return (
               <div key={ci} className={ci === 0 ? 'pr-1' : 'pl-1'}>
-               <div className="border-2 border-black">
-                {/* branded header band */}
-                <div className="border-b border-black bg-gray-100 px-2 py-1 text-center">
-                  <p className="text-[13px] font-extrabold tracking-wide">गट ग्रामपंचायत कार्यालय {H.gp}</p>
-                  {meter.water_supply_name && <p className="text-[10px] font-semibold">पाणी पुरवठा योजना — {meter.water_supply_name}</p>}
-                  <p className="text-[9px]">पंचायत समिती: {H.samiti} &nbsp;·&nbsp; जिल्हा: {H.district}</p>
-                  <div className="mt-0.5 flex items-center justify-center gap-2">
-                    <span className="rounded bg-black px-2 py-0.5 text-[10px] font-bold text-white">पाणी वापर मागणी बिल</span>
-                    <span className="text-[10px] font-bold">सन {year}-{year + 1}</span>
-                    <span className="rounded border border-black px-1.5 text-[9px] font-semibold">{copyLabel}</span>
-                  </div>
-                </div>
-                {/* property grid — bordered cells */}
-                <div className="grid grid-cols-4 border-b border-black text-[9px]">
-                  {[['अनु क्र', meter.anu_kramank], ['मा. क्र', meter.malmatta_number], ['वार्ड', meter.ward], ['मिटर क्र', meter.meter_number]].map(([lbl, val], i) => (
-                    <div key={i} className={`px-1.5 py-1 ${i < 3 ? 'border-r border-black' : ''}`}>
-                      <div className="text-[8px] text-gray-600">{lbl as string}</div>
-                      <div className="font-bold">{(val as string) || '-'}</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="border-b border-black px-1.5 py-0.5 text-[9px]"><span className="text-gray-600">खातेदार:</span> <b>{meter.khatedar_name}</b>{meter.bhogwatdar_name ? <> &nbsp;·&nbsp; <span className="text-gray-600">भोगवटदार:</span> <b>{meter.bhogwatdar_name}</b></> : null}</div>
-                <div className="border-b border-black px-1.5 py-0.5 text-[9px]"><span className="text-gray-600">पत्ता:</span> {meter.address || '-'}</div>
-                <div className="flex justify-between bg-gray-50 px-1.5 py-0.5 text-[9px] font-semibold">
-                  <span>बिल कालावधी: {WATER_MONTHS[bill.fromSeq - 1]} ते {WATER_MONTHS[bill.toSeq - 1]}</span>
-                  {bill.dueDate && <span>देय दिनांक: {bill.dueDate}</span>}
-                </div>
-               </div>
-
-                <table className="mt-1 w-full border-collapse text-[9px]">
-                  <thead>
-                    <tr>{['महिना', 'चालू रिडिंग', 'मागील रिडिंग', 'एकूण रिडिंग', 'दर', 'चालु', 'मागील', 'एकूण'].map((h, i) => (
-                      <th key={i} className="border border-black px-0.5 py-0.5">{h}</th>))}
-                    </tr>
-                  </thead>
+                <table className="w-full border-collapse text-[9px]">
                   <tbody>
+                    {/* branded header band */}
+                    <tr>
+                      <td colSpan={9} className="border border-black bg-gray-100 px-2 py-1 text-center">
+                        <p className="text-[18px] font-extrabold tracking-wide">गट ग्रामपंचायत कार्यालय {H.gp}</p>
+                        {meter.water_supply_name && <p className="text-[10px] font-semibold">पाणी पुरवठा योजना — {meter.water_supply_name}</p>}
+                        <p className="text-[9px]">पंचायत समिती: {H.samiti} &nbsp;·&nbsp; जिल्हा: {H.district}</p>
+                        <div className="mt-0.5 flex items-center justify-center gap-2">
+                          <span className="rounded bg-black px-2 py-0.5 text-[10px] font-bold text-white">पाणी वापर मागणी बिल</span>
+                          <span className="text-[10px] font-bold">सन {year}-{year + 1}</span>
+                          <span className="rounded border border-black px-1.5 text-[9px] font-semibold">{copyLabel}</span>
+                        </div>
+                      </td>
+                    </tr>
+                    {/* property grid */}
+                    <tr>
+                      {[['अनु क्र', meter.anu_kramank, 2], ['मा. क्र', meter.malmatta_number, 2], ['वार्ड', meter.ward, 2], ['मिटर क्र', meter.meter_number, 3]].map(([lbl, val, cs], i) => (
+                        <td key={i} colSpan={cs as number} className={bc}>
+                          <div className="text-[8px] text-gray-600">{lbl as string}</div>
+                          <div className="font-bold">{(val as string) || '-'}</div>
+                        </td>
+                      ))}
+                    </tr>
+                    <tr>
+                      <td colSpan={2} className={`${bc} text-gray-600`}>खातेदार</td>
+                      <td colSpan={7} className={bc}><b>{meter.khatedar_name || '-'}</b>{meter.bhogwatdar_name ? <> &nbsp;·&nbsp; <span className="text-gray-600">भोगवटदार:</span> <b>{meter.bhogwatdar_name}</b></> : null}</td>
+                    </tr>
+                    <tr>
+                      <td colSpan={2} className={`${bc} text-gray-600`}>पत्ता</td>
+                      <td colSpan={7} className={bc}>{meter.address || '-'}</td>
+                    </tr>
+                    <tr className="bg-gray-50 font-semibold">
+                      <td colSpan={2} className={bc}>बिल कालावधी</td>
+                      <td colSpan={3} className={bcc}>{WATER_MONTHS[bill.fromSeq - 1]}</td>
+                      <td colSpan={1} className={bcc}>ते</td>
+                      <td colSpan={3} className={bcc}>{WATER_MONTHS[bill.toSeq - 1]}</td>
+                    </tr>
+                    <tr className="font-semibold">
+                      <td colSpan={2} className={bc}>दिनांक</td>
+                      <td colSpan={3} className={bcc}>{periodFrom}</td>
+                      <td colSpan={1} className={bcc}>ते</td>
+                      <td colSpan={3} className={bcc}>{periodTo}</td>
+                    </tr>
+
+                    {/* reading — grouped header */}
+                    <tr className="bg-gray-100 font-bold">
+                      <td rowSpan={2} className={bcc}>महिना</td>
+                      <td colSpan={4} className={bcc}>रीडिंग</td>
+                      <td colSpan={4} className={bcc}>आकारणी / रक्कम</td>
+                    </tr>
+                    <tr className="bg-gray-100 font-bold">
+                      {['चालू रिडिंग', 'मागील रिडिंग', 'एकूण रिडिंग', 'दर', 'चालु आकारणी', 'मागील थकबाकी', 'भरणा', 'एकूण'].map((h, i) => (
+                        <td key={i} className={bcc}>{h}</td>))}
+                    </tr>
                     {billRows.map((r) => (
                       <tr key={r.month_seq}>
-                        <td className="border border-black px-0.5 py-0.5 text-center">{r.month_name}</td>
-                        <td className="border border-black px-0.5 py-0.5 text-center">{r.current_reading || ''}</td>
-                        <td className="border border-black px-0.5 py-0.5 text-center">{r.previous_reading || ''}</td>
-                        <td className="border border-black px-0.5 py-0.5 text-center">{r.ekun_reading ?? ''}</td>
-                        <td className="border border-black px-0.5 py-0.5 text-center">{r.rate ?? ''}</td>
-                        <td className="border border-black px-0.5 py-0.5 text-center">{r.current_charge ?? ''}</td>
-                        <td className="border border-black px-0.5 py-0.5 text-center">{r.arrears ?? ''}</td>
-                        <td className="border border-black px-0.5 py-0.5 text-center font-bold">{r.total ?? ''}</td>
+                        <td className={bcc}>{r.month_name}</td>
+                        <td className={bcc}>{r.current_reading || ''}</td>
+                        <td className={bcc}>{r.previous_reading || ''}</td>
+                        <td className={bcc}>{r.ekun_reading ?? ''}</td>
+                        <td className={bcc}>{r.rate ?? ''}</td>
+                        <td className={bcc}>{r.current_charge ?? ''}</td>
+                        <td className={bcc}>{r.arrears ?? ''}</td>
+                        <td className={bcc}>{r.paid_amount ?? ''}</td>
+                        <td className={`${bcc} font-bold`}>{r.balance ?? ''}</td>
                       </tr>
                     ))}
                     <tr className="font-bold">
-                      <td className="border border-black px-0.5 py-0.5">एकूण</td>
-                      <td className="border border-black" colSpan={4} />
-                      <td className="border border-black px-0.5 py-0.5 text-center">{paaniDeyak}</td>
-                      <td className="border border-black px-0.5 py-0.5 text-center">{magilThak}</td>
-                      <td className="border border-black px-0.5 py-0.5 text-center">{paaniDeyak + magilThak}</td>
+                      <td colSpan={7} className={`${bc} text-right`}>एकूण भरणा / देय →</td>
+                      <td className={bcc}>{totalPaid}</td>
+                      <td className={bcc}>{netDue}</td>
+                    </tr>
+
+                    {/* payment details (left) + amount summary (right) — side-by-side, single table */}
+                    <tr className="bg-gray-100">
+                      <td colSpan={4} rowSpan={7} className={`${bc} align-top`}>
+                        <div className="space-y-1.5 py-0.5">
+                          <div><span className="text-gray-600">मागील भरणा पावती क्रमांक:</span> <b>{bill.prevReceipt || '—'}</b></div>
+                          <div><span className="text-gray-600">मागील भरणा दिनांक:</span> <b>{bill.prevDate || '—'}</b></div>
+                          <div><span className="text-gray-600">बिल भरणा केंद्र:</span> <b>{bill.center || '—'}</b>{bill.centerAddr ? ` (${bill.centerAddr})` : ''}</div>
+                          <div><span className="text-gray-600">बिल भरण्याचा अखेरचा दिनांक:</span> <b>{bill.dueDate || '—'}</b> पर्यंत</div>
+                        </div>
+                      </td>
+                      <td colSpan={5} className={`${bc} text-center font-bold tracking-wide`}>देयक रक्कम (रुपये)</td>
+                    </tr>
+                    {[
+                      { l: `मागील थकबाकी${bill.magilMonth ? ` (माहे ${bill.magilMonth})` : ''}`, v: magilThak },
+                      { l: 'पाणी वापर देयक (चालू)', v: paaniDeyak },
+                      { l: 'विलंब शुल्क', v: vilamb },
+                    ].map((x, i) => (
+                      <tr key={i}>
+                        <td colSpan={3} className={`${bc} text-gray-700`}>{x.l}</td>
+                        <td colSpan={2} className={`${bc} text-right tabular-nums`}>{`₹ ${x.v}`}</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-gray-50 font-bold">
+                      <td colSpan={3} className={bc}>एकुण मागणी</td>
+                      <td colSpan={2} className={`${bc} text-right tabular-nums`}>{`₹ ${ekunDeyak}`}</td>
+                    </tr>
+                    <tr>
+                      <td colSpan={3} className={`${bc} text-gray-700`}>वजा : भरणा झाले</td>
+                      <td colSpan={2} className={`${bc} text-right tabular-nums`}>{`− ₹ ${totalPaid}`}</td>
+                    </tr>
+                    <tr className="font-bold text-white">
+                      <td colSpan={3} className="border border-black bg-gray-900 px-2 py-1.5 text-[11px]">एकूण देय रक्कम</td>
+                      <td colSpan={2} className="border border-black bg-gray-900 px-2 py-1.5 text-right text-[12px] tabular-nums">{`₹ ${netDue}`}</td>
+                    </tr>
+
+                    {/* सूचना */}
+                    <tr>
+                      <td colSpan={9} className={`${bc} leading-snug`}><b>सूचना:</b> {bill.notes || '—'}</td>
+                    </tr>
+                    {/* signatures */}
+                    <tr>
+                      <td colSpan={4} className="border border-black px-1 py-1 text-center align-bottom text-[9px] font-bold" style={{ height: '52px' }}>वसुलीकर्ता</td>
+                      <td colSpan={5} className="border border-black px-1 py-1 text-center align-bottom text-[9px]" style={{ height: '52px' }}>
+                        <div className="font-bold">सरपंच / सचिव</div>
+                        <div>गट ग्रामपंचायत कार्यालय {H.gp}</div>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
-
-                {/* payment details + amount summary — bordered, professional */}
-                <div className="mt-1 grid grid-cols-2 gap-1 text-[9px]">
-                  {/* left — payment / center details */}
-                  <div className="flex flex-col border border-black">
-                    <div className="border-b border-black bg-gray-100 px-1.5 py-0.5 text-center font-bold">देयक भरणा तपशील</div>
-                    <div className="flex-1 space-y-1 px-1.5 py-1">
-                      <div><span className="text-gray-600">मागील भरणा पावती क्र./दिनांक:</span> <b>{bill.prevReceipt || '—'}</b></div>
-                      <div><span className="text-gray-600">भरण्याचा अखेरचा दिनांक:</span> <b>{bill.dueDate || '—'}</b></div>
-                      <div><span className="text-gray-600">बिल भरणा केंद्र:</span> <b>{bill.center || '—'}</b></div>
-                      {bill.centerAddr && <div className="text-gray-700">{bill.centerAddr}</div>}
-                    </div>
-                  </div>
-                  {/* right — amount summary table */}
-                  <div className="border border-black">
-                    <div className="border-b border-black bg-gray-100 px-1.5 py-0.5 text-center font-bold">देयक रक्कम (रुपये)</div>
-                    <table className="w-full border-collapse">
-                      <tbody>
-                        {[
-                          { l: `मागील थकबाकी ${bill.magilMonth ? `(माहे ${bill.magilMonth})` : ''}`, v: magilThak },
-                          { l: 'पाणी वापर देयक', v: paaniDeyak },
-                          { l: 'एकुण भरणा देयक', v: ekunDeyak, b: true },
-                          { l: 'विलंब शुल्क', v: vilamb },
-                        ].map((x, i) => (
-                          <tr key={i} className={x.b ? 'font-bold' : ''}>
-                            <td className="border-b border-r border-black px-1.5 py-0.5">{x.l}</td>
-                            <td className="border-b border-black px-1.5 py-0.5 text-right">{x.v}</td>
-                          </tr>
-                        ))}
-                        <tr className="bg-gray-900 font-bold text-white">
-                          <td className="px-1.5 py-1">देय तारखे नंतर एकूण</td>
-                          <td className="px-1.5 py-1 text-right">{deyNantar}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* सूचना */}
-                <div className="mt-1 border border-black text-[9px]">
-                  <div className="border-b border-black bg-gray-100 px-1.5 py-0.5 font-bold">सूचना</div>
-                  <div className="px-1.5 py-1 leading-snug">{bill.notes || '—'}</div>
-                </div>
-
-                {/* signatures */}
-                <div className="mt-1 grid grid-cols-2 border border-black text-[9px]">
-                  <div className="flex h-16 flex-col justify-end border-r border-black px-1.5 py-1 text-center font-bold">वसुलीकर्ता</div>
-                  <div className="flex h-16 flex-col justify-end px-1.5 py-1 text-center">
-                    <div className="font-bold">सरपंच / सचिव</div>
-                    <div>गट ग्रामपंचायत कार्यालय {H.gp}</div>
-                    {meter.water_supply_name && <div>पाणी पुरवठा {meter.water_supply_name}</div>}
-                  </div>
-                </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 );
 
