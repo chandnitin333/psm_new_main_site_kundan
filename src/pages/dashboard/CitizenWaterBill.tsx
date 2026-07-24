@@ -6,8 +6,21 @@ import { billTotals } from './water-meter/BillDoc';
 
 const money = (v: number) => `₹ ${Math.round(v).toLocaleString('en-IN')}`;
 
+// logged-in user कडून ग्रामपंचायत header (register/बिल सारखेच)
+const gpHeader = () => {
+  try {
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    return {
+      gp: u.gat_gram_panchayat || u.gram_panchayat || u.gram_panchayat_name || '',
+      samiti: u.taluka || u.taluka_name || '',
+      district: u.district || u.district_name || '',
+    };
+  } catch { return { gp: '', samiti: '', district: '' }; }
+};
+
 const CitizenWaterBill = () => {
   const { toast, ToastContainer } = useToast();
+  const H = gpHeader();
   const [meters, setMeters] = useState<WaterMeter[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -55,9 +68,21 @@ const CitizenWaterBill = () => {
                 return (
                   <div key={m.id} className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
                     <div className="bg-primary-600 px-5 py-4 text-white">
-                      <p className="text-sm font-medium text-white/85">पाणी मीटर बिल {m.water_supply_name ? `· ${m.water_supply_name}` : ''} · सन {year}-{year + 1}</p>
-                      <h2 className="mt-1 text-lg font-bold">{m.khatedar_name}</h2>
-                      <p className="text-xs text-white/80">मीटर क्र.: {m.meter_number || '-'} · वॉर्ड: {m.ward || '-'} · मालमत्ता: {m.malmatta_number || '-'}</p>
+                      {/* ग्रामपंचायत header */}
+                      <div className="border-b border-white/25 pb-2 text-center">
+                        <p className="text-base font-bold leading-tight">गट ग्रामपंचायत कार्यालय {H.gp || '-'}</p>
+                        {m.water_supply_name && <p className="text-[11px] text-white/85">पाणी पुरवठा योजना — {m.water_supply_name}</p>}
+                        <p className="text-[11px] text-white/80">पंचायत समिती: {H.samiti || '-'} · जिल्हा: {H.district || '-'} · पाणी वापर बिल सन {year}-{year + 1}</p>
+                      </div>
+                      {/* खातेदार व मालमत्ता तपशील */}
+                      <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <h2 className="text-lg font-bold leading-tight">{m.khatedar_name || '-'}</h2>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-white/85">
+                          <span>मीटर क्र.: <b>{m.meter_number || '-'}</b></span>
+                          <span>वॉर्ड: <b>{m.ward || '-'}</b></span>
+                          <span>मालमत्ता: <b>{m.malmatta_number || '-'}</b></span>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="overflow-x-auto px-5 py-4">
