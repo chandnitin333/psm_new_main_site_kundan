@@ -53,7 +53,7 @@ const RegisterTable = ({ meter, year, H }: { meter: WaterMeter; year: number; H:
         </div>
         <div className="border-t border-black px-1.5 py-0.5"><span className="text-gray-700">पत्ता: </span><b>{meter.address || '-'}</b></div>
       </div>
-      <table className="mt-1 w-full border-collapse text-[11px]">
+      <table className="mt-1 w-full min-w-[880px] border-collapse text-[11px] print:min-w-0">
         <thead>
           <tr className="bg-gray-100 font-bold">
             <th rowSpan={2} className={td}>महिना</th>
@@ -163,14 +163,14 @@ const WaterMeterMultiReport = () => {
       ) : meters.length === 0 ? (
         <p className="py-16 text-center text-gray-500">या निवडीसाठी मीटर आढळले नाहीत</p>
       ) : (
-        <div className="space-y-8 print:space-y-0">
+        <div className="space-y-8 overflow-x-auto print:space-y-0 print:overflow-visible">
           {meters.map((m) => {
             const { t, meta } = bill(m);
             return (
               <div key={m.id} className="wm-page space-y-3">
                 {(p.mode === 'register' || p.mode === 'both') && <RegisterTable meter={m} year={p.year} H={H} />}
                 {(p.mode === 'bill' || p.mode === 'both') && (
-                  <div className="wm-block bill-print">
+                  <div className="wm-block bill-print min-w-[720px] print:min-w-0">
                     <BillDoc H={H} meter={m} bill={meta} year={p.year} periodFrom={t.periodFrom} periodTo={t.periodTo}
                       billRows={t.billRows} paaniDeyak={t.paaniDeyak} magilThak={t.magilThak} ekunDeyak={t.ekunDeyak}
                       vilamb={t.vilamb} deyNantar={t.deyNantar} totalPaid={t.totalPaid} netDue={t.netDue}
