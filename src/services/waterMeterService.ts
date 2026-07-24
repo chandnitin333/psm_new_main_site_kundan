@@ -21,6 +21,12 @@ export interface WaterMeter {
   late_fee?: number | null;
   is_active?: number;
   readings?: WaterReading[];
+  /** latest saved bill config (report endpoint) — केंद्र, पावती, दिनांक, सूचना इ. */
+  bill?: {
+    due_date?: string | null; center?: string | null; center_addr?: string | null;
+    prev_receipt?: string | null; prev_date?: string | null; magil_month?: string | null;
+    magil_amount?: number | null; notes?: string | null; from_seq?: number | null; to_seq?: number | null;
+  } | null;
 }
 
 export interface WaterReading {
@@ -59,6 +65,7 @@ const E = {
   READING: (id: number) => `/main/water-meter/${id}/reading`,
   DEL_READING: (rid: number) => `/main/water-meter/reading/${rid}`,
   MY: '/main/water-meter/my',
+  REPORT: '/main/water-meter/report',
   BY_NODNI: (nid: number) => `/main/water-meter/by-nodni/${nid}`,
   SAVE_BILL: (id: number) => `/main/water-meter/${id}/bill`,
   LATEST_BILL: (id: number) => `/main/water-meter/${id}/bill/latest`,
@@ -74,6 +81,7 @@ export const waterMeterService = {
   saveReading: async (id: number, r: WaterReading): Promise<ApiResponse> => api.post(E.READING(id), r),
   deleteReading: async (rid: number): Promise<ApiResponse> => api.delete(E.DEL_READING(rid)),
   myMeters: async (): Promise<ApiResponse<WaterMeter[]>> => api.get(E.MY),
+  report: async (params: { year?: number; ward?: string }): Promise<ApiResponse<WaterMeter[]>> => api.post(E.REPORT, params),
   byNodni: async (nodniId: number): Promise<ApiResponse<WaterMeter>> => api.get(E.BY_NODNI(nodniId)),
   saveBill: async (id: number, bill: Record<string, unknown>): Promise<ApiResponse> => api.post(E.SAVE_BILL(id), bill),
   latestBill: async (id: number, year?: number): Promise<ApiResponse<Record<string, unknown>>> =>

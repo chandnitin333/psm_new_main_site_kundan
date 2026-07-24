@@ -36,6 +36,7 @@ export const PATH_TO_MODULE: Record<string, string> = {
   '/ahval/bill-ward': 'ahval_bill_ward',
   '/ahval/namuna10': 'ahval_namuna10',
   '/ahval/imla-kar': 'ahval_imla_kar',
+  '/ahval/pani-meter-bill': 'ahval_pani_meter_bill',
   '/helpline': 'helpline',
   '/posts': 'gp_posts',
   // certificates are per-type (module key = `cert_<slug>`); the /certificates menu

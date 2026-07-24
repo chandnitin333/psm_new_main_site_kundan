@@ -34,6 +34,7 @@ const REPORT_NAMES: Record<string, string> = {
   '/view-namuna9-ghosvara': 'नमुना ९ घोषवारा',
   '/view-imlakar': 'इमला कर अहवाल',
   '/view-imlakar-anukramika': 'इमला कर अनुक्रमणिका',
+  '/water-meter-report': 'पाणी मीटर बिल / अहवाल (एकत्रित)',
 };
 
 // Marathi labels for the selection params carried in sessionValue

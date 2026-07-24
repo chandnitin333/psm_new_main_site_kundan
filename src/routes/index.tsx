@@ -74,6 +74,8 @@ import Namuna8 from '../pages/dashboard/ahval/Namuna8';
 import Namuna9 from '../pages/dashboard/ahval/Namuna9';
 import BillWard from '../pages/dashboard/ahval/BillWard';
 import ImlaKar from '../pages/dashboard/ahval/ImlaKar';
+import PaniMeterBill from '../pages/dashboard/ahval/PaniMeterBill';
+import WaterMeterMultiReport from '../pages/dashboard/water-meter/WaterMeterMultiReport';
 import Loaders from '../pages/dashboard/loaders/Loaders';
 import CitizenDashboard from '../pages/dashboard/CitizenDashboard';
 import CitizenProfile from '../pages/dashboard/CitizenProfile';
@@ -493,6 +495,14 @@ export const createRouter = (handleLogout: () => void) =>
       ),
     },
     {
+      path: '/water-meter-report',
+      element: (
+        <ProtectedRoute>
+          <WaterMeterMultiReport />
+        </ProtectedRoute>
+      ),
+    },
+    {
       path: '/view-imlakar-anukramika',
       element: (
         <ProtectedRoute>
@@ -531,6 +541,7 @@ export const createRouter = (handleLogout: () => void) =>
         { path: 'bill-ward', element: <BillWard /> },
         { path: 'namuna10', element: <Vasuli /> },
         { path: 'imla-kar', element: <ImlaKar /> },
+        { path: 'pani-meter-bill', element: <PaniMeterBill /> },
       ],
     },
     {
