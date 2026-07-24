@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Printer } from 'lucide-react';
 import { nodniService } from '../../../services';
 import { getPublicReportData } from '../../../utils/publicReport';
+import { fyLabel } from '../../../utils/fyConfig';
 
 /* गोषवारा नमुना ८ — same as old `get-namuna-8-ghosvara`.
    Aggregate summary: per tax type, count of properties + total amount. Filters via 'ghosvaraParams'. */
@@ -95,7 +96,7 @@ const Namuna8GhosvaraReport = () => {
       {/* Title — full-width bordered box (connects to the boxes below) */}
       <div className="w-full border border-black text-center mb-4">
         <p className="font-bold text-[18px] py-1.5 border-b border-black">गोषवारा नमुना ८</p>
-        <p className="text-[14px] py-1.5">कर मागणी सन {cy}-{cy + 1} ते {cy + 3}-{cy + 4}</p>
+        <p className="text-[14px] py-1.5">कर मागणी सन {fyLabel(cy)} ते {fyLabel(cy + 3)}</p>
       </div>
 
       {/* जिल्हा / तहसील / ग्रामपंचायत — dynamic even on the blank page */}
@@ -127,7 +128,7 @@ const Namuna8GhosvaraReport = () => {
       </div>
 
       <p className="text-center text-[14px] mt-4 leading-relaxed">
-        ग्रामपंचायत मासिक सभा दि. ........./........./........... ठराव क्रं. .............. अन्वये गृहकर व भूमीकर, दिवाबत्ती कर, आरोग्य रक्षण कर, सफाई कर व पाणी पट्टी कर सन {cy}-{cy + 1} ते {cy + 3}-{cy + 4} करीत सदर कर आकारणी "कर आकारणी समिती" कडून अंतिम करण्यात येत आहे.
+        ग्रामपंचायत मासिक सभा दि. ........./........./........... ठराव क्रं. .............. अन्वये गृहकर व भूमीकर, दिवाबत्ती कर, आरोग्य रक्षण कर, सफाई कर व पाणी पट्टी कर सन {fyLabel(cy)} ते {fyLabel(cy + 3)} करीत सदर कर आकारणी "कर आकारणी समिती" कडून अंतिम करण्यात येत आहे.
       </p>
 
       {/* Signature block 1 — 3 columns */}

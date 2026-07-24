@@ -8,9 +8,9 @@ import { waterMeterService, WATER_MONTHS, type WaterMeter, type WaterReading } f
 import YearPicker from '../../../components/common/YearPicker';
 import { DatePicker, MarathiInput } from '../../../components/common';
 import BillDoc from './BillDoc';
+import { fyLabel } from '../../../utils/fyConfig';
 
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
-const fyStart = () => { const d = new Date(); return d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1; };
 
 // gram panchayat header from the logged-in user (dynamic per village)
 const gpHeader = () => {
@@ -37,7 +37,7 @@ const WaterMeterDetail = () => {
   const navigate = useNavigate();
   const { toast, ToastContainer } = useToast();
   const [meter, setMeter] = useState<WaterMeter | null>(null);
-  const [year, setYear] = useState(fyStart());
+  const [year, setYear] = useState(new Date().getFullYear());
   const [rows, setRows] = useState<WaterReading[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingSeq, setSavingSeq] = useState<number | null>(null);
@@ -456,7 +456,7 @@ const WaterMeterDetail = () => {
           <div className="text-center">
             <p className="font-bold text-gray-900 dark:text-white">गट ग्रामपंचायत कार्यालय {H.gp}</p>
             {meter.water_supply_name && <p className="text-sm text-gray-700 dark:text-gray-300">पाणी पुरवठा {meter.water_supply_name}</p>}
-            <p className="text-xs text-gray-500">पंचायत समिती: {H.samiti} · जिल्हा: {H.district} · मिटर रिडिंग रजिस्टर सन {year}-{year + 1}</p>
+            <p className="text-xs text-gray-500">पंचायत समिती: {H.samiti} · जिल्हा: {H.district} · मिटर रिडिंग रजिस्टर सन {fyLabel(year)}</p>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
             <span><b>अनु क्र:</b> {meter.anu_kramank || '-'}</span>
@@ -669,7 +669,7 @@ const WaterMeterDetail = () => {
             <p className="text-[20px] font-bold">गट ग्रामपंचायत कार्यालय {H.gp}</p>
             {meter.water_supply_name && <p className="text-sm">पाणी पुरवठा {meter.water_supply_name}</p>}
             <p className="text-xs">पंचायत समिती: {H.samiti} · जिल्हा: {H.district}</p>
-            <p className="mt-1 text-sm font-bold">मिटर रिडिंग रजिस्टर सन {year}-{year + 1}</p>
+            <p className="mt-1 text-sm font-bold">मिटर रिडिंग रजिस्टर सन {fyLabel(year)}</p>
           </div>
           <div className="mt-2 border border-black text-[15px]">
             <div className="grid grid-cols-6">

@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
 import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
 import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
+import { fyLabel } from '../../../utils/fyConfig';
 
 /* नमुना ९ (multiple) — same demand-register layout as /namuna-9-1, one block per property/page.
    Filters via sessionStorage 'namuna9Params' from the Namuna 9 ahval page. */
@@ -98,7 +99,7 @@ const RecordBlock = ({ n, loc, cy, qrUrl, blank = false }: { n: Row; loc: { dist
     <div className="n9m-page mx-auto" style={{ width: `${tableW}px` }}>
       <div className="text-center">
         <p className="font-bold text-lg">नमुना ९</p>
-        <p className="text-sm">सन {cy} - {cy + 1} या वर्षाची आकारणी केलेल्या कराची मागणी नोंदवही</p>
+        <p className="text-sm">सन {fyLabel(cy)} या वर्षाची आकारणी केलेल्या कराची मागणी नोंदवही</p>
       </div>
       <div className="flex justify-between text-sm mt-1 mb-0.5">
         <span>वार्ड नं :- {sv(n.ward_kramnak)}</span>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { waterMeterService, WATER_MONTHS, type WaterMeter, type WaterReading } from '../../../services';
 import { trackAction } from '../../../utils/tracker';
 import BillDoc, { billTotals } from './BillDoc';
+import { fyLabel } from '../../../utils/fyConfig';
 
 /* पाणी मीटर बहु-अहवाल — GP मधील सर्व (किंवा वॉर्ड/वर्ष/महिना filter) मीटरचे
    रीडिंग रजिस्टर व/किंवा मागणी बिल एकाच printable document मध्ये.
@@ -36,7 +37,7 @@ const RegisterTable = ({ meter, year, H }: { meter: WaterMeter; year: number; H:
       <div className="text-center">
         <p className="text-[20px] font-bold">गट ग्रामपंचायत कार्यालय {H.gp}</p>
         {meter.water_supply_name && <p className="text-[14px] font-semibold">पाणी पुरवठा {meter.water_supply_name}</p>}
-        <p className="text-[13px]">पंचायत समिती: {H.samiti} · जिल्हा: {H.district} · मिटर रिडिंग रजिस्टर सन {year}-{year + 1}</p>
+        <p className="text-[13px]">पंचायत समिती: {H.samiti} · जिल्हा: {H.district} · मिटर रिडिंग रजिस्टर सन {fyLabel(year)}</p>
       </div>
       <div className="mt-1 border border-black text-[11px]">
         <div className="grid grid-cols-6">

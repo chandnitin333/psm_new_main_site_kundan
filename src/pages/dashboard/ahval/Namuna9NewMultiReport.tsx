@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
 import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
 import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
+import { fyLabel } from '../../../utils/fyConfig';
 
 /* नमुना ९ न्यू — same as old `get-namuna-9-new`. One row per property (खातेधारक-wise),
    मागणी/वसुली per-tax मागील/चालू/एकूण columns. Filters via sessionStorage 'namuna9NewParams'.
@@ -225,7 +226,7 @@ const Heading = ({ cy, loc, qrUrl }: { cy: number; loc: Loc; qrUrl?: string }) =
   <>
     <div className="text-center">
       <p className="font-bold text-lg">नमुना ९</p>
-      <p className="text-sm">सन. {cy} - {cy + 1} च्या आकारणी केलेल्या करांच्या मागणीचे नोंदणी पुस्तक</p>
+      <p className="text-sm">सन. {fyLabel(cy)} च्या आकारणी केलेल्या करांच्या मागणीचे नोंदणी पुस्तक</p>
     </div>
     <div className="flex justify-between text-[11px] mt-1 mb-1">
       <span>ग्रामपंचायत :- {loc.gramPanchayat}</span>

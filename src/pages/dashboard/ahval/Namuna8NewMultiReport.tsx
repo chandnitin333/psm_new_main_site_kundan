@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
 import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
 import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
+import { fyLabel } from '../../../utils/fyConfig';
 
 /* नमुना ८ नवीन आवृत्ती (multiple) — नमुना ८ नियम ३२(१), one block per property/page.
    Filters via sessionStorage 'namuna8NewParams' from the Namuna 8 ahval page. */
@@ -64,7 +65,7 @@ const RecordBlock = ({ n, loc, cy, qrUrl, blank = false }: { n: Row; loc: { dist
     <div className="n8nm-page mx-auto" style={{ width: `${tableW}px` }}>
       <div className="text-center">
         <p className="font-bold text-base">नमुना ८ नियम ३२ (१)</p>
-        <p className="text-sm">सन. {cy}-{cy + 1} साठी कर आकारणी नोंदवही (वैयक्तिक असेसमेंट उतारा पाहण्याकरीता)</p>
+        <p className="text-sm">सन. {fyLabel(cy)} साठी कर आकारणी नोंदवही (वैयक्तिक असेसमेंट उतारा पाहण्याकरीता)</p>
       </div>
       <div className="flex justify-between text-xs mt-1 mb-1">
         <span className="relative">

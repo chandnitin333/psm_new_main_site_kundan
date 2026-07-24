@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
 import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
 import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
+import { fyLabel } from '../../../utils/fyConfig';
 
 /* कराची मागणी पावती — मुंबई ग्रा.प. कायदा १९५९ कलम १२९(१).
    Same as old `magniche-bill-ward-report-129-1`. Two copies (left + right) per property.
@@ -70,7 +71,7 @@ const Receipt = ({
     <div className={copy === 'left' ? 'px-2 border-r border-dashed border-black' : 'px-2'}>
       <div className="text-center">
         <p className="font-bold text-[15px]">कराची मागणी पावती</p>
-        <p className="font-bold text-sm">सन. {cy} - {cy + 1}</p>
+        <p className="font-bold text-sm">सन. {fyLabel(cy)}</p>
         <p className="text-xs">मुंबई ग्रा. प. कायदा १९५९ कलम १२९(१)</p>
       </div>
       <div className="flex justify-between text-[11px] mt-1 mb-1">

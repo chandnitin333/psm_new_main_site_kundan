@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
 import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
 import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
+import { fyLabel } from '../../../utils/fyConfig';
 
 /* फेरकर आकारणी मुल्यांकन यादी (मालमत्ता धारकाची यादी) — exact old `malmatta-darkahchi-yadi-list` layout.
    One नमुना-८ block per property (one per printed page). Filters via sessionStorage 'dharkachiYadiParams'. */
@@ -59,7 +60,7 @@ const RecordBlock = ({ n, loc, cy, qrUrl, blank = false }: { n: Row; loc: { dist
       )}
       <div className="text-center">
         <p className="font-bold text-lg">फेरकर आकारणी मुल्यांकन यादी</p>
-        <p className="text-sm">सन {cy} - {cy + 1}</p>
+        <p className="text-sm">सन {fyLabel(cy)}</p>
       </div>
       <div className="flex justify-between text-sm mt-1 mb-1 pr-14">
         <span>जिल्हा :- {loc.district}</span>

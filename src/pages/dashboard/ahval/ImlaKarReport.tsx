@@ -4,6 +4,7 @@ import { nodniService } from '../../../services';
 import config from '../../../config';
 import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
 import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
+import { fyLabel } from '../../../utils/fyConfig';
 
 /* इमलाकर मोजमाप यादी — नमुना-८ style block per property (one per printed page), now with
    a property-image box on the right (same fixed-grid layout as नमुना ८ चित्रे so everything
@@ -59,7 +60,7 @@ const RecordBlock = ({ n, loc, cy, qrUrl, blank = false }: { n: Row; loc: { dist
       <div className="text-center">
         <p className="font-bold text-lg">इमलाकर मोजमाप यादी</p>
         <p className="text-sm">
-          सन {cy}-{cy + 1} ते {cy + 3}-{cy + 4} या वर्षासाठी करास पात्र असलेल्या इमारती व जमिनी (खुला भूखंड) यांची कर आकारणी नोंदवही.
+          सन {fyLabel(cy)} ते {fyLabel(cy + 3)} या वर्षासाठी करास पात्र असलेल्या इमारती व जमिनी (खुला भूखंड) यांची कर आकारणी नोंदवही.
         </p>
         <p className="text-sm">सदर नोंद ग्रामपंचायत नमुना ८ पान क्रमांक __{blank ? '   ' : sv(n.anu_kramank)}__ वरून घेण्यात आली</p>
       </div>

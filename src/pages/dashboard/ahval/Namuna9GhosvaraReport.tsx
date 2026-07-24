@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
 import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
 import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
+import { fyLabel } from '../../../utils/fyConfig';
 
 /* गोषवारा नमुना ९ — same as old `get-namuna-9-ghosvara`.
    Per-tax मागील / चालू / एकुण / चालू खातेदार summary for a ward. Filters via 'namuna9GhosvaraParams'. */
@@ -135,7 +136,7 @@ const Namuna9GhosvaraReport = () => {
       <div className="text-center">
         <p className="font-bold text-lg">गोषवारा नमुना ९</p>
         <p className="text-sm">ग्रामपंचायत :- {loc.gramPanchayat} &nbsp; तहसील :- {loc.taluka} &nbsp; जिल्हा :- {loc.district}</p>
-        <p className="text-sm">सन {cy} - {cy + 1} मागणी गोषवारा</p>
+        <p className="text-sm">सन {fyLabel(cy)} मागणी गोषवारा</p>
       </div>
       <div className="text-sm font-bold mt-1 mb-2">वार्ड नं :- {blank ? '' : ward}</div>
 
@@ -192,7 +193,7 @@ const Namuna9GhosvaraReport = () => {
       </table>
 
       <p className="text-center text-[12px] mt-4 leading-relaxed">
-        ग्रामपंचायत मासिक सभा दि. ........./........./........... ठराव क्रं. .............. अन्वये गृहकर व भूमीकर, दिवाबत्ती कर, आरोग्य रक्षण कर, सफाई कर, सामान्य पाणी कर व विशेष पाणी कर सन {cy} - {cy + 1} करीत मान्य करण्यात आले आहे.
+        ग्रामपंचायत मासिक सभा दि. ........./........./........... ठराव क्रं. .............. अन्वये गृहकर व भूमीकर, दिवाबत्ती कर, आरोग्य रक्षण कर, सफाई कर, सामान्य पाणी कर व विशेष पाणी कर सन {fyLabel(cy)} करीत मान्य करण्यात आले आहे.
       </p>
     </div>
   );

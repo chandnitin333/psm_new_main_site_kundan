@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
 import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
 import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
+import { fyLabel } from '../../../utils/fyConfig';
 
 /* नमुना ८ (multiple) — same 3-table layout as /namuna-8-1, one block per property/page.
    Filters via sessionStorage 'namuna8Params' from the Namuna 8 ahval page. */
@@ -55,7 +56,7 @@ const RecordBlock = ({ n, loc, cy, qrUrl, blank = false }: { n: Row; loc: { dist
       <div className="text-center">
         <p className="font-bold text-[22px]">नमुना ८</p>
         <p className="text-[16px]">
-          सन {cy}-{cy + 1} ते {cy + 3}-{cy + 4} या वर्षासाठी करास पात्र असलेल्या इमारती व जमिनी (खुला भूखंड) यांची कर आकारणी नोंदवही.
+          सन {fyLabel(cy)} ते {fyLabel(cy + 3)} या वर्षासाठी करास पात्र असलेल्या इमारती व जमिनी (खुला भूखंड) यांची कर आकारणी नोंदवही.
         </p>
         <p className="text-[16px]">सदर नोंद ग्रामपंचायत नमुना ८ पान क्रमांक __{blank ? '   ' : sv(n.anu_kramank)}__ वरून घेण्यात आली</p>
       </div>

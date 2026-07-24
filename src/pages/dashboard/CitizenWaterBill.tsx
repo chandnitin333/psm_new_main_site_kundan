@@ -3,6 +3,7 @@ import { Droplet, IndianRupee } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import { waterMeterService, type WaterMeter } from '../../services';
 import { billTotals } from './water-meter/BillDoc';
+import { fyLabel } from '../../utils/fyConfig';
 
 const money = (v: number) => `₹ ${Math.round(v).toLocaleString('en-IN')}`;
 
@@ -72,7 +73,7 @@ const CitizenWaterBill = () => {
                       <div className="border-b border-white/25 pb-2 text-center">
                         <p className="text-base font-bold leading-tight">गट ग्रामपंचायत कार्यालय {H.gp || '-'}</p>
                         {m.water_supply_name && <p className="text-[11px] text-white/85">पाणी पुरवठा योजना — {m.water_supply_name}</p>}
-                        <p className="text-[11px] text-white/80">पंचायत समिती: {H.samiti || '-'} · जिल्हा: {H.district || '-'} · पाणी वापर बिल सन {year}-{year + 1}</p>
+                        <p className="text-[11px] text-white/80">पंचायत समिती: {H.samiti || '-'} · जिल्हा: {H.district || '-'} · पाणी वापर बिल सन {fyLabel(year)}</p>
                       </div>
                       {/* खातेदार व मालमत्ता तपशील */}
                       <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">

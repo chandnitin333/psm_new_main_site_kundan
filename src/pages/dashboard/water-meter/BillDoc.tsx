@@ -1,5 +1,6 @@
 import { QRCodeSVG } from 'qrcode.react';
 import { WATER_MONTHS, type WaterMeter, type WaterReading } from '../../../services';
+import { fyLabel } from '../../../utils/fyConfig';
 
 /* पाणी वापर मागणी बिल — दोन प्रती (कार्यालय + ग्राहक) एकाच 9-column border-collapse table मध्ये.
    WaterMeterDetail (single) व WaterMeterMultiReport (multi) दोन्ही वापरतात. */
@@ -43,7 +44,7 @@ const BillDoc = ({ H, meter, bill, year, periodFrom, periodTo, billRows, paaniDe
                   <p className="text-[9px]">पंचायत समिती: {H.samiti} &nbsp;·&nbsp; जिल्हा: {H.district}</p>
                   <div className="mt-0.5 flex items-center justify-center gap-2">
                     <span className="rounded bg-black px-2 py-0.5 text-[10px] font-bold text-white">पाणी वापर मागणी बिल</span>
-                    <span className="text-[10px] font-bold">सन {year}-{year + 1}</span>
+                    <span className="text-[10px] font-bold">सन {fyLabel(year)}</span>
                     <span className="rounded border border-black px-1.5 text-[9px] font-semibold">{copyLabel}</span>
                   </div>
                 </td>
