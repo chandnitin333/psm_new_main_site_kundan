@@ -32,6 +32,7 @@ export interface PropertyHistory {
 
 const NODNI_ENDPOINTS = {
   CREATE: '/main/nodni',
+  BULK: '/main/nodni/bulk',
   UPDATE: (id: number) => `/main/nodni/${id}`,
   GET_BY_ID: (id: number) => `/main/nodni/${id}`,
   CHALU_KHATEDAR: '/main/nodni/chalu-khatedar',
@@ -69,6 +70,9 @@ export const nodniService = {
     return api.get(`${NODNI_ENDPOINTS.NEXT_ANU_KRAMANK}?ward=${encodeURIComponent(String(ward))}`);
   },
 
+  bulkCreate: async (rows: Record<string, unknown>[]): Promise<ApiResponse> => {
+    return api.post(NODNI_ENDPOINTS.BULK, { rows });
+  },
   create: async (payload: Record<string, unknown>): Promise<ApiResponse> => {
     return api.post(NODNI_ENDPOINTS.CREATE, payload);
   },

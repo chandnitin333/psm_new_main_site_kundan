@@ -19,6 +19,8 @@ export interface WaterMeter {
   water_supply_name?: string | null;
   rate?: number | null;
   late_fee?: number | null;
+  /** विलंब दंड वारंवारता — 'monthly' (दर महिना) किंवा 'quarterly' (तिमाही, quarter च्या शेवटच्या महिन्यात) */
+  late_fee_freq?: 'monthly' | 'quarterly' | null;
   is_active?: number;
   readings?: WaterReading[];
   /** latest saved bill config (report endpoint) — केंद्र, पावती, दिनांक, सूचना इ. */

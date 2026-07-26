@@ -58,6 +58,9 @@ const WaterMeterDetail = () => {
   const [topRate, setTopRate] = useState('');
   const [vilambType, setVilambType] = useState<'percent' | 'amount'>('amount');
   const [vilambVal, setVilambVal] = useState('');
+  // विलंब दंड कधी लावायचा — 'quarterly' (तिमाही: फक्त quarter च्या शेवटच्या महिन्यात —
+  // जून/सप्टेंबर/डिसेंबर/मार्च, म्हणजे month_seq 3/6/9/12) हा default; 'monthly' = दर महिना
+  const [vilambFreq, setVilambFreq] = useState<'monthly' | 'quarterly'>('quarterly');
   // once a reading is saved for this year, freeze the reading-type selection
   const [typeLocked, setTypeLocked] = useState(false);
   const canEdit = can('malmatta_nodni', 'water_meter');
@@ -93,7 +96,7 @@ const WaterMeterDetail = () => {
   //  एकूण = चालु आकारणी + थकीत + विलंब दंड
   //  थकबाकी = एकूण − भरणा
   //  reading: चालु आकारणी = चालु रीडिंग×दर;  पुढील मागील रीडिंग = एकूण रीडिंग × न भरलेले प्रमाण (partial payment)
-  const recompute = (list: WaterReading[], rt = readingType, vt = vilambType, vv = vilambVal, rateStr = topRate): WaterReading[] => {
+  const recompute = (list: WaterReading[], rt = readingType, vt = vilambType, vv = vilambVal, rateStr = topRate, vf = vilambFreq): WaterReading[] => {
     const rateNum = String(rateStr ?? '') === '' ? null : num(rateStr);
     const vilNum = String(vv ?? '') === '' ? null : num(vv);
     const ordered = [...list].sort((a, b) => a.month_seq - b.month_seq);
@@ -103,8 +106,12 @@ const WaterMeterDetail = () => {
     return ordered.map((r, i) => {
       const row: WaterReading = { ...r };
       const first = i === 0;
+      // तिमाही असल्यास दंड फक्त quarter च्या शेवटच्या महिन्यात (जून/सप्टें/डिसें/मार्च = seq 3/6/9/12);
+      // दर महिना असल्यास प्रत्येक महिन्यात. बाकी महिन्यांत दंड नाही (null).
+      const lateApplies = vf === 'quarterly' ? row.month_seq % 3 === 0 : true;
       const lateOf = (base: number | null): number | null =>
-        vt === 'percent' ? (base != null ? round2(num(base) * num(vilNum) / 100) : null) : vilNum;
+        !lateApplies ? null
+          : vt === 'percent' ? (base != null ? round2(num(base) * num(vilNum) / 100) : null) : vilNum;
 
       if (rt === 'average') {
         row.current_reading = 'आवरेज';
@@ -186,6 +193,13 @@ const WaterMeterDetail = () => {
     setVilambVal(val);
     setRows((prev) => recompute(prev, readingType, vilambType, val));
   };
+  const onVilambFreq = (vf: 'monthly' | 'quarterly') => {
+    setVilambFreq(vf);
+    setRows((prev) => recompute(prev, readingType, vilambType, vilambVal, topRate, vf));
+    // meter-level सेटिंग — एकदा जतन केल्यावर पुढील load ला टिकते (per-meter)
+    waterMeterService.update(meterId, { late_fee_freq: vf }).catch(() => {});
+    setMeter((m) => (m ? { ...m, late_fee_freq: vf } : m));
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -203,11 +217,17 @@ const WaterMeterDetail = () => {
         const rt: 'average' | 'reading' = hasNumericReading ? 'reading' : 'average';
         // top values: saved असल्यास तिथून, नाहीतर meter वरून (विलंब default रिकामे)
         const effRate = savedRow?.rate ?? res.data.rate ?? null;
-        const vv = savedRow?.late_fee != null ? String(savedRow.late_fee) : '';
+        // विलंब दंड रक्कम — कोणत्याही saved row वरून (तिमाही मोडमध्ये पहिल्या महिन्यात दंड नसतो,
+        // म्हणून पहिली नव्हे तर दंड असलेली row घ्या)
+        const vRow = existing.find((r) => r.late_fee != null);
+        const vv = vRow ? String(vRow.late_fee) : '';
         const vt: 'percent' | 'amount' = 'amount';
+        // default तिमाही (quarterly); फक्त स्पष्टपणे 'monthly' असेल तरच दर महिना
+        const vf: 'monthly' | 'quarterly' = res.data.late_fee_freq === 'monthly' ? 'monthly' : 'quarterly';
         setReadingType(rt);
         setVilambType(vt);
         setVilambVal(vv);
+        setVilambFreq(vf);
         setTopRate(effRate != null ? String(effRate) : '');
         setTypeLocked(!!savedRow); // record असल्यास प्रकार + top freeze
         const merged = Array.from({ length: 12 }, (_, i) => {
@@ -216,7 +236,7 @@ const WaterMeterDetail = () => {
           return found ? { ...emptyRow(year, seq), ...found } : emptyRow(year, seq);
         });
         // rows top config नुसार auto-fill/recompute करा (chain + फक्त data असलेल्या row ला दर)
-        setRows(recompute(merged, rt, vt, vv, effRate != null ? String(effRate) : ''));
+        setRows(recompute(merged, rt, vt, vv, effRate != null ? String(effRate) : '', vf));
       }
       // prefill bill details from the last saved bill (tracking / no re-typing)
       try {
@@ -498,11 +518,19 @@ const WaterMeterDetail = () => {
               <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">{vilambType === 'percent' ? 'विलंब दंड %' : 'विलंब दंड ₹'} {typeLocked && <span className="text-amber-600">🔒</span>}</label>
               <input value={vilambVal} onChange={(e) => onVilambVal(e.target.value)} disabled={!canEdit || typeLocked} inputMode="decimal" className={`${fieldCls} disabled:cursor-not-allowed disabled:opacity-70`} placeholder={vilambType === 'percent' ? 'उदा. 5' : 'उदा. 10'} />
             </div>
+            <div>
+              <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">विलंब दंड कधी</label>
+              <select value={vilambFreq} onChange={(e) => onVilambFreq(e.target.value as 'monthly' | 'quarterly')} disabled={!canEdit} className={`${fieldCls} disabled:cursor-not-allowed disabled:opacity-70`}>
+                <option value="monthly">दर महिना (Monthly)</option>
+                <option value="quarterly">तिमाही — ३ महिन्यांतून (Quarterly)</option>
+              </select>
+            </div>
           </div>
           <p className="mt-2 text-[11px] text-gray-400">
             {readingType === 'reading'
               ? 'रीडिंग: चालु रीडिंग टाका → एकूण=चालु+मागील, चालु आकारणी=चालु×दर आपोआप. थकीत=मागील महिन्याची थकबाकी. एकूण=चालु आकारणी+थकीत+विलंब. थकबाकी=एकूण−भरणा. आंशिक भरणा केल्यास न भरलेली युनिट्स पुढील महिन्याची मागील रीडिंग होते. भरणा + पावती क्र. टाकल्यास पेमेंट नोंद होते.'
               : 'आवरेज: चालु="आवरेज"/मागील="बिल". एकूण रीडिंग 0/15 (free). चालु आकारणी स्वतः टाका. थकीत=मागील थकबाकी (पहिला महिना opening). एकूण=चालु आकारणी+थकीत+विलंब. थकबाकी=एकूण−भरणा.'}
+            {vilambFreq === 'quarterly' && <span className="ml-1 text-amber-600 dark:text-amber-400">विलंब दंड फक्त तिमाहीच्या शेवटच्या महिन्यात लागतो — जून / सप्टेंबर / डिसेंबर / मार्च.</span>}
           </p>
         </div>
         <div className="overflow-x-auto rounded-lg bg-white p-2 shadow-sm dark:bg-gray-800">

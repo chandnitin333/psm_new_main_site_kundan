@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Upload, X, ScanLine, Camera, Image as ImageIcon, Plus, Trash2, Users } from 'lucide-react';
+import { Upload, X, ScanLine, Camera, Image as ImageIcon, Plus, Trash2, Users, Download, FileSpreadsheet } from 'lucide-react';
 import { config } from '../../../config';
 import { compressImage } from '../../../utils/imageCompress';
 import KhulaBhukhandModal from './KhulaBhukhandModal';
@@ -16,6 +16,7 @@ import type { NodniFormData } from '../../../interfaces/dashboard/nodni-form/Nod
 import { authService, nodniService } from '../../../services';
 import type { DuplicateMatch } from '../../../services/nodniService';
 import { MarathiInput } from '../../../components/common';
+import { downloadNodniTemplate, parseNodniFile, downloadFailedNodni, type FailedRow } from '../../../utils/nodniBulkTemplate';
 
 interface TaxItem {
   tax_id: number;
@@ -30,6 +31,34 @@ const NodniForm = () => {
   const { toast, ToastContainer } = useToast();
   const { showLoader, hideLoader } = useLoading();
   const [editingId, setEditingId] = useState<number | null>(null);
+  // ---- bulk import (Excel template) ----
+  const bulkFileRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ created: number; failed: FailedRow[] } | null>(null);
+
+  const handleBulkFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (bulkFileRef.current) bulkFileRef.current.value = '';
+    if (!file) return;
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const rows = await parseNodniFile(file);
+      if (!rows.length) { toast.error('फाईलमध्ये कोणतीही ओळ नाही (No rows found)'); setImporting(false); return; }
+      const res = await nodniService.bulkCreate(rows);
+      const d = (res?.data || {}) as { created?: number; failed?: FailedRow[] };
+      const created = d.created ?? 0;
+      const failed = d.failed ?? [];
+      setImportResult({ created, failed });
+      if (created > 0) toast.success(`${created} नोंदी जतन झाल्या${failed.length ? `, ${failed.length} अयशस्वी` : ''}`);
+      else toast.error(`कोणतीही नोंद जतन झाली नाही — ${failed.length} अयशस्वी`);
+    } catch (err) {
+      console.error('bulk import failed', err);
+      toast.error('इम्पोर्ट अयशस्वी — फाईल तपासा (Import failed)');
+    } finally {
+      setImporting(false);
+    }
+  };
   const editApiDataRef = useRef<Record<string, any> | null>(null);
 
   // Soft duplicate detection — matches found on last save attempt (shows a warning banner)
@@ -1148,9 +1177,38 @@ const NodniForm = () => {
       <ToastContainer />
       <div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
-            नोंदणी फॉर्म (Nodni Form)
-          </h1>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-2 dark:border-gray-700">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">नोंदणी फॉर्म (Nodni Form)</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={() => downloadNodniTemplate().catch(() => toast.error('टेम्पलेट डाउनलोड अयशस्वी'))}
+                className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">
+                <Download className="h-4 w-4" /> टेम्पलेट डाउनलोड
+              </button>
+              <button type="button" onClick={() => bulkFileRef.current?.click()} disabled={importing}
+                className="flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50">
+                {importing ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <FileSpreadsheet className="h-4 w-4" />} बल्क इम्पोर्ट
+              </button>
+              <input ref={bulkFileRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={handleBulkFile} />
+            </div>
+          </div>
+
+          {/* bulk import result */}
+          {importResult && (
+            <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/40">
+              <div className="flex flex-wrap items-center gap-4 text-sm">
+                <span className="font-semibold text-green-700 dark:text-green-400">✓ जतन झाल्या: {importResult.created}</span>
+                <span className={`font-semibold ${importResult.failed.length ? 'text-red-600 dark:text-red-400' : 'text-gray-500'}`}>✗ अयशस्वी: {importResult.failed.length}</span>
+                {importResult.failed.length > 0 && (
+                  <button type="button" onClick={() => downloadFailedNodni(importResult.failed)}
+                    className="flex items-center gap-1.5 rounded-lg border border-red-300 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20">
+                    <Download className="h-3.5 w-3.5" /> अयशस्वी नोंदी डाउनलोड (कारणासह)
+                  </button>
+                )}
+                <button type="button" onClick={() => setImportResult(null)} className="ml-auto text-xs text-gray-400 hover:text-gray-600">बंद करा</button>
+              </div>
+              <p className="mt-1 text-[11px] text-gray-400">टीप: अयशस्वी नोंदी डाउनलोड करा, दुरुस्त करा आणि पुन्हा इम्पोर्ट करा. (Duplicate/चुकीच्या ओळी वगळल्या जातात.)</p>
+            </div>
+          )}
 
           {/* AI form scan — upload/snap a filled form, auto-fills fields for review */}
           <div className="mb-5 rounded-lg border border-primary-200 bg-primary-50 p-4 dark:border-primary-700/50 dark:bg-primary-900/20">
