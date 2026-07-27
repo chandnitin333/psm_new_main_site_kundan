@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Edit2, Trash2, Printer, Image, FileText, History, Droplet } from 'lucide-react';
+import { Edit2, Trash2, Printer, Image, FileText, History, Droplet, Split } from 'lucide-react';
 import MagilKarJodaModal from './MagilKarJodaModal';
+import PropertyDivideModal from '../../../components/PropertyDivideModal';
 import PrintModal from './PrintModal';
 import ImageUploadModal from './ImageUploadModal';
 import { useToast } from '../../../hooks/useToast';
@@ -26,6 +27,7 @@ const MalmattaNodni = () => {
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [isImageUploadModalOpen, setIsImageUploadModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<MalmattaRecord | null>(null);
+  const [divideRec, setDivideRec] = useState<MalmattaRecord | null>(null);
   const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ show: boolean; id: number | null }>({ show: false, id: null });
   const [records, setRecords] = useState<MalmattaRecord[]>([]);
@@ -567,6 +569,16 @@ const MalmattaNodni = () => {
                             <Droplet className="w-5 h-5" />
                           </button>
                           )}
+                          {can('malmatta_nodni', 'divide') && (
+                          <button
+                            type="button"
+                            onClick={() => setDivideRec(record)}
+                            className="text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 transition-colors"
+                            title="मालमत्ता विभाजन (Divide)"
+                          >
+                            <Split className="w-5 h-5" />
+                          </button>
+                          )}
                           {can('malmatta_nodni', 'delete') && (
                           <button
                             type="button"
@@ -723,6 +735,13 @@ const MalmattaNodni = () => {
           khatedharkacheNav={selectedRecord?.ghar_malkache_nav || ''}
           existingImageUrl={existingImageUrl}
         />
+        {divideRec && (
+          <PropertyDivideModal
+            source={divideRec as unknown as { id: number; anu_kramank?: string | number | null; ward_kramnak?: string | number | null; ghar_malkache_nav?: string | null; malmatta_number?: string | null }}
+            onClose={() => setDivideRec(null)}
+            onDone={() => fetchRecords(currentPage)}
+          />
+        )}
       </div>
     </>
   );

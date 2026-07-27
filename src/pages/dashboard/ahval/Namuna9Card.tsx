@@ -10,8 +10,6 @@ import { HeaderStyleControl, headerVars } from './reportHeaderStyle';
 type Row = Record<string, unknown>;
 type Loc = { district: string; taluka: string; gramPanchayat: string };
 const s = (v: unknown) => (v === null || v === undefined ? '' : String(v));
-const money = (v: number) => (v ? `₹ ${Math.round(v).toLocaleString('en-IN')}` : '—');
-
 const numOr0 = (v: unknown) => (v === '' || v == null ? 0 : Number(v) || 0);
 
 const RecordCard = ({ n, loc, cy, blank = false }: { n: Row; loc: Loc; cy: number; blank?: boolean }) => {

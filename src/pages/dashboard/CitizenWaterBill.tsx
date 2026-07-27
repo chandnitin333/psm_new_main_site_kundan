@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Droplet, IndianRupee } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import { waterMeterService, type WaterMeter } from '../../services';
-import { billTotals } from './water-meter/BillDoc';
+import { billTotals } from './water-meter/billTotals';
 import { fyLabel } from '../../utils/fyConfig';
 
 const money = (v: number) => `₹ ${Math.round(v).toLocaleString('en-IN')}`;

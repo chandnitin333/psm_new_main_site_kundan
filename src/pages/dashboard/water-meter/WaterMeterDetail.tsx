@@ -87,9 +87,6 @@ const WaterMeterDetail = () => {
     ].some((v) => String(v ?? '') !== '');
   };
 
-  // पेमेंट झाले का — भरणा रक्कम + पावती क्रमांक दोन्ही असल्यास.
-  const isPaid = (r: WaterReading): boolean =>
-    String(r.paid_amount ?? '') !== '' && num(r.paid_amount) > 0 && String(r.receipt_no ?? '').trim() !== '';
 
   // whole-array recompute with CARRYOVER (महिना-क्रमाने):
   //  थकीत(row) = मागील row ची थकबाकी  (पहिली row = opening; reading मध्ये पहिली = मागील×दर)

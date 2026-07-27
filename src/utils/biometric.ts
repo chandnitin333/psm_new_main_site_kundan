@@ -48,7 +48,7 @@ export const registerBiometric = async (userId: string | number, userName: strin
   try {
     const cred = (await navigator.credentials.create({
       publicKey: {
-        challenge: randomBytes(32),
+        challenge: randomBytes(32) as BufferSource,
         rp: { name: 'PSM', id: window.location.hostname },
         user: {
           id: new TextEncoder().encode(String(userId || 'user')),
@@ -84,7 +84,7 @@ export const biometricUnlock = async (credentialId?: string): Promise<boolean> =
   try {
     const assertion = await navigator.credentials.get({
       publicKey: {
-        challenge: randomBytes(32),
+        challenge: randomBytes(32) as BufferSource,
         rpId: window.location.hostname,
         timeout: 60000,
         userVerification: 'required',

@@ -21,7 +21,7 @@ interface BillDocProps {
   qrUrl?: string;
 }
 
-const BillDoc = ({ H, meter, bill, year, periodFrom, periodTo, billRows, paaniDeyak, magilThak, ekunDeyak, vilamb, deyNantar, totalPaid, netDue, qrUrl }: BillDocProps) => (
+const BillDoc = ({ H, meter, bill, year, periodFrom, periodTo, billRows, paaniDeyak, magilThak, ekunDeyak, vilamb, totalPaid, netDue, qrUrl }: BillDocProps) => (
   <div className="grid grid-cols-2 gap-0">
     {['कार्यालय प्रत', 'ग्राहक प्रत'].map((copyLabel, ci) => {
       // सर्व काही एकाच 9-column border-collapse table मध्ये → सर्व border एकसमान 1px
@@ -165,29 +165,3 @@ const BillDoc = ({ H, meter, bill, year, periodFrom, periodTo, billRows, paaniDe
 
 export default BillDoc;
 
-/** Compute bill totals + display period from a meter's readings (carryover model). */
-export const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
-const pad2 = (n: number) => String(n).padStart(2, '0');
-
-export const billTotals = (
-  rows: WaterReading[],
-  opts: { year: number; fromSeq: number; toSeq: number; magil?: string },
-) => {
-  const { year, fromSeq, toSeq } = opts;
-  // only computed (active) months in range
-  const inRange = rows.filter((r) => r.month_seq >= fromSeq && r.month_seq <= toSeq && r.total != null);
-  const billRows = inRange;
-  const lastRow = inRange[inRange.length - 1];
-  const paaniDeyak = lastRow ? Math.round(num(lastRow.current_charge)) : 0;
-  const magilThak = opts.magil && opts.magil !== '' ? num(opts.magil) : (lastRow ? Math.round(num(lastRow.arrears)) : 0);
-  const vilamb = lastRow ? Math.round(num(lastRow.late_fee)) : 0;
-  const totalPaid = lastRow ? Math.round(num(lastRow.paid_amount)) : 0;
-  const ekunDeyak = magilThak + paaniDeyak + vilamb;
-  const netDue = lastRow ? Math.round(num(lastRow.balance)) : 0;
-  // period dates (financial year एप्रिल→मार्च)
-  const seqCal = (seq: number) => ({ m: seq <= 9 ? seq + 3 : seq - 9, y: seq <= 9 ? year : year + 1 });
-  const f = seqCal(fromSeq); const t = seqCal(toSeq);
-  const periodFrom = `${pad2(1)}-${pad2(f.m)}-${f.y}`;
-  const periodTo = `${pad2(new Date(t.y, t.m, 0).getDate())}-${pad2(t.m)}-${t.y}`;
-  return { billRows, paaniDeyak, magilThak, vilamb, totalPaid, ekunDeyak, netDue, deyNantar: netDue, periodFrom, periodTo };
-};

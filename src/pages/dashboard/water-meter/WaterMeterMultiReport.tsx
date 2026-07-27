@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { waterMeterService, WATER_MONTHS, type WaterMeter, type WaterReading } from '../../../services';
 import { trackAction } from '../../../utils/tracker';
-import BillDoc, { billTotals } from './BillDoc';
+import BillDoc from './BillDoc';
+import { billTotals } from './billTotals';
 import { fyLabel } from '../../../utils/fyConfig';
 
 /* पाणी मीटर बहु-अहवाल — GP मधील सर्व (किंवा वॉर्ड/वर्ष/महिना filter) मीटरचे
