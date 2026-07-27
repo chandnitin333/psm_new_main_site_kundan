@@ -56,6 +56,13 @@ import ShouchalayList from '../pages/dashboard/ahval/ShouchalayList';
 import ShouchalayReport from '../pages/dashboard/ahval/ShouchalayReport';
 import MalmattaDurusti from '../pages/dashboard/ahval/MalmattaDurusti';
 import MalmattaDharkachiReport from '../pages/dashboard/ahval/MalmattaDharkachiReport';
+import DharkachiYadiCard from '../pages/dashboard/ahval/DharkachiYadiCard';
+import GhosvaraCard from '../pages/dashboard/ahval/GhosvaraCard';
+import Namuna9Card from '../pages/dashboard/ahval/Namuna9Card';
+import Namuna9NewCard from '../pages/dashboard/ahval/Namuna9NewCard';
+import Namuna9GhosvaraCard from '../pages/dashboard/ahval/Namuna9GhosvaraCard';
+import Bill129Card from '../pages/dashboard/ahval/Bill129Card';
+import AnukramikaCard from '../pages/dashboard/ahval/AnukramikaCard';
 import Namuna8AnukramikaReport from '../pages/dashboard/ahval/Namuna8AnukramikaReport';
 import Namuna8NewMultiReport from '../pages/dashboard/ahval/Namuna8NewMultiReport';
 import Namuna8ImagesMultiReport from '../pages/dashboard/ahval/Namuna8ImagesMultiReport';
@@ -387,6 +394,62 @@ export const createRouter = (handleLogout: () => void) =>
       element: (
         <ProtectedRoute>
           <MalmattaDharkachiReport />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-dharkachi-yadi-card',
+      element: (
+        <ProtectedRoute>
+          <DharkachiYadiCard />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-ghosvara-card',
+      element: (
+        <ProtectedRoute>
+          <GhosvaraCard />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-namuna9-card',
+      element: (
+        <ProtectedRoute>
+          <Namuna9Card />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-namuna9-new-card',
+      element: (
+        <ProtectedRoute>
+          <Namuna9NewCard />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-namuna9-ghosvara-card',
+      element: (
+        <ProtectedRoute>
+          <Namuna9GhosvaraCard />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-bill-129-card',
+      element: (
+        <ProtectedRoute>
+          <Bill129Card />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-anukramika-card',
+      element: (
+        <ProtectedRoute>
+          <AnukramikaCard />
         </ProtectedRoute>
       ),
     },

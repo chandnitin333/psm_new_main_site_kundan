@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Printer } from 'lucide-react';
 import { nodniService } from '../../../services';
-import { getPublicReportData } from '../../../utils/publicReport';
+import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
 import { fyLabel } from '../../../utils/fyConfig';
 
 /* गोषवारा नमुना ८ — same as old `get-namuna-8-ghosvara`.
@@ -13,6 +13,7 @@ const Namuna8GhosvaraReport = () => {
   const [records, setRecords] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [cy, setCy] = useState<number>(new Date().getFullYear());
+  const [ndOpen, setNdOpen] = useState(false); // "नवीन डिझाईन" dropdown
   const [loc] = useState(() => {
     try {
       const u = JSON.parse(localStorage.getItem('user') || '{}');
@@ -175,13 +176,43 @@ const Namuna8GhosvaraReport = () => {
           .ghos-page:last-child { page-break-after: auto; }
         }`}</style>
 
-      <div className="no-print mb-4">
+      <div className="no-print mb-4 flex flex-wrap items-center gap-3">
         <button
           onClick={() => window.print()}
           className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium shadow-sm transition-colors flex items-center gap-2"
         >
           <Printer className="w-4 h-4" /> Print / Save as PDF
         </button>
+        {!isPublicReportMode() && (
+          <div className="relative">
+            <button
+              onClick={() => setNdOpen((o) => !o)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-medium shadow-sm transition-colors"
+            >
+              🎨 नवीन डिझाईन (New Design) ▾
+            </button>
+            {ndOpen && (
+              <div className="absolute left-0 z-20 mt-1 w-60 overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
+                {([['portrait', '📄 नवीन डिझाईन — Vertical'], ['landscape', '🖥️ नवीन डिझाईन — Landscape']] as const).map(([o, label]) => (
+                  <button
+                    key={o}
+                    onClick={() => {
+                      try {
+                        sessionStorage.setItem('dharkachiYadiCardData', JSON.stringify(records));
+                        sessionStorage.setItem('dharkachiYadiCardMeta', JSON.stringify({ year: cy, loc }));
+                      } catch { /* ignore quota */ }
+                      window.open(`/view-ghosvara-card?orient=${o}`, '_blank');
+                      setNdOpen(false);
+                    }}
+                    className="block w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-indigo-50"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {loading ? (

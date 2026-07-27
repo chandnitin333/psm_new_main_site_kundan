@@ -266,6 +266,7 @@ const Namuna9NewMultiReport = () => {
   const [loading, setLoading] = useState(true);
   const [cy, setCy] = useState<number>(new Date().getFullYear());
   const [zoom, setZoom] = useState(1.25); // SCREEN-only default zoom (125%); does not affect print
+  const [ndOpen, setNdOpen] = useState(false); // "नवीन डिझाईन" dropdown
   const [side, setSide] = useState<'' | 'front' | 'back'>('');
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [loc] = useState<Loc>(() => {
@@ -366,6 +367,41 @@ const Namuna9NewMultiReport = () => {
           <button onClick={() => setZoom((z) => Math.min(2.5, +(z + 0.1).toFixed(2)))} className="flex h-8 w-8 items-center justify-center rounded text-lg font-bold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors" title="Zoom in">+</button>
           <button onClick={() => setZoom(1)} className="ml-1 h-8 rounded px-3 text-xs font-medium text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors" title="Reset zoom">Reset</button>
         </div>
+        {!isPublicReportMode() && (
+          <div className="relative">
+            <button
+              onClick={() => setNdOpen((o) => !o)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-medium shadow-sm transition-colors"
+            >
+              🎨 नवीन डिझाईन (New Design) ▾
+            </button>
+            {ndOpen && (
+              <div className="absolute left-0 z-20 mt-1 w-64 overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
+                {([
+                  ['front', 'portrait', '📥 मागणी — Portrait (10/पान)'],
+                  ['front', 'landscape', '📥 मागणी — Landscape (6/पान)'],
+                  ['back', 'portrait', '📤 वसुली — Portrait (10/पान)'],
+                  ['back', 'landscape', '📤 वसुली — Landscape (6/पान)'],
+                ] as const).map(([sd, or, label]) => (
+                  <button
+                    key={`${sd}-${or}`}
+                    onClick={() => {
+                      try {
+                        sessionStorage.setItem('dharkachiYadiCardData', JSON.stringify(records));
+                        sessionStorage.setItem('dharkachiYadiCardMeta', JSON.stringify({ year: cy, loc, qrUrl }));
+                      } catch { /* ignore quota */ }
+                      window.open(`/view-namuna9-new-card?side=${sd}&orient=${or}`, '_blank');
+                      setNdOpen(false);
+                    }}
+                    className="block w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-indigo-50"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="n9n-wrap overflow-x-auto">
