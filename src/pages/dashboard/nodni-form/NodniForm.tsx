@@ -17,6 +17,7 @@ import { authService, nodniService } from '../../../services';
 import type { DuplicateMatch } from '../../../services/nodniService';
 import { MarathiInput } from '../../../components/common';
 import { downloadNodniTemplate, parseNodniFile, downloadFailedNodni, type FailedRow } from '../../../utils/nodniBulkTemplate';
+import { can } from '../../../utils/permissions';
 
 interface TaxItem {
   tax_id: number;
@@ -1180,15 +1181,21 @@ const NodniForm = () => {
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-2 dark:border-gray-700">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">नोंदणी फॉर्म (Nodni Form)</h1>
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={() => downloadNodniTemplate().catch(() => toast.error('टेम्पलेट डाउनलोड अयशस्वी'))}
-                className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">
-                <Download className="h-4 w-4" /> टेम्पलेट डाउनलोड
-              </button>
-              <button type="button" onClick={() => bulkFileRef.current?.click()} disabled={importing}
-                className="flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50">
-                {importing ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <FileSpreadsheet className="h-4 w-4" />} बल्क इम्पोर्ट
-              </button>
-              <input ref={bulkFileRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={handleBulkFile} />
+              {can('nodni_form', 'download_template') && (
+                <button type="button" onClick={() => downloadNodniTemplate().catch(() => toast.error('टेम्पलेट डाउनलोड अयशस्वी'))}
+                  className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">
+                  <Download className="h-4 w-4" /> टेम्पलेट डाउनलोड
+                </button>
+              )}
+              {can('nodni_form', 'bulk_import') && (
+                <>
+                  <button type="button" onClick={() => bulkFileRef.current?.click()} disabled={importing}
+                    className="flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50">
+                    {importing ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <FileSpreadsheet className="h-4 w-4" />} बल्क इम्पोर्ट
+                  </button>
+                  <input ref={bulkFileRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={handleBulkFile} />
+                </>
+              )}
             </div>
           </div>
 
@@ -1210,7 +1217,8 @@ const NodniForm = () => {
             </div>
           )}
 
-          {/* AI form scan — upload/snap a filled form, auto-fills fields for review */}
+          {/* AI form scan — permission-gated (scan / gallery) */}
+          {(can('nodni_form', 'scan') || can('nodni_form', 'gallery')) && (
           <div className="mb-5 rounded-lg border border-primary-200 bg-primary-50 p-4 dark:border-primary-700/50 dark:bg-primary-900/20">
             {/* hidden inputs: camera (mobile) + gallery/file */}
             <input
@@ -1241,25 +1249,30 @@ const NodniForm = () => {
                 </div>
               </div>
               <div className="flex flex-shrink-0 gap-2">
-                <button
-                  type="button"
-                  disabled={scanning}
-                  onClick={() => scanCameraInputRef.current?.click()}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <Camera size={16} /> कॅमेरा
-                </button>
-                <button
-                  type="button"
-                  disabled={scanning}
-                  onClick={() => scanGalleryInputRef.current?.click()}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-primary-300 bg-white px-3 py-2 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-primary-600 dark:bg-gray-800 dark:text-primary-200 dark:hover:bg-gray-700"
-                >
-                  <ImageIcon size={16} /> गॅलरी
-                </button>
+                {can('nodni_form', 'scan') && (
+                  <button
+                    type="button"
+                    disabled={scanning}
+                    onClick={() => scanCameraInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Camera size={16} /> कॅमेरा
+                  </button>
+                )}
+                {can('nodni_form', 'gallery') && (
+                  <button
+                    type="button"
+                    disabled={scanning}
+                    onClick={() => scanGalleryInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-primary-300 bg-white px-3 py-2 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-primary-600 dark:bg-gray-800 dark:text-primary-200 dark:hover:bg-gray-700"
+                  >
+                    <ImageIcon size={16} /> गॅलरी
+                  </button>
+                )}
               </div>
             </div>
           </div>
+          )}
 
           {/* Soft duplicate warning — does not block, lets the user save anyway */}
           {duplicates.length > 0 && (

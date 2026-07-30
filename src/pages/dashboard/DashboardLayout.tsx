@@ -6,7 +6,7 @@ import PageTracker from '../../components/PageTracker';
 import ScrollToTop from '../../components/ScrollToTop';
 import GramSahayak from '../../components/assistant/GramSahayak';
 import { DASHBOARD_MENU_ITEMS, CITIZEN_MENU_ITEMS } from '../../constants/menuItems';
-import { filterMenuItems, isCitizen } from '../../utils/permissions';
+import { filterMenuItems, isCitizen, can } from '../../utils/permissions';
 import type { DashboardLayoutProps } from '../../interfaces/dashboard/DashboardLayout.types';
 
 const DashboardLayout = ({ onLogout }: DashboardLayoutProps) => {
@@ -51,8 +51,8 @@ const DashboardLayout = ({ onLogout }: DashboardLayoutProps) => {
         </main>
       </div>
 
-      {/* AI-free guided assistant — floating on all dashboard pages */}
-      <GramSahayak />
+      {/* AI-free guided assistant — floating; permission-gated (ग्राम सहायक) */}
+      {can('gram_sahayak', 'view') && <GramSahayak />}
     </div>
   );
 };

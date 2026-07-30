@@ -12,7 +12,8 @@
 
 export type ActionKey =
   | 'view' | 'add' | 'edit' | 'delete'
-  | 'report' | 'print' | 'pdf' | 'image_upload' | 'magil_kar' | 'water_meter' | 'divide';
+  | 'report' | 'print' | 'pdf' | 'image_upload' | 'magil_kar' | 'water_meter' | 'divide'
+  | 'scan' | 'gallery' | 'download_template' | 'bulk_import';
 
 type PagePermissions = Record<string, ActionKey[]>;
 
