@@ -253,6 +253,12 @@ const WaterMeterDetail = () => {
             magilMonth: (b.magil_month as string) || '',
             notes: (b.notes as string) || prev.notes,
           }));
+        } else {
+          // या वर्षासाठी जतन केलेले बिल नाही => सर्व बिल-तपशील रिकामे (जुने वर्षाचे राहू नये)
+          setBill((prev) => ({
+            ...prev, dueDate: '', center: '', centerAddr: '', magil: '',
+            prevReceipt: '', prevDate: '', magilMonth: '',
+          }));
         }
       } catch { /* ignore */ }
     } catch { toast.error('माहिती लोड करताना त्रुटी'); }
@@ -261,6 +267,32 @@ const WaterMeterDetail = () => {
   }, [meterId, year]);
 
   useEffect(() => { document.title = 'पाणी मीटर तपशील'; load(); }, [load]);
+
+  // पासून/पर्यंत बदलल्यावर — त्या period चा (year+from+to) saved बिल असेल तर सर्व fields भरा,
+  // नसेल तर period-fields रिकामे (center/पत्ता तसेच ठेवा). seq लगेच सेट होतो (dropdown responsive).
+  const loadBillForPeriod = async (fromSeq: number, toSeq: number) => {
+    try {
+      const lb = await waterMeterService.latestBill(meterId, year, fromSeq, toSeq);
+      const b = lb?.data as Record<string, unknown> | undefined;
+      if (b && b.id) {
+        setBill((prev) => ({
+          ...prev, fromSeq, toSeq,
+          dueDate: b.due_date ? String(b.due_date).slice(0, 10) : '',
+          center: (b.center as string) || '',
+          centerAddr: (b.center_addr as string) || '',
+          magil: b.magil_amount != null ? String(b.magil_amount) : '',
+          prevReceipt: (b.prev_receipt as string) || '',
+          prevDate: b.prev_date ? String(b.prev_date).slice(0, 10) : '',
+          magilMonth: (b.magil_month as string) || '',
+          notes: (b.notes as string) || prev.notes,
+        }));
+      } else {
+        setBill((prev) => ({ ...prev, fromSeq, toSeq, dueDate: '', magil: '', prevReceipt: '', prevDate: '', magilMonth: '' }));
+      }
+    } catch {
+      setBill((prev) => ({ ...prev, fromSeq, toSeq, dueDate: '', magil: '', prevReceipt: '', prevDate: '', magilMonth: '' }));
+    }
+  };
 
   // या पेजवर floating widgets (Download App / ग्राम सहायक) लपवा
   useEffect(() => {
@@ -331,8 +363,8 @@ const WaterMeterDetail = () => {
   const billRows = rows.filter((r) => r.month_seq >= bill.fromSeq && r.month_seq <= bill.toSeq && r.total != null);
   // totals = फक्त data असलेले महिने (रिकामे 0 धरले जातात)
   const billFilled = filled.filter((r) => r.month_seq >= bill.fromSeq && r.month_seq <= bill.toSeq);
-  const totCurRead = billFilled.length ? billFilled : filled;
-  const lastRow = totCurRead[totCurRead.length - 1]; // पर्यंत महिना (शेवटची भरलेली row)
+  // निवडलेल्या पासून–पर्यंत महिने + वर्षात data असेल तरच totals; नसेल तर रिकामे (fallback नको)
+  const lastRow = billFilled[billFilled.length - 1]; // पर्यंत महिना (शेवटची भरलेली row)
   // देयक रक्कम box = पर्यंत महिन्याचे मूल्य (carryover मुळे थकीत = मागील थकबाकी असते):
   //  मागील थकबाकी = पर्यंत महिन्याची थकीत (आधीची थकबाकी) · पाणी वापर देयक = त्या महिन्याची चालू आकारणी
   //  विलंब = त्या महिन्याचा विलंब · भरणा = त्या महिन्याचा भरणा · एकूण देय = त्या महिन्याची थकबाकी
@@ -372,12 +404,6 @@ const WaterMeterDetail = () => {
     setSavingMeter(false);
   };
 
-  // पासून–पर्यंत range मधील शेवटच्या भरलेल्या महिन्याची मागील थकबाकी (थकीत) — field auto-fill साठी
-  const magilForRange = (fromSeq: number, toSeq: number): string => {
-    const inRange = rows.filter((r) => r.month_seq >= fromSeq && r.month_seq <= toSeq && (r.total != null || r.arrears != null));
-    const last = inRange[inRange.length - 1];
-    return last ? String(Math.round(num(last.arrears))) : '';
-  };
 
   const inp = 'w-full rounded border border-gray-300 bg-white px-1.5 py-1 text-xs text-gray-900 outline-none focus:border-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white';
   // read-only computed cell (auto-calculated in reading mode)
@@ -516,8 +542,8 @@ const WaterMeterDetail = () => {
               <input value={vilambVal} onChange={(e) => onVilambVal(e.target.value)} disabled={!canEdit || typeLocked} inputMode="decimal" className={`${fieldCls} disabled:cursor-not-allowed disabled:opacity-70`} placeholder={vilambType === 'percent' ? 'उदा. 5' : 'उदा. 10'} />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">विलंब दंड कधी</label>
-              <select value={vilambFreq} onChange={(e) => onVilambFreq(e.target.value as 'monthly' | 'quarterly')} disabled={!canEdit} className={`${fieldCls} disabled:cursor-not-allowed disabled:opacity-70`}>
+              <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">विलंब दंड कधी {typeLocked && <span className="text-amber-600">🔒</span>}</label>
+              <select value={vilambFreq} onChange={(e) => onVilambFreq(e.target.value as 'monthly' | 'quarterly')} disabled={!canEdit || typeLocked} className={`${fieldCls} disabled:cursor-not-allowed disabled:opacity-70`}>
                 <option value="monthly">दर महिना (Monthly)</option>
                 <option value="quarterly">तिमाही — ३ महिन्यांतून (Quarterly)</option>
               </select>
@@ -618,13 +644,13 @@ const WaterMeterDetail = () => {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <div>
               <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">पासून महिना</label>
-              <select value={bill.fromSeq} onChange={(e) => { const f = Number(e.target.value); setBill({ ...bill, fromSeq: f, magil: magilForRange(f, bill.toSeq) }); }} className={fieldCls}>
+              <select value={bill.fromSeq} onChange={(e) => { const f = Number(e.target.value); setBill((p) => ({ ...p, fromSeq: f })); loadBillForPeriod(f, bill.toSeq); }} className={fieldCls}>
                 {WATER_MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
               </select>
             </div>
             <div>
               <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">पर्यंत महिना</label>
-              <select value={bill.toSeq} onChange={(e) => { const t = Number(e.target.value); setBill({ ...bill, toSeq: t, magil: magilForRange(bill.fromSeq, t) }); }} className={fieldCls}>
+              <select value={bill.toSeq} onChange={(e) => { const t = Number(e.target.value); setBill((p) => ({ ...p, toSeq: t })); loadBillForPeriod(bill.fromSeq, t); }} className={fieldCls}>
                 {WATER_MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
               </select>
             </div>

@@ -86,8 +86,14 @@ export const waterMeterService = {
   report: async (params: { year?: number; ward?: string }): Promise<ApiResponse<WaterMeter[]>> => api.post(E.REPORT, params),
   byNodni: async (nodniId: number): Promise<ApiResponse<WaterMeter>> => api.get(E.BY_NODNI(nodniId)),
   saveBill: async (id: number, bill: Record<string, unknown>): Promise<ApiResponse> => api.post(E.SAVE_BILL(id), bill),
-  latestBill: async (id: number, year?: number): Promise<ApiResponse<Record<string, unknown>>> =>
-    api.get(year ? `${E.LATEST_BILL(id)}?year=${year}` : E.LATEST_BILL(id)),
+  latestBill: async (id: number, year?: number, fromSeq?: number, toSeq?: number): Promise<ApiResponse<Record<string, unknown>>> => {
+    const qs = new URLSearchParams();
+    if (year) qs.set('year', String(year));
+    if (fromSeq) qs.set('from_seq', String(fromSeq));
+    if (toSeq) qs.set('to_seq', String(toSeq));
+    const q = qs.toString();
+    return api.get(q ? `${E.LATEST_BILL(id)}?${q}` : E.LATEST_BILL(id));
+  },
 };
 
 export default waterMeterService;
