@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { nodniService } from '../../../services';
 import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
 import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
+import { fyLabel } from '../../../utils/fyConfig';
 
 /* गोषवारा नमुना ९ — same as old `get-namuna-9-ghosvara`.
    Per-tax मागील / चालू / एकुण / चालू खातेदार summary for a ward. Filters via 'namuna9GhosvaraParams'. */
@@ -17,6 +18,7 @@ const Namuna9GhosvaraReport = () => {
   const [loading, setLoading] = useState(true);
   const [ward, setWard] = useState('');
   const [cy, setCy] = useState<number>(new Date().getFullYear());
+  const [ndOpen, setNdOpen] = useState(false); // "नवीन डिझाईन" dropdown
   const [loc] = useState(() => {
     try {
       const u = JSON.parse(localStorage.getItem('user') || '{}');
@@ -124,6 +126,79 @@ const Namuna9GhosvaraReport = () => {
   const shareParams = (() => { try { return JSON.parse(sessionStorage.getItem('namuna9GhosvaraParams') || '{}'); } catch { return {}; } })();
   const qrUrl = useReportShareUrl({ reportType: 'namuna9-ghosvara', sessionKey: 'namuna9GhosvaraParams', params: shareParams, data: records, enabled: !isPublicReportMode() });
 
+  // एक गोषवारा पान (filled किंवा blank). blank असताना संख्या रिकाम्या, header dynamic.
+  const SummaryPage = ({ blank = false }: { blank?: boolean }) => (
+    <div className="ng9-page relative">
+      {qrUrl && !blank && (
+        <div style={{ position: 'absolute', top: 0, right: 18, zIndex: 10 }}>
+          <QRCodeSVG value={qrUrl} size={56} level="M" marginSize={0} />
+        </div>
+      )}
+      <div className="text-center">
+        <p className="font-bold text-lg">गोषवारा नमुना ९</p>
+        <p className="text-sm">ग्रामपंचायत :- {loc.gramPanchayat} &nbsp; तहसील :- {loc.taluka} &nbsp; जिल्हा :- {loc.district}</p>
+        <p className="text-sm">सन {fyLabel(cy)} मागणी गोषवारा</p>
+      </div>
+      <div className="text-sm font-bold mt-1 mb-2">वार्ड नं :- {blank ? '' : ward}</div>
+
+      {/* Table 1 — गृह/दिवा/आरोग्य */}
+      <table className="w-full table-fixed border-collapse mb-2">
+        <Cols />
+        <thead>
+          <tr>
+            <th className={th}>अनु.क्रमांक</th>
+            <th className={th}>कराचे प्रकार</th>
+            <th className={th}>मागील</th>
+            <th className={th}>चालू</th>
+            <th className={th}>एकुण</th>
+            <th className={th}>चालू खातेदार</th>
+          </tr>
+        </thead>
+        <tbody>
+          {dataRow('1', 'गृहकर व भुमीकर', gruh, false, blank)}
+          {dataRow('2', 'दिवाबत्ती कर', diva, false, blank)}
+          {dataRow('3', 'आरोग्य रक्षण कर', aarogya, false, blank)}
+          {sumRow('एकुण', t1, true, blank)}
+        </tbody>
+      </table>
+
+      {/* Table 2 — औधोगिक/मनोरा */}
+      <table className="w-full table-fixed border-collapse mb-2">
+        <Cols />
+        <tbody>
+          {dataRow('4', 'औधोगिक कर', audhogik, false, blank)}
+          {dataRow('5', 'मनोरा', mano, false, blank)}
+          {sumRow('एकुण', t2, true, blank)}
+        </tbody>
+      </table>
+
+      {/* Table 3 — पाणी */}
+      <table className="w-full table-fixed border-collapse mb-2">
+        <Cols />
+        <tbody>
+          {dataRow('6', 'सामान्य पाणी कर', samanya, false, blank)}
+          {dataRow('7', 'विशेष पाणी कर', vishesh, false, blank)}
+          {sumRow('एकुण', t3, true, blank)}
+        </tbody>
+      </table>
+
+      {/* Table 4 — grouped summary (label spans 2 columns) */}
+      <table className="w-full table-fixed border-collapse mb-2">
+        <Cols />
+        <tbody>
+          {sumRow('गृहकर व भुमीकर, दिवाबत्ती कर, आरोग्य रक्षण कर', t1, false, blank)}
+          {sumRow('औधोगिक कर, मनोरा', t2, false, blank)}
+          {sumRow('सामान्य पाणी कर, विशेष पाणी कर', t3, false, blank)}
+          {sumRow('एकुण', grand, true, blank)}
+        </tbody>
+      </table>
+
+      <p className="text-center text-[12px] mt-4 leading-relaxed">
+        ग्रामपंचायत मासिक सभा दि. ........./........./........... ठराव क्रं. .............. अन्वये गृहकर व भूमीकर, दिवाबत्ती कर, आरोग्य रक्षण कर, सफाई कर, सामान्य पाणी कर व विशेष पाणी कर सन {fyLabel(cy)} करीत मान्य करण्यात आले आहे.
+      </p>
+    </div>
+  );
+
   const Cols = () => (
     <colgroup>
       <col style={{ width: '15%' }} />
@@ -134,24 +209,25 @@ const Namuna9GhosvaraReport = () => {
       <col style={{ width: '15%' }} />
     </colgroup>
   );
-  const dataRow = (no: string, label: string, a: Agg, bold = false) => (
-    <tr className={bold ? 'font-bold' : ''}>
+  // blank असल्यास संख्या रिकाम्या (labels/अनु मात्र तसेच) — हाताने भरण्यासाठी
+  const dataRow = (no: string, label: string, a: Agg, bold = false, blank = false) => (
+    <tr className={bold ? 'font-bold' : ''} style={blank ? { height: '30px' } : undefined}>
       <td className={td}>{no}</td>
       <td className={tdL}>{label}</td>
-      <td className={td}>{r0(a.magil)}</td>
-      <td className={td}>{r0(a.chalu)}</td>
-      <td className={td}>{r0(a.ekun)}</td>
-      <td className={td}>{a.count}</td>
+      <td className={td}>{blank ? '' : r0(a.magil)}</td>
+      <td className={td}>{blank ? '' : r0(a.chalu)}</td>
+      <td className={td}>{blank ? '' : r0(a.ekun)}</td>
+      <td className={td}>{blank ? '' : a.count}</td>
     </tr>
   );
   // summary row — label spans first 2 columns (अनु + कराचे प्रकार)
-  const sumRow = (label: string, a: Agg, bold = false) => (
-    <tr className={bold ? 'font-bold' : ''}>
+  const sumRow = (label: string, a: Agg, bold = false, blank = false) => (
+    <tr className={bold ? 'font-bold' : ''} style={blank ? { height: '30px' } : undefined}>
       <td className={`${td} font-bold`} colSpan={2}>{label}</td>
-      <td className={td}>{r0(a.magil)}</td>
-      <td className={td}>{r0(a.chalu)}</td>
-      <td className={td}>{r0(a.ekun)}</td>
-      <td className={td}>{a.count}</td>
+      <td className={td}>{blank ? '' : r0(a.magil)}</td>
+      <td className={td}>{blank ? '' : r0(a.chalu)}</td>
+      <td className={td}>{blank ? '' : r0(a.ekun)}</td>
+      <td className={td}>{blank ? '' : a.count}</td>
     </tr>
   );
 
@@ -168,90 +244,58 @@ const Namuna9GhosvaraReport = () => {
           /* print-only: enlarge cell text for readability (screen unaffected) */
           .ng9-report th, .ng9-report td { font-size: 14px !important; line-height: 1.35 !important; padding: 5px 8px !important; }
           .ng9-report thead { display: table-header-group; }
+          .ng9-page { page-break-after: always; }
+          .ng9-page:last-child { page-break-after: auto; }
         }`}</style>
 
-      <div className="no-print mb-4">
+      <div className="no-print mb-4 flex flex-wrap items-center gap-3">
         <button
           onClick={() => window.print()}
           className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium shadow-sm transition-colors flex items-center gap-2"
         >
           <Printer className="w-4 h-4" /> Print / Save as PDF
         </button>
-      </div>
-
-      <div className="mx-auto relative" style={{ maxWidth: '1100px' }}>
-        {qrUrl && (
-          <div style={{ position: 'absolute', top: 0, right: 18, zIndex: 10 }}>
-            <QRCodeSVG value={qrUrl} size={56} level="M" marginSize={0} />
+        {!isPublicReportMode() && (
+          <div className="relative">
+            <button
+              onClick={() => setNdOpen((o) => !o)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-medium shadow-sm transition-colors"
+            >
+              🎨 नवीन डिझाईन (New Design) ▾
+            </button>
+            {ndOpen && (
+              <div className="absolute left-0 z-20 mt-1 w-60 overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
+                {([['portrait', '📄 नवीन डिझाईन — Vertical'], ['landscape', '🖥️ नवीन डिझाईन — Landscape']] as const).map(([o, label]) => (
+                  <button
+                    key={o}
+                    onClick={() => {
+                      try {
+                        sessionStorage.setItem('dharkachiYadiCardData', JSON.stringify(records));
+                        sessionStorage.setItem('dharkachiYadiCardMeta', JSON.stringify({ year: cy, loc, ward, qrUrl }));
+                      } catch { /* ignore quota */ }
+                      window.open(`/view-namuna9-ghosvara-card?orient=${o}`, '_blank');
+                      setNdOpen(false);
+                    }}
+                    className="block w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-indigo-50"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
-        <div className="text-center">
-          <p className="font-bold text-lg">गोषवारा नमुना ९</p>
-          <p className="text-sm">ग्रामपंचायत :- {loc.gramPanchayat} &nbsp; तहसील :- {loc.taluka} &nbsp; जिल्हा :- {loc.district}</p>
-          <p className="text-sm">सन {cy} - {cy + 1} मागणी गोषवारा</p>
-        </div>
-        <div className="text-sm font-bold mt-1 mb-2">वार्ड नं :- {ward}</div>
+      </div>
 
+      <div className="mx-auto" style={{ maxWidth: '1100px' }}>
         {loading ? (
           <p className="text-center text-gray-500 py-6">लोड होत आहे...</p>
         ) : (
-          <>
-            {/* Table 1 — गृह/दिवा/आरोग्य */}
-            <table className="w-full table-fixed border-collapse mb-2">
-              <Cols />
-              <thead>
-                <tr>
-                  <th className={th}>अनु.क्रमांक</th>
-                  <th className={th}>कराचे प्रकार</th>
-                  <th className={th}>मागील</th>
-                  <th className={th}>चालू</th>
-                  <th className={th}>एकुण</th>
-                  <th className={th}>चालू खातेदार</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dataRow('1', 'गृहकर व भुमीकर', gruh)}
-                {dataRow('2', 'दिवाबत्ती कर', diva)}
-                {dataRow('3', 'आरोग्य रक्षण कर', aarogya)}
-                {sumRow('एकुण', t1, true)}
-              </tbody>
-            </table>
-
-            {/* Table 2 — औधोगिक/मनोरा */}
-            <table className="w-full table-fixed border-collapse mb-2">
-              <Cols />
-              <tbody>
-                {dataRow('4', 'औधोगिक कर', audhogik)}
-                {dataRow('5', 'मनोरा', mano)}
-                {sumRow('एकुण', t2, true)}
-              </tbody>
-            </table>
-
-            {/* Table 3 — पाणी */}
-            <table className="w-full table-fixed border-collapse mb-2">
-              <Cols />
-              <tbody>
-                {dataRow('6', 'सामान्य पाणी कर', samanya)}
-                {dataRow('7', 'विशेष पाणी कर', vishesh)}
-                {sumRow('एकुण', t3, true)}
-              </tbody>
-            </table>
-
-            {/* Table 4 — grouped summary (label spans 2 columns) */}
-            <table className="w-full table-fixed border-collapse mb-2">
-              <Cols />
-              <tbody>
-                {sumRow('गृहकर व भुमीकर, दिवाबत्ती कर, आरोग्य रक्षण कर', t1)}
-                {sumRow('औधोगिक कर, मनोरा', t2)}
-                {sumRow('सामान्य पाणी कर, विशेष पाणी कर', t3)}
-                {sumRow('एकुण', grand, true)}
-              </tbody>
-            </table>
-
-            <p className="text-center text-[12px] mt-4 leading-relaxed">
-              ग्रामपंचायत मासिक सभा दि. ........./........./........... ठराव क्रं. .............. अन्वये गृहकर व भूमीकर, दिवाबत्ती कर, आरोग्य रक्षण कर, सफाई कर, सामान्य पाणी कर व विशेष पाणी कर सन {cy} - {cy + 1} करीत मान्य करण्यात आले आहे.
-            </p>
-          </>
+          <div className="space-y-10 print:space-y-0">
+            <SummaryPage />
+            {/* शेवटी एक कोरी (blank) गोषवारा — हाताने भरण्यासाठी, header dynamic */}
+            <SummaryPage blank />
+          </div>
         )}
       </div>
     </div>

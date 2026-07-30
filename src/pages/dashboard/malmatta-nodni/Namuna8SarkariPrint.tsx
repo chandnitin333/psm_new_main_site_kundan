@@ -22,6 +22,7 @@ const Namuna8SarkariPrint = () => {
   const [cons, setCons] = useState<Row[]>([]);
   const [manora, setManora] = useState<Row[]>([]);
   const [zoom, setZoom] = useState(1.15); // SCREEN-only default zoom (≈ नमुना ८ width / side space); does not affect print
+  const [ndOpen, setNdOpen] = useState(false); // "नवीन डिझाईन" dropdown
   const [loc] = useState(() => {
     try {
       const u = JSON.parse(localStorage.getItem('user') || '{}');
@@ -111,7 +112,8 @@ const Namuna8SarkariPrint = () => {
           .no-print { display: none !important; }
           .namuna8s-report { zoom: 0.85; padding: 0 !important; min-height: 0; }
           .n8s-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
-          .n8s-zoom { zoom: 1 !important; page-break-inside: avoid; break-inside: avoid; }   /* ignore screen zoom while printing; keep report on one page */
+          .n8s-zoom { zoom: 1 !important; }   /* ignore screen zoom while printing */
+          .n8s-report thead, thead { display: table-header-group; }   /* लांब असल्यास header प्रत्येक पानावर repeat */
           /* print-only: enlarge cell text for readability (screen unaffected) */
           .namuna8s-report td { font-size: 15px !important; line-height: 1.2 !important; }
         }`}</style>
@@ -151,6 +153,38 @@ const Namuna8SarkariPrint = () => {
             Reset
           </button>
         </div>
+
+        {/* नवीन डिझाईन (card) — view-namuna8-sarkari-multi सारखेच; एकच record [n] पाठवतो */}
+        {!isPublicReportMode() && (
+          <div className="relative">
+            <button
+              onClick={() => setNdOpen((o) => !o)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-medium shadow-sm transition-colors"
+            >
+              🎨 नवीन डिझाईन (New Design) ▾
+            </button>
+            {ndOpen && (
+              <div className="absolute left-0 z-20 mt-1 w-60 overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
+                {([['portrait', '📄 नवीन डिझाईन — Vertical'], ['landscape', '🖥️ नवीन डिझाईन — Landscape']] as const).map(([o, label]) => (
+                  <button
+                    key={o}
+                    onClick={() => {
+                      try {
+                        sessionStorage.setItem('dharkachiYadiCardData', JSON.stringify([n]));
+                        sessionStorage.setItem('dharkachiYadiCardMeta', JSON.stringify({ year: new Date().getFullYear(), loc, qrUrl }));
+                      } catch { /* ignore quota */ }
+                      window.open(`/view-dharkachi-yadi-card?orient=${o}&variant=sarkari`, '_blank');
+                      setNdOpen(false);
+                    }}
+                    className="block w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-indigo-50"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Fixed-width "page": centered on wide screens, scrolls on narrow — same as नमुना ८/९ */}
@@ -161,19 +195,21 @@ const Namuna8SarkariPrint = () => {
             <QRCodeSVG value={qrUrl} size={52} level="M" marginSize={0} />
           </div>
         )}
-        <div className="text-center">
-          <p className="font-bold text-lg">नमुना ८</p>
-        </div>
-        <div className="text-sm font-bold mt-1">ग्रामपंचायत कार्यालय :- {loc.gramPanchayat}</div>
-        <div className="flex justify-between text-sm mt-1 mb-1">
-          <span>जिल्हा :- {loc.district}</span>
-          <span>तालुका :- {loc.taluka}</span>
-          <span>ग्रामपंचायत :- {loc.gramPanchayat}</span>
-        </div>
-
         <table className="table-fixed border-collapse" style={{ width: `${tableW}px` }}>
           <colgroup>{colW.map((w, i) => <col key={i} style={{ width: `${w}px` }} />)}</colgroup>
-          <tbody>
+          {/* thead => report लांब असल्यास top heading + section-1 columns प्रत्येक पानावर repeat */}
+          <thead>
+            <tr>
+              <td colSpan={15} className="text-center pb-1" style={{ border: 'none' }}>
+                <p className="font-bold text-lg">नमुना ८</p>
+                <div className="text-sm font-bold mt-1">ग्रामपंचायत कार्यालय :- {loc.gramPanchayat}</div>
+                <div className="flex justify-between text-sm mt-1">
+                  <span>जिल्हा :- {loc.district}</span>
+                  <span>तालुका :- {loc.taluka}</span>
+                  <span>ग्रामपंचायत :- {loc.gramPanchayat}</span>
+                </div>
+              </td>
+            </tr>
           {/* ===== Section 1 header ===== */}
           <tr>
             <td className={thc} rowSpan={2}>अनु क्रं.</td>
@@ -192,6 +228,8 @@ const Namuna8SarkariPrint = () => {
             <td className={thc}>इमारत</td>
             <td className={thc}>बांधकाम</td>
           </tr>
+          </thead>
+          <tbody>
 
           {/* land (खुला भूखंड) rows — first row carries the left identity cells (rowspan a) */}
           {landRows.map((it, i) => (
@@ -236,7 +274,13 @@ const Namuna8SarkariPrint = () => {
               <td className={td}>{s(it.manoryache_bhag_name)}</td>
             </tr>
           ))}
+          </tbody>
+        </table>
 
+        {/* Section 2 — वेगळी table => हिचे header (कराची रक्कम इ.) पुढच्या पानावर तेच repeat होते */}
+        <table className="table-fixed border-collapse" style={{ width: `${tableW}px` }}>
+          <colgroup>{colW.map((w, i) => <col key={i} style={{ width: `${w}px` }} />)}</colgroup>
+          <thead>
           {/* ===== Section 2 header ===== */}
           <tr>
             <td className={thc} rowSpan={2}>घसारा</td>
@@ -260,6 +304,8 @@ const Namuna8SarkariPrint = () => {
             <td className={thc}>पाणीपट्टी कर</td>
             <td className={thc}>एकूण</td>
           </tr>
+          </thead>
+          <tbody>
 
           {/* land tax rows — first row carries the right tax cells (rowspan a) */}
           {landRows.map((it, i) => (

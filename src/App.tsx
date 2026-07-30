@@ -4,6 +4,7 @@ import { ThemeProvider } from './hooks/useTheme';
 import { LoadingProvider } from './contexts/LoadingContext';
 import { createRouter } from './routes';
 import InstallPWA from './components/pwa/InstallPWA';
+import AppLock from './components/applock/AppLock';
 import UnderMaintenance from './pages/public/UnderMaintenance';
 import MaintenanceBanner from './components/MaintenanceBanner';
 import { api } from './services/api';
@@ -85,6 +86,7 @@ function App() {
         {maintenance.scheduled && <MaintenanceBanner seconds={maintenance.remaining} />}
         <RouterProvider router={router} />
         <InstallPWA />
+        <AppLock />
       </LoadingProvider>
     </ThemeProvider>
   );

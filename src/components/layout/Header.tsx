@@ -33,7 +33,7 @@ interface HeaderProps {
 }
 
 const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: HeaderProps) => {
-  const { name: brandName } = useBranding();
+  const { name: brandName, logo_url: brandLogo } = useBranding();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -181,9 +181,10 @@ const Header = ({ isAuthenticated, menuItems, onLogout, onToggleSidebar }: Heade
           {/* Logo */}
           <Link to={isAuthenticated ? dashboardPath : "/"} className="flex items-center space-x-2">
             <img
-              src="/psm_logo1.png"
+              src={brandLogo || '/psm_logo1.png'}
               alt="Gram Panchayat Logo"
-              className="w-10 h-10"
+              className="w-10 h-10 object-contain"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/psm_logo1.png'; }}
             />
             <span className="flex flex-col leading-tight relative">
               <span className="text-[19px] font-black italic tracking-tight text-gray-900 dark:text-white" style={{ fontFamily: 'var(--app-font)' }}>

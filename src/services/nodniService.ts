@@ -32,6 +32,8 @@ export interface PropertyHistory {
 
 const NODNI_ENDPOINTS = {
   CREATE: '/main/nodni',
+  BULK: '/main/nodni/bulk',
+  DIVIDE: '/main/nodni/divide',
   UPDATE: (id: number) => `/main/nodni/${id}`,
   GET_BY_ID: (id: number) => `/main/nodni/${id}`,
   CHALU_KHATEDAR: '/main/nodni/chalu-khatedar',
@@ -69,6 +71,17 @@ export const nodniService = {
     return api.get(`${NODNI_ENDPOINTS.NEXT_ANU_KRAMANK}?ward=${encodeURIComponent(String(ward))}`);
   },
 
+  bulkCreate: async (rows: Record<string, unknown>[]): Promise<ApiResponse> => {
+    return api.post(NODNI_ENDPOINTS.BULK, { rows });
+  },
+
+  /**
+   * मालमत्ता विभाजन — source record नंतर नवीन record (source copy + overrides);
+   * त्याच ward चे पुढील anu_kramank आपोआप +1 shift.
+   */
+  divide: async (sourceId: number, overrides: Record<string, unknown>): Promise<ApiResponse<{ id: number; anu_kramank: number; ward: string; shifted: number }>> => {
+    return api.post(NODNI_ENDPOINTS.DIVIDE, { source_id: sourceId, overrides });
+  },
   create: async (payload: Record<string, unknown>): Promise<ApiResponse> => {
     return api.post(NODNI_ENDPOINTS.CREATE, payload);
   },

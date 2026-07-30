@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Hide floating widgets (Download App / ग्राम सहायक) only on pages that opt in
+   by adding `hide-gv-floats` to <body> (e.g. water-meter detail). No impact elsewhere. */
+body.hide-gv-floats .gv-float { display: none !important; }
+
 /* Default accent palette (space-separated RGB, consumed by tailwind primary-*).
    Overridden at runtime by src/utils/themeColor.ts from the admin-set colour. */
 :root {

@@ -56,6 +56,13 @@ import ShouchalayList from '../pages/dashboard/ahval/ShouchalayList';
 import ShouchalayReport from '../pages/dashboard/ahval/ShouchalayReport';
 import MalmattaDurusti from '../pages/dashboard/ahval/MalmattaDurusti';
 import MalmattaDharkachiReport from '../pages/dashboard/ahval/MalmattaDharkachiReport';
+import DharkachiYadiCard from '../pages/dashboard/ahval/DharkachiYadiCard';
+import GhosvaraCard from '../pages/dashboard/ahval/GhosvaraCard';
+import Namuna9Card from '../pages/dashboard/ahval/Namuna9Card';
+import Namuna9NewCard from '../pages/dashboard/ahval/Namuna9NewCard';
+import Namuna9GhosvaraCard from '../pages/dashboard/ahval/Namuna9GhosvaraCard';
+import Bill129Card from '../pages/dashboard/ahval/Bill129Card';
+import AnukramikaCard from '../pages/dashboard/ahval/AnukramikaCard';
 import Namuna8AnukramikaReport from '../pages/dashboard/ahval/Namuna8AnukramikaReport';
 import Namuna8NewMultiReport from '../pages/dashboard/ahval/Namuna8NewMultiReport';
 import Namuna8ImagesMultiReport from '../pages/dashboard/ahval/Namuna8ImagesMultiReport';
@@ -74,6 +81,8 @@ import Namuna8 from '../pages/dashboard/ahval/Namuna8';
 import Namuna9 from '../pages/dashboard/ahval/Namuna9';
 import BillWard from '../pages/dashboard/ahval/BillWard';
 import ImlaKar from '../pages/dashboard/ahval/ImlaKar';
+import PaniMeterBill from '../pages/dashboard/ahval/PaniMeterBill';
+import WaterMeterMultiReport from '../pages/dashboard/water-meter/WaterMeterMultiReport';
 import Loaders from '../pages/dashboard/loaders/Loaders';
 import CitizenDashboard from '../pages/dashboard/CitizenDashboard';
 import CitizenProfile from '../pages/dashboard/CitizenProfile';
@@ -83,6 +92,9 @@ import CitizenHelpline from '../pages/dashboard/CitizenHelpline';
 import Helpline from '../pages/dashboard/helpline/Helpline';
 import CitizenPosts from '../pages/dashboard/CitizenPosts';
 import Posts from '../pages/dashboard/posts/Posts';
+import WaterMeter from '../pages/dashboard/water-meter/WaterMeter';
+import WaterMeterDetail from '../pages/dashboard/water-meter/WaterMeterDetail';
+import CitizenWaterBill from '../pages/dashboard/CitizenWaterBill';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -156,6 +168,16 @@ const HelplineHome = () => {
 // /posts: citizens get the notices feed; staff get the management page.
 const PostsHome = () => {
   return isCitizen() ? <CitizenPosts /> : <Posts />;
+};
+
+// Water meter management is staff-only; citizens are bounced to their landing.
+const StaffOnly = ({ children }: { children: React.ReactNode }) => {
+  return isCitizen() ? <Navigate to={getLandingPath()} replace /> : <>{children}</>;
+};
+
+// /water-bill: citizen-only read-only water bill.
+const WaterBillHome = () => {
+  return isCitizen() ? <CitizenWaterBill /> : <Navigate to={getLandingPath()} replace />;
 };
 
 export const createRouter = (handleLogout: () => void) =>
@@ -376,6 +398,62 @@ export const createRouter = (handleLogout: () => void) =>
       ),
     },
     {
+      path: '/view-dharkachi-yadi-card',
+      element: (
+        <ProtectedRoute>
+          <DharkachiYadiCard />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-ghosvara-card',
+      element: (
+        <ProtectedRoute>
+          <GhosvaraCard />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-namuna9-card',
+      element: (
+        <ProtectedRoute>
+          <Namuna9Card />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-namuna9-new-card',
+      element: (
+        <ProtectedRoute>
+          <Namuna9NewCard />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-namuna9-ghosvara-card',
+      element: (
+        <ProtectedRoute>
+          <Namuna9GhosvaraCard />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-bill-129-card',
+      element: (
+        <ProtectedRoute>
+          <Bill129Card />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/view-anukramika-card',
+      element: (
+        <ProtectedRoute>
+          <AnukramikaCard />
+        </ProtectedRoute>
+      ),
+    },
+    {
       path: '/view-namuna8-anukramika',
       element: (
         <ProtectedRoute>
@@ -480,6 +558,14 @@ export const createRouter = (handleLogout: () => void) =>
       ),
     },
     {
+      path: '/water-meter-report',
+      element: (
+        <ProtectedRoute>
+          <WaterMeterMultiReport />
+        </ProtectedRoute>
+      ),
+    },
+    {
       path: '/view-imlakar-anukramika',
       element: (
         <ProtectedRoute>
@@ -518,6 +604,7 @@ export const createRouter = (handleLogout: () => void) =>
         { path: 'bill-ward', element: <BillWard /> },
         { path: 'namuna10', element: <Vasuli /> },
         { path: 'imla-kar', element: <ImlaKar /> },
+        { path: 'pani-meter-bill', element: <PaniMeterBill /> },
       ],
     },
     {
@@ -603,6 +690,29 @@ export const createRouter = (handleLogout: () => void) =>
       ),
       children: [
         { index: true, element: <PostsHome /> },
+      ],
+    },
+    {
+      path: '/water-meter',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <StaffOnly><WaterMeter /></StaffOnly> },
+        { path: ':id', element: <StaffOnly><WaterMeterDetail /></StaffOnly> },
+      ],
+    },
+    {
+      path: '/water-bill',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <WaterBillHome /> },
       ],
     },
     {

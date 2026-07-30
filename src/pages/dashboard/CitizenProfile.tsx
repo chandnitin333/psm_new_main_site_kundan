@@ -5,6 +5,7 @@ import {
   Camera, KeyRound, BadgeCheck, Mail, Pencil, Save, X,
 } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
+import AppLockSettings from '../../components/applock/AppLockSettings';
 import { commonDdlService } from '../../services/commonDdlService';
 import { config } from '../../config';
 import { trackAction } from '../../utils/tracker';
@@ -361,6 +362,9 @@ const CitizenProfile = () => {
                   <Field icon={Landmark} label="ग्रामपंचायत / Gram Panchayat" value={data.gramPanchayat} />
                 </div>
               </div>
+
+              {/* App lock (MPIN/WPIN) */}
+              {!isEditing && <AppLockSettings />}
 
               {/* Change password */}
               {!isEditing && (

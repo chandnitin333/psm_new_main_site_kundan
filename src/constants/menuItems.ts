@@ -83,7 +83,8 @@ export const DASHBOARD_MENU_ITEMS: MenuItem[] = [
       { id: 'ahval-namuna9', label: 'नमुना ९', path: '/ahval/namuna9' },
       { id: 'ahval-bill-ward', label: 'करांच्या मागणीचे बिल (प्रभाग)', path: '/ahval/bill-ward' },
       { id: 'ahval-namuna10', label: 'नमुना १०', path: '/ahval/namuna10' },
-      { id: 'ahval-imla-kar', label: 'इमला कर', path: '/ahval/imla-kar' }
+      { id: 'ahval-imla-kar', label: 'इमला कर', path: '/ahval/imla-kar' },
+      { id: 'ahval-pani-meter-bill', label: 'पाणी मीटर बिल', path: '/ahval/pani-meter-bill' }
     ]
   },
   {
@@ -144,6 +145,13 @@ export const CITIZEN_MENU_ITEMS: MenuItem[] = [
     label: 'सूचना',
     path: '/posts',
     icon: 'Megaphone',
+    subMenus: []
+  },
+  {
+    id: 'water-bill',
+    label: 'पाणी बिल',
+    path: '/water-bill',
+    icon: 'Droplet',
     subMenus: []
   }
 ];

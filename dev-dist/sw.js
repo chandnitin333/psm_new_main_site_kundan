@@ -69,6 +69,7 @@ if (!self.define) {
 }
 define(['./workbox-6cec1091'], (function (workbox) { 'use strict';
 
+  importScripts("/push-sw.js");
   self.addEventListener('message', event => {
     if (event.data && event.data.type === 'SKIP_WAITING') {
       self.skipWaiting();
@@ -82,7 +83,7 @@ define(['./workbox-6cec1091'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "/index.html",
-    "revision": "0.55aq9nacn8c"
+    "revision": "0.03866gfao5c"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {

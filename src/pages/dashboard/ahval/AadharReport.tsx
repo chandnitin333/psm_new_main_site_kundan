@@ -85,6 +85,20 @@ const AadharReport = () => {
         >
           <Printer className="w-4 h-4" /> Print / Save as PDF
         </button>
+        {!isPublicReportMode() && (
+          <button
+            onClick={() => {
+              try {
+                sessionStorage.setItem('dharkachiYadiCardData', JSON.stringify(records));
+                sessionStorage.setItem('dharkachiYadiCardMeta', JSON.stringify({ loc, ward, qrUrl }));
+              } catch { /* ignore quota */ }
+              window.open('/view-anukramika-card?variant=aadhar', '_blank');
+            }}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-medium shadow-sm transition-colors"
+          >
+            🎨 नवीन डिझाईन 📄
+          </button>
+        )}
       </div>
 
       <div className="mx-auto" style={{ maxWidth: '900px' }}>

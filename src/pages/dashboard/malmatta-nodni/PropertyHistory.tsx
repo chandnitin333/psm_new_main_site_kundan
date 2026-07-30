@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Home, ArrowRightLeft, Wallet, Award, Printer, MapPin, Phone } from 'lucide-react';
+import { ArrowLeft, Home, ArrowRightLeft, Wallet, Award, Printer, MapPin, Phone, Split } from 'lucide-react';
 import { nodniService, type PropertyHistory as PH } from '../../../services/nodniService';
 import { useToast } from '../../../hooks/useToast';
+import { can } from '../../../utils/permissions';
+import PropertyDivideModal from '../../../components/PropertyDivideModal';
 
 /* Property 360° — one place to see a property's full history:
    master details + ownership transfers (ferfar) + year-wise vasuli + certificates. */
@@ -16,6 +18,7 @@ const PropertyHistory = () => {
   const id = Number(params.get('id'));
   const [data, setData] = useState<PH | null>(null);
   const [loading, setLoading] = useState(true);
+  const [divideOpen, setDivideOpen] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -54,10 +57,24 @@ const PropertyHistory = () => {
         <button onClick={() => navigate('/malmatta-nodni')} className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:underline">
           <ArrowLeft className="h-4 w-4" /> मालमत्ता नोंदणी
         </button>
-        <button onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">
-          <Printer className="h-4 w-4" /> Print
-        </button>
+        <div className="flex items-center gap-2">
+          {can('malmatta_nodni', 'divide') && (
+            <button onClick={() => setDivideOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">
+              <Split className="h-4 w-4" /> विभाजन
+            </button>
+          )}
+          <button onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">
+            <Printer className="h-4 w-4" /> Print
+          </button>
+        </div>
       </div>
+      {divideOpen && (
+        <PropertyDivideModal
+          source={{ id: Number(params.get('id')), anu_kramank: p.anu_kramank, ward_kramnak: p.ward_kramnak, ghar_malkache_nav: p.ghar_malkache_nav, malmatta_number: p.malmatta_number }}
+          onClose={() => setDivideOpen(false)}
+          onDone={() => navigate('/malmatta-nodni')}
+        />
+      )}
 
       {/* property summary */}
       <div className={`${card} mb-5`}>
