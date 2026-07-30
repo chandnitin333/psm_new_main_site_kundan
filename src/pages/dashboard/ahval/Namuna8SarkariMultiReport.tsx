@@ -55,19 +55,21 @@ const RecordBlock = ({ n, loc, qrUrl, blank = false }: { n: Row; loc: { district
           <QRCodeSVG value={qrUrl} size={56} level="M" marginSize={0} />
         </span>
       )}
-      <div className="text-center">
-        <p className="font-bold text-[22px]">नमुना ८</p>
-      </div>
-      <div className="text-[16px] font-bold mt-1">ग्रामपंचायत कार्यालय :- {loc.gramPanchayat}</div>
-      <div className="flex justify-between text-[16px] mt-1 mb-1">
-        <span>जिल्हा :- {loc.district}</span>
-        <span>तालुका :- {loc.taluka}</span>
-        <span>ग्रामपंचायत :- {loc.gramPanchayat}</span>
-      </div>
-
       <table className="table-fixed border-collapse" style={{ width: `${tableW}px` }}>
         <colgroup>{colW.map((w, i) => <col key={i} style={{ width: `${w}px` }} />)}</colgroup>
-        <tbody>
+        {/* thead => report एका पानापेक्षा लांब असल्यास top heading + column headers प्रत्येक पानावर repeat */}
+        <thead>
+          <tr>
+            <td colSpan={15} className="text-center pb-1" style={{ border: 'none' }}>
+              <p className="font-bold text-[22px]">नमुना ८</p>
+              <div className="text-[16px] font-bold mt-1">ग्रामपंचायत कार्यालय :- {loc.gramPanchayat}</div>
+              <div className="flex justify-between text-[16px] mt-1">
+                <span>जिल्हा :- {loc.district}</span>
+                <span>तालुका :- {loc.taluka}</span>
+                <span>ग्रामपंचायत :- {loc.gramPanchayat}</span>
+              </div>
+            </td>
+          </tr>
           {/* Section 1 header */}
           <tr>
             <td className={thc} rowSpan={2}>अनु क्रं.</td>
@@ -86,6 +88,8 @@ const RecordBlock = ({ n, loc, qrUrl, blank = false }: { n: Row; loc: { district
             <td className={thc}>इमारत</td>
             <td className={thc}>बांधकाम</td>
           </tr>
+        </thead>
+        <tbody>
 
           {/* blank form: हाताने भरण्यासाठी रिकाम्या ओळी (15 columns) */}
           {blank && Array.from({ length: BLANK_DESC_ROWS }).map((_, i) => (
@@ -135,7 +139,13 @@ const RecordBlock = ({ n, loc, qrUrl, blank = false }: { n: Row; loc: { district
               <td className={td}>{sv(it.manoryache_bhag_name)}</td>
             </tr>
           ))}
+        </tbody>
+      </table>
 
+      {/* Section 2 — वेगळी table => हिचे header (कराची रक्कम इ.) पुढच्या पानावर गेल्यास तेच repeat होते (section 1 चे नाही) */}
+      <table className="table-fixed border-collapse" style={{ width: `${tableW}px` }}>
+        <colgroup>{colW.map((w, i) => <col key={i} style={{ width: `${w}px` }} />)}</colgroup>
+        <thead>
           {/* Section 2 header */}
           <tr>
             <td className={thc} rowSpan={2}>घसारा</td>
@@ -159,6 +169,8 @@ const RecordBlock = ({ n, loc, qrUrl, blank = false }: { n: Row; loc: { district
             <td className={thc}>पाणीपट्टी कर</td>
             <td className={thc}>एकूण</td>
           </tr>
+        </thead>
+        <tbody>
 
           {landRows.map((it, i) => (
             <tr key={`l2-${i}`} style={blankH}>
@@ -265,8 +277,11 @@ const Namuna8SarkariMultiReport = () => {
           .n8sm-report { zoom: 0.85; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .n8sm-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
           .n8sm-zoom { zoom: 1 !important; }
-          .n8sm-page { page-break-after: always; page-break-inside: avoid; break-inside: avoid; }
+          /* record एका पानापेक्षा लांब असल्यास flow होऊ द्या (thead प्रत्येक पानावर repeat होते);
+             प्रत्येक record नवीन पानावर सुरू (page-break-after). */
+          .n8sm-page { page-break-after: always; }
           .n8sm-page:last-child { page-break-after: auto; }
+          .n8sm-report thead { display: table-header-group; }
           /* print-only: enlarge cell text for readability (screen unaffected) */
           .n8sm-report td { font-size: 15px !important; line-height: 1.15 !important; }
         }`}</style>

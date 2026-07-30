@@ -34,12 +34,18 @@ type Loc = { district: string; taluka: string; gramPanchayat: string };
 const Field = ({ label, value, wide, blank }: { label: string; value: unknown; wide?: boolean; blank?: boolean }) => (
   <div className={`dc-field ${wide ? 'dc-wide' : ''}`}>
     <span className="dc-label">{label}</span>
-    <span className="dc-value">{blank ? ' ' : (s(value) || '—')}</span>
+    <span className="dc-value">{blank ? ' ' : (s(value) || '—')}</span>
   </div>
 );
 
+/* एका record मध्ये मालमत्तेचे वर्णन खूप rows असल्यास ते एका पानात बसत नाहीत (जास्त shrink
+   होऊन बारीक दिसतात). म्हणून view-namuna8-multi प्रमाणे rows ला पानांत विभागतो: header +
+   मालक/चतु:सीमा/क्षेत्रफळ प्रत्येक पानावर repeat; कर आकारणी values प्रत्येक पानावर 0 आणि
+   खरी रक्कम + फेरफार + टीप फक्त शेवटच्या पानावर. rows कमी असल्यास पूर्वीसारखे एकच पान. */
+const DESC_PER_PAGE: Record<'portrait' | 'landscape', number> = { portrait: 8, landscape: 6 };
+
 type Variant = 'dharkachi' | 'namuna8' | 'namuna8new' | 'namuna8images' | 'sarkari' | 'imlakar';
-const RecordCard = ({ n, loc, cy, qrUrl, blank = false, variant = 'dharkachi' }: { n: Row; loc: Loc; cy: number; qrUrl?: string; blank?: boolean; variant?: Variant }) => {
+const RecordCard = ({ n, loc, cy, qrUrl, blank = false, variant = 'dharkachi', orient = 'portrait' }: { n: Row; loc: Loc; cy: number; qrUrl?: string; blank?: boolean; variant?: Variant; orient?: 'portrait' | 'landscape' }) => {
   const land = (n.khula_bhukhand_kar_aakarani as Row[]) || [];
   const cons = (n.bandkamachi_kar_aakarani as Row[]) || [];
   const manora = (n.manoryache_kar_aakarani as Row[]) || [];
@@ -80,203 +86,242 @@ const RecordCard = ({ n, loc, cy, qrUrl, blank = false, variant = 'dharkachi' }:
   ];
 
   // blank form असल्यास सर्व value रिकामे (हाताने भरण्यासाठी)
-  const bv = (v: unknown) => (blank ? ' ' : (s(v) || '—'));
+  const bv = (v: unknown) => (blank ? ' ' : (s(v) || '—'));
 
-  return (
-    <article className="dc-card">
-      {/* header band — badges डावीकडे, title मध्यभागी, QR अगदी उजवीकडे */}
-      <header className="dc-head">
-        <div className="dc-badges">
-          <span className="dc-badge"><i>अनु.क्र</i><b>{bv(n.anu_kramank)}</b></span>
-          <span className="dc-badge"><i>मालमत्ता</i><b>{bv(n.malmatta_number)}</b></span>
+  // ---- pagination ----
+  const perPage = DESC_PER_PAGE[orient];
+  const pageCount = blank ? 1 : Math.max(1, Math.ceil(descRows.length / perPage) || 1);
+
+  const renderHeader = () => (
+    <header className="dc-head">
+      <div className="dc-badges">
+        <span className="dc-badge"><i>अनु.क्र</i><b>{bv(n.anu_kramank)}</b></span>
+        <span className="dc-badge"><i>मालमत्ता</i><b>{bv(n.malmatta_number)}</b></span>
+      </div>
+      <div className="dc-head-main">
+        <h1>{variant === 'imlakar' ? 'इमलाकर मोजमाप यादी' : variant === 'sarkari' ? 'नमुना ८ (सरकारी)' : isN8fam ? 'नमुना ८' : variant === 'namuna8new' ? 'नमुना ८ नियम ३२ (१)' : 'फेरकर आकारणी मुल्यांकन यादी'}</h1>
+        <p className="dc-sub">{variant === 'sarkari'
+          ? `सरकारी मालमत्ता — कर आकारणी नोंदवही · सन ${fyLabel(cy)}`
+          : fourYearSub
+          ? `सन ${fyLabel(cy)} ते ${fyLabel(cy + 3)} — करास पात्र इमारती व जमिनी (खुला भूखंड) कर आकारणी नोंदवही${showPhoto ? ' (छायाचित्रासह)' : ''}`
+          : variant === 'namuna8new'
+            ? `सन ${fyLabel(cy)} साठी कर आकारणी नोंदवही (वैयक्तिक असेसमेंट उतारा पाहण्याकरीता)`
+            : `सन ${fyLabel(cy)} · मालमत्ता धारकाची यादी`}</p>
+        <p className="dc-loc">
+          <span>जिल्हा: <b>{loc.district || '—'}</b></span>
+          <span>तालुका: <b>{loc.taluka || '—'}</b></span>
+          <span>ग्रामपंचायत: <b>{loc.gramPanchayat || '—'}</b></span>
+        </p>
+      </div>
+      {qrUrl && <span className="dc-qr"><QRCodeSVG value={qrUrl} size={52} level="M" marginSize={0} /></span>}
+    </header>
+  );
+
+  const renderOwner = () => (
+    <section className="dc-sec">
+      <h2 className="dc-h2">मालक व मालमत्ता तपशील</h2>
+      <div className={`dc-owner-wrap${showPhoto ? ' dc-has-photo' : ''}`}>
+        <div className="dc-grid">
+          <Field label="घरमालकाचे नाव" value={n.ghar_malkache_nav} wide blank={blank} />
+          <Field label="पत्नी / मुलांचे नाव" value={n.patni_mulache_nav} wide blank={blank} />
+          <Field label="भोगवटदाराचे नाव" value={n.bhogavat_darache_nav} wide blank={blank} />
+          <Field label="पत्ता" value={n.patta_nagar_layout_society} wide blank={blank} />
+          <Field label="वार्ड क्र." value={n.ward_kramnak} blank={blank} />
+          <Field label="प्लॉट क्र." value={n.plot_number} blank={blank} />
+          <Field label="खसरा नं." value={n.khasara_number} blank={blank} />
+          <Field label="सर्वे क्र." value={n.survey_number} blank={blank} />
+          <Field label="मिलकत प्रकार" value={n.milkat_prakar} blank={blank} />
+          <Field label="पाणी व्यवस्था" value={n.pinyacha_panyachi_vyavastha} blank={blank} />
+          <Field label="शौचालय" value={n.ghari_souychalaya} blank={blank} />
+          <Field label="मोबाईल" value={n.mobile_number} blank={blank} />
+          <Field label="आधार" value={n.aadahar_card_number} blank={blank} />
+          <Field label="वोटर आयडी" value={n.matdar_card_number} blank={blank} />
         </div>
-        <div className="dc-head-main">
-          <h1>{variant === 'imlakar' ? 'इमलाकर मोजमाप यादी' : variant === 'sarkari' ? 'नमुना ८ (सरकारी)' : isN8fam ? 'नमुना ८' : variant === 'namuna8new' ? 'नमुना ८ नियम ३२ (१)' : 'फेरकर आकारणी मुल्यांकन यादी'}</h1>
-          <p className="dc-sub">{variant === 'sarkari'
-            ? `सरकारी मालमत्ता — कर आकारणी नोंदवही · सन ${fyLabel(cy)}`
-            : fourYearSub
-            ? `सन ${fyLabel(cy)} ते ${fyLabel(cy + 3)} — करास पात्र इमारती व जमिनी (खुला भूखंड) कर आकारणी नोंदवही${showPhoto ? ' (छायाचित्रासह)' : ''}`
-            : variant === 'namuna8new'
-              ? `सन ${fyLabel(cy)} साठी कर आकारणी नोंदवही (वैयक्तिक असेसमेंट उतारा पाहण्याकरीता)`
-              : `सन ${fyLabel(cy)} · मालमत्ता धारकाची यादी`}</p>
-          <p className="dc-loc">
-            <span>जिल्हा: <b>{loc.district || '—'}</b></span>
-            <span>तालुका: <b>{loc.taluka || '—'}</b></span>
-            <span>ग्रामपंचायत: <b>{loc.gramPanchayat || '—'}</b></span>
-          </p>
-        </div>
-        {qrUrl && <span className="dc-qr"><QRCodeSVG value={qrUrl} size={52} level="M" marginSize={0} /></span>}
-      </header>
-
-      <div className="dc-body">
-        {/* Owner + identifiers */}
-        <section className="dc-sec">
-          <h2 className="dc-h2">मालक व मालमत्ता तपशील</h2>
-          <div className={`dc-owner-wrap${showPhoto ? ' dc-has-photo' : ''}`}>
-          <div className="dc-grid">
-            <Field label="घरमालकाचे नाव" value={n.ghar_malkache_nav} wide blank={blank} />
-            <Field label="पत्नी / मुलांचे नाव" value={n.patni_mulache_nav} wide blank={blank} />
-            <Field label="भोगवटदाराचे नाव" value={n.bhogavat_darache_nav} wide blank={blank} />
-            <Field label="पत्ता" value={n.patta_nagar_layout_society} wide blank={blank} />
-            <Field label="वार्ड क्र." value={n.ward_kramnak} blank={blank} />
-            <Field label="प्लॉट क्र." value={n.plot_number} blank={blank} />
-            <Field label="खसरा नं." value={n.khasara_number} blank={blank} />
-            <Field label="सर्वे क्र." value={n.survey_number} blank={blank} />
-            <Field label="मिलकत प्रकार" value={n.milkat_prakar} blank={blank} />
-            <Field label="पाणी व्यवस्था" value={n.pinyacha_panyachi_vyavastha} blank={blank} />
-            <Field label="शौचालय" value={n.ghari_souychalaya} blank={blank} />
-            <Field label="मोबाईल" value={n.mobile_number} blank={blank} />
-            <Field label="आधार" value={n.aadahar_card_number} wide blank={blank} />
-            <Field label="वोटर आयडी" value={n.matdar_card_number} blank={blank} />
+        {showPhoto && (
+          <div className="dc-photo">
+            {imgUrl ? <img src={imgUrl} alt="मालमत्ता" /> : <span className="dc-photo-ph">{blank ? 'छायाचित्र' : 'चित्र उपलब्ध नाही'}</span>}
           </div>
-          {showPhoto && (
-            <div className="dc-photo">
-              {imgUrl ? <img src={imgUrl} alt="मालमत्ता" /> : <span className="dc-photo-ph">{blank ? 'छायाचित्र' : 'चित्र उपलब्ध नाही'}</span>}
-            </div>
-          )}
-          </div>
-        </section>
-
-        {/* Chatur seema + Area — landscape मध्ये side-by-side (dc-row2) */}
-        <div className="dc-row2">
-        <section className="dc-sec">
-          <h2 className="dc-h2">चतु:सीमा</h2>
-          <div className="dc-seema">
-            {[['पूर्वेस', n.purv], ['पश्चिमेस', n.paschim], ['उत्तरेस', n.uttar], ['दक्षिणेस', n.dakshin]].map(([k, v]) => (
-              <div key={String(k)} className="dc-seema-box">
-                <span className="dc-label">{String(k)}</span>
-                <span className="dc-value">{bv(v)}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Area */}
-        <section className="dc-sec">
-          <h2 className="dc-h2">एकूण जागेचे क्षेत्रफळ</h2>
-          <div className="dc-stats">
-            {[
-              ['लांबी', f(n.lambi)], ['रुंदी', f(n.rundi)],
-              ['क्षेत्रफळ (चौ.फू)', f(n.shetrafal_choras_foot)], ['मीटर (चौ.मी)', f(n.shetrafal_choras_meter)],
-              ['उर्वरित (चौ.फू)', f(n.urvarit_khali_jaga_choras_foot)],
-              ['उर्वरित मीटर', f(Number(n.urvarit_khali_jaga_choras_foot || 0) * 0.092903)],
-            ].map(([k, v]) => (
-              <div key={String(k)} className="dc-stat">
-                <span className="dc-stat-v">{blank ? ' ' : (String(v) || '—')}</span>
-                <span className="dc-stat-k">{String(k)}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-        </div>
-
-        {/* Description table */}
-        <section className="dc-sec">
-          <h2 className="dc-h2">मालमत्तेचे वर्णन</h2>
-          <div className="dc-tablewrap">
-            <table className="dc-table">
-              <thead>
-                <tr>
-                  <th>प्रकार</th><th>वर्णन</th><th>वापर</th><th>मजला</th><th>वय</th>
-                  <th>क्षे. पु.प.</th><th>क्षे. उ.द.</th><th>एकूण क्षे.</th><th>मीटर</th>
-                  <th>वार्षिक मूल्य</th><th>घसारा</th><th>भारांक</th><th>भांडवली मूल्य</th>
-                  <th>आ. दर</th><th>कर आकारणी</th>
-                </tr>
-              </thead>
-              <tbody>
-                {blank ? (
-                  // कोरी यादी — हाताने भरण्यासाठी रिकाम्या ओळी
-                  Array.from({ length: 6 }).map((_, i) => (
-                    <tr key={`blank-${i}`} style={{ height: '26px' }}>
-                      {Array.from({ length: 15 }).map((__, j) => <td key={j}>&nbsp;</td>)}
-                    </tr>
-                  ))
-                ) : descRows.length === 0 ? (
-                  <tr><td colSpan={15} className="dc-empty">वर्णन उपलब्ध नाही</td></tr>
-                ) : descRows.map(({ kind, it }, i) => {
-                  const bhandvali = kind === 'जमीन' ? landBhandvali(it) : kind === 'बांधकाम' ? consBhandvali(it) : 0;
-                  return (
-                    <tr key={i}>
-                      <td className="dc-kind">{kind}</td>
-                      <td className="dc-l">{s(it.malmatteche_varnan_name) || s(it.malmatteche_prakar_name)}</td>
-                      <td>{s(it.vapar_prakar) || (kind === 'जमीन' ? 'एकूण जागा' : '')}</td>
-                      <td>{s(it.bandkam_majla_name) || s(it.manoryache_bhag_name)}</td>
-                      <td>{s(it.vayoman)}</td>
-                      <td>{f(it.shetrafal_purv_paschim_foot)}</td>
-                      <td>{f(it.shetrafal_uttar_dakshin_foot)}</td>
-                      <td>{f(it.ekun_shetrafal_choras_foot)}</td>
-                      <td>{f(sqmOf(it))}</td>
-                      <td>{f(it.jaminiche_varshik_mulya) || f(it.imaratiche_varshik_mulya)}</td>
-                      <td>{s(it.ghasara_dar)}</td>
-                      <td>{s(it.bharank)}</td>
-                      <td>{bhandvali ? f(bhandvali) : ''}</td>
-                      <td>{s(it.aakarani_dar)}</td>
-                      <td className="dc-kar">{f(karOf(kind, it))}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {/* Tax summary + Ferfar — landscape मध्ये side-by-side */}
-        <div className="dc-row2">
-        <section className="dc-sec">
-          <h2 className="dc-h2">कर आकारणी</h2>
-          <div className="dc-tax">
-            <div className="dc-chips">
-              {taxChips.map((c) => (
-                <div key={c.k} className="dc-chip">
-                  <span className="dc-chip-k">{c.k}</span>
-                  <span className="dc-chip-v">{blank ? ' ' : `₹ ${f(c.v) || 0}`}</span>
-                </div>
-              ))}
-            </div>
-            <div className="dc-total">
-              <div className="dc-total-row"><span>एकूण इतर कर</span><b>{blank ? ' ' : `₹ ${f(ekunTaxAmt) || 0}`}</b></div>
-              <div className="dc-total-row"><span>एकूण कर भरणे</span><b>{blank ? ' ' : `₹ ${f(n.ekun_kar_bharne) || 0}`}</b></div>
-              <div className="dc-total-grand"><span>एकूण कर</span><b>{blank ? ' ' : `₹ ${f(grandTotal) || 0}`}</b></div>
-            </div>
-          </div>
-        </section>
-
-        {/* Ferfar / shera */}
-        <section className="dc-sec dc-ferfar">
-          <h2 className="dc-h2">फेरफार / शेरा · अपील निकालानंतरचे बदल</h2>
-          <div className="dc-note">{s(n.magahun_ghat_kiva_badal) || ' '}</div>
-        </section>
-        </div>
-
-        {isN8fam && (
-          <section className="dc-sec dc-n8tip">
-            <div className="dc-tip"><b>टीप:</b> १) मोक्यावरील बांधकामानुसार कर आकारणी केली आहे. २) मालकी हक्काचा वाद असल्यास न्यायालयामार्फत सोडवावा; न्यायालयाचा निर्णय ग्रामपंचायत व अर्जदारास बंधनकारक. ३) नामांतरण फक्त कर वसुलीच्या दृष्टीने मंजूर. ४) नमुना ८ वर नाव दाखल झाले म्हणजे मालकी हक्क प्राप्त होत नाही. (पक्के = आर.सी.सी · अर्धपक्के = टीनपत्रे/सिमेंटशीट · कच्चे = माती/कौलारू)</div>
-            <div className="dc-sign">सचिव / सरपंच स्वाक्षरी</div>
-          </section>
-        )}
-        {variant === 'imlakar' && (
-          <section className="dc-sec dc-n8tip">
-            <div className="dc-tip"><b>टीप:</b> १) ह्या आकारणीचा अर्थ जागेवर मालकी हक्क नव्हे. २) हा नमुना ८ नाही.</div>
-            <div className="dc-sign">सचिव / सरपंच स्वाक्षरी</div>
-          </section>
-        )}
-        {variant === 'namuna8new' && (
-          <section className="dc-sec dc-n8tip">
-            <div className="dc-tip">
-              <p>१) सदरचा उतारा मालकी हक्काचा नसून कर आकारणीचा आहे; या उताऱ्यावरून खरेदी-विक्री व्यवहार झाल्यास ग्रामपंचायत जबाबदार राहणार नाही.</p>
-              <p>२) शासन परिपत्रकानुसार ग्रामीण भागातील घरांची नोंदणी पती-पत्नी यांच्या संयुक्त नावे करण्याबाबत निर्देश आहेत.</p>
-              <p style={{ color: '#dc2626' }}>३) सदर वैयक्तिक असेसमेंट उतारा पाहण्याकरीता देण्यात आलेला आहे.</p>
-            </div>
-          </section>
         )}
       </div>
-
-      <footer className="dc-foot">
-        <span>{variant === 'imlakar' ? 'इमलाकर मोजमाप यादी' : variant === 'namuna8images' ? 'नमुना ८ (छायाचित्रे)' : variant === 'namuna8' ? 'नमुना ८' : variant === 'namuna8new' ? 'नमुना ८ (नियम ३२)' : variant === 'sarkari' ? 'नमुना ८ (सरकारी)' : 'मालमत्ता धारकाची यादी'} · सन {fyLabel(cy)}{blank ? ' · कोरी यादी' : ''}</span>
-        <span>पान नंबर: {bv(n.anu_kramank)}</span>
-      </footer>
-    </article>
+    </section>
   );
+
+  const renderSeemaArea = () => (
+    <div className="dc-row2">
+      <section className="dc-sec">
+        <h2 className="dc-h2">चतु:सीमा</h2>
+        <div className="dc-seema">
+          {[['पूर्वेस', n.purv], ['पश्चिमेस', n.paschim], ['उत्तरेस', n.uttar], ['दक्षिणेस', n.dakshin]].map(([k, v]) => (
+            <div key={String(k)} className="dc-seema-box">
+              <span className="dc-label">{String(k)}</span>
+              <span className="dc-value">{bv(v)}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="dc-sec">
+        <h2 className="dc-h2">एकूण जागेचे क्षेत्रफळ</h2>
+        <div className="dc-stats">
+          {[
+            ['लांबी', f(n.lambi)], ['रुंदी', f(n.rundi)],
+            ['क्षेत्रफळ (चौ.फू)', f(n.shetrafal_choras_foot)], ['मीटर (चौ.मी)', f(n.shetrafal_choras_meter)],
+            ['उर्वरित (चौ.फू)', f(n.urvarit_khali_jaga_choras_foot)],
+            ['उर्वरित मीटर', f(Number(n.urvarit_khali_jaga_choras_foot || 0) * 0.092903)],
+          ].map(([k, v]) => (
+            <div key={String(k)} className="dc-stat">
+              <span className="dc-stat-v">{blank ? ' ' : (String(v) || '—')}</span>
+              <span className="dc-stat-k">{String(k)}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderDesc = (slice: { kind: string; it: Row }[]) => (
+    <section className="dc-sec">
+      <h2 className="dc-h2">मालमत्तेचे वर्णन</h2>
+      <div className="dc-tablewrap">
+        <table className="dc-table">
+          {/* text columns (प्रकार/वर्णन/वापर/मजला) रुंद => 'मनोरा (टॉवर) खाली जागा' सारखा लांब
+              मजकूर 3 ओळींत wrap होऊन row उंच होत नाही (पुढच्या पानावर जात नाही) */}
+          <colgroup>
+            {[7.5, 8, 7, 13, 4.5, 5.5, 5.5, 6, 5.5, 6.5, 5, 5, 6.5, 5, 7].map((w, i) => (
+              <col key={i} style={{ width: `${w}%` }} />
+            ))}
+          </colgroup>
+          <thead>
+            <tr>
+              <th>प्रकार</th><th>वर्णन</th><th>वापर</th><th>मजला</th><th>वय</th>
+              <th>क्षे. पु.प.</th><th>क्षे. उ.द.</th><th>एकूण क्षे.</th><th>मीटर</th>
+              <th>वार्षिक मूल्य</th><th>घसारा</th><th>भारांक</th><th>भांडवली मूल्य</th>
+              <th>आ. दर</th><th>कर आकारणी</th>
+            </tr>
+          </thead>
+          <tbody>
+            {blank ? (
+              // कोरी यादी — हाताने भरण्यासाठी रिकाम्या ओळी
+              Array.from({ length: 6 }).map((_, i) => (
+                <tr key={`blank-${i}`} style={{ height: '26px' }}>
+                  {Array.from({ length: 15 }).map((__, j) => <td key={j}>&nbsp;</td>)}
+                </tr>
+              ))
+            ) : slice.length === 0 ? (
+              <tr><td colSpan={15} className="dc-empty">वर्णन उपलब्ध नाही</td></tr>
+            ) : slice.map(({ kind, it }, i) => {
+              const bhandvali = kind === 'जमीन' ? landBhandvali(it) : kind === 'बांधकाम' ? consBhandvali(it) : 0;
+              return (
+                <tr key={i}>
+                  <td className="dc-kind">{kind}</td>
+                  <td className="dc-l">{s(it.malmatteche_varnan_name) || s(it.malmatteche_prakar_name)}</td>
+                  <td>{s(it.vapar_prakar) || (kind === 'जमीन' ? 'एकूण जागा' : '')}</td>
+                  <td>{s(it.bandkam_majla_name) || s(it.manoryache_bhag_name)}</td>
+                  <td>{s(it.vayoman)}</td>
+                  <td>{f(it.shetrafal_purv_paschim_foot)}</td>
+                  <td>{f(it.shetrafal_uttar_dakshin_foot)}</td>
+                  <td>{f(it.ekun_shetrafal_choras_foot)}</td>
+                  <td>{f(sqmOf(it))}</td>
+                  <td>{f(it.jaminiche_varshik_mulya) || f(it.imaratiche_varshik_mulya)}</td>
+                  <td>{s(it.ghasara_dar)}</td>
+                  <td>{s(it.bharank)}</td>
+                  <td>{bhandvali ? f(bhandvali) : ''}</td>
+                  <td>{s(it.aakarani_dar)}</td>
+                  <td className="dc-kar">{f(karOf(kind, it))}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+
+  // कर आकारणी + फेरफार — सर्व totals फक्त शेवटच्या पानावर (खरी रक्कम)
+  const renderTaxFerfar = () => (
+    <div className="dc-row2">
+      <section className="dc-sec">
+        <h2 className="dc-h2">कर आकारणी</h2>
+        <div className="dc-tax">
+          <div className="dc-chips">
+            {taxChips.map((c) => (
+              <div key={c.k} className="dc-chip">
+                <span className="dc-chip-k">{c.k}</span>
+                <span className="dc-chip-v">{blank ? ' ' : `₹ ${f(c.v) || 0}`}</span>
+              </div>
+            ))}
+          </div>
+          <div className="dc-total">
+            <div className="dc-total-row"><span>एकूण इतर कर</span><b>{blank ? ' ' : `₹ ${f(ekunTaxAmt) || 0}`}</b></div>
+            <div className="dc-total-row"><span>एकूण कर भरणे</span><b>{blank ? ' ' : `₹ ${f(n.ekun_kar_bharne) || 0}`}</b></div>
+            <div className="dc-total-grand"><span>एकूण कर</span><b>{blank ? ' ' : `₹ ${f(grandTotal) || 0}`}</b></div>
+          </div>
+        </div>
+      </section>
+      <section className="dc-sec dc-ferfar">
+        <h2 className="dc-h2">फेरफार / शेरा · अपील निकालानंतरचे बदल</h2>
+        <div className="dc-note">{s(n.magahun_ghat_kiva_badal) || ' '}</div>
+      </section>
+    </div>
+  );
+
+  // मधल्या पानांवर — फक्त वर्णन; totals शेवटच्या पानावर असल्याची सूचना
+  const renderContinued = () => (
+    <div className="dc-continued">→ वर्णन पुढे चालू · सर्व कर व एकूण रक्कम शेवटच्या पानावर</div>
+  );
+
+  // टीप / स्वाक्षरी — फक्त शेवटच्या पानावर
+  const renderTips = (last: boolean) => {
+    if (!last) return null;
+    if (isN8fam) return (
+      <section className="dc-sec dc-n8tip">
+        <div className="dc-tip"><b>टीप:</b> १) मोक्यावरील बांधकामानुसार कर आकारणी केली आहे. २) मालकी हक्काचा वाद असल्यास न्यायालयामार्फत सोडवावा; न्यायालयाचा निर्णय ग्रामपंचायत व अर्जदारास बंधनकारक. ३) नामांतरण फक्त कर वसुलीच्या दृष्टीने मंजूर. ४) नमुना ८ वर नाव दाखल झाले म्हणजे मालकी हक्क प्राप्त होत नाही. (पक्के = आर.सी.सी · अर्धपक्के = टीनपत्रे/सिमेंटशीट · कच्चे = माती/कौलारू)</div>
+        <div className="dc-sign">सचिव / सरपंच स्वाक्षरी</div>
+      </section>
+    );
+    if (variant === 'imlakar') return (
+      <section className="dc-sec dc-n8tip">
+        <div className="dc-tip"><b>टीप:</b> १) ह्या आकारणीचा अर्थ जागेवर मालकी हक्क नव्हे. २) हा नमुना ८ नाही.</div>
+        <div className="dc-sign">सचिव / सरपंच स्वाक्षरी</div>
+      </section>
+    );
+    if (variant === 'namuna8new') return (
+      <section className="dc-sec dc-n8tip">
+        <div className="dc-tip">
+          <p>१) सदरचा उतारा मालकी हक्काचा नसून कर आकारणीचा आहे; या उताऱ्यावरून खरेदी-विक्री व्यवहार झाल्यास ग्रामपंचायत जबाबदार राहणार नाही.</p>
+          <p>२) शासन परिपत्रकानुसार ग्रामीण भागातील घरांची नोंदणी पती-पत्नी यांच्या संयुक्त नावे करण्याबाबत निर्देश आहेत.</p>
+          <p style={{ color: '#dc2626' }}>३) सदर वैयक्तिक असेसमेंट उतारा पाहण्याकरीता देण्यात आलेला आहे.</p>
+        </div>
+      </section>
+    );
+    return null;
+  };
+
+  const renderFoot = (p: number) => (
+    <footer className="dc-foot">
+      <span>{variant === 'imlakar' ? 'इमलाकर मोजमाप यादी' : variant === 'namuna8images' ? 'नमुना ८ (छायाचित्रे)' : variant === 'namuna8' ? 'नमुना ८' : variant === 'namuna8new' ? 'नमुना ८ (नियम ३२)' : variant === 'sarkari' ? 'नमुना ८ (सरकारी)' : 'मालमत्ता धारकाची यादी'} · सन {fyLabel(cy)}{blank ? ' · कोरी यादी' : ''}</span>
+      <span>पान नंबर: {bv(n.anu_kramank)}{pageCount > 1 ? ` (${p + 1}/${pageCount})` : ''}</span>
+    </footer>
+  );
+
+  const pages = Array.from({ length: pageCount }, (_, p) => {
+    const last = p === pageCount - 1;
+    const slice = blank ? [] : descRows.slice(p * perPage, (p + 1) * perPage);
+    return (
+      <article className="dc-card" key={`pg-${p}`}>
+        {renderHeader()}
+        <div className="dc-body">
+          {renderOwner()}
+          {renderSeemaArea()}
+          {renderDesc(slice)}
+          {last ? renderTaxFerfar() : renderContinued()}
+          {renderTips(last)}
+        </div>
+        {renderFoot(p)}
+      </article>
+    );
+  });
+
+  return <>{pages}</>;
 };
 
 const DharkachiYadiCard = () => {
@@ -349,33 +394,19 @@ const DharkachiYadiCard = () => {
     : vParam === 'imlakar' ? 'imlakar'
     : 'dharkachi';
 
-  // auto-fit: सर्वात उंच card print-width ला मोजून --pz (print zoom) असा सेट कर की
-  // प्रत्येक record नेहमी एकाच पानात बसेल (2nd page वर जाणार नाही). fonts जमेल तितके मोठे.
+  // FIXED print size — zoom नेहमी 1 (rows वाढल्या तरी font shrink होत नाही, print नेहमी proper
+  // व एकसमान). fonts असे ठेवले आहेत की ठरलेल्या rows (portrait 10 / landscape 7) + sections
+  // एका पानात बसतात. card रुंदी = printW => पान पूर्ण रुंदीत भरते.
   useEffect(() => {
     if (!records.length) return;
     const isLand = orient === 'landscape';
-    const printW = isLand ? 1035 : 688;     // A4 print content width (margins वजा)
-    const budgetH = (isLand ? 703 : 1009) - 6; // print content height − safety
-    const tight = `.mzc .dc-head{min-height:82px;padding:9px 20px}.mzc .dc-sec{padding:8px 0}.mzc .dc-h2{margin-bottom:6px}.mzc .dc-grid{gap:6px 14px}.mzc .dc-seema,.mzc .dc-stats{gap:7px}.mzc .dc-stat{padding:7px 6px}.mzc .dc-chip{padding:6px 9px}.mzc .dc-note{min-height:26px}.mzc .dc-foot{padding:8px 20px}.mzc .dc-table th,.mzc .dc-table td{padding:5px 5px}`;
-    const st = document.createElement('style'); st.textContent = tight; document.head.appendChild(st);
-    const holder = document.createElement('div');
-    holder.className = `dc-report mzc${isLand ? ' dc-land' : ''}`;
-    holder.style.cssText = `position:absolute;left:-9999px;top:0;width:${printW}px`;
-    document.body.appendChild(holder);
-    let maxH = 0;
-    document.querySelectorAll('.dc-card').forEach((card) => {
-      const clone = card.cloneNode(true) as HTMLElement;
-      clone.style.cssText = `width:${printW}px;max-width:${printW}px;zoom:1`;
-      holder.appendChild(clone);
-      maxH = Math.max(maxH, clone.getBoundingClientRect().height);
-      holder.removeChild(clone);
-    });
-    document.body.removeChild(holder); document.head.removeChild(st);
-    if (maxH > 0) {
-      const z = Math.max(0.45, Math.min(1, Math.floor((budgetH / maxH) * 1000) / 1000));
-      document.documentElement.style.setProperty('--pz', String(z));
-    }
-    return () => { document.documentElement.style.removeProperty('--pz'); };
+    const printW = isLand ? 1059 : 688;     // landscape: 297mm − 45px(left) − 18px(right); portrait: 210-20-8mm
+    document.documentElement.style.setProperty('--pz', '1');
+    document.documentElement.style.setProperty('--cw', `${printW - 4}px`); // 4px safety => QR/उजवा edge cut नाही
+    return () => {
+      document.documentElement.style.removeProperty('--pz');
+      document.documentElement.style.removeProperty('--cw');
+    };
   }, [records, orient]);
 
   return (
@@ -393,9 +424,9 @@ const DharkachiYadiCard = () => {
         <p className="dc-loading">{loading ? 'लोड होत आहे…' : 'या निवडीसाठी माहिती उपलब्ध नाही'}</p>
       ) : (
         <>
-          {records.map((n, i) => <RecordCard key={i} n={n} loc={loc} cy={reportYear} qrUrl={qrUrl} variant={variant} />)}
+          {records.map((n, i) => <RecordCard key={i} n={n} loc={loc} cy={reportYear} qrUrl={qrUrl} variant={variant} orient={orient} />)}
           {/* शेवटी एक कोरी (blank) यादी — जिल्हा/तालुका/ग्रा.पं. dynamic, बाकी हाताने भरण्यासाठी रिकामी */}
-          <RecordCard key="blank" n={{}} loc={loc} cy={reportYear} blank variant={variant} />
+          <RecordCard key="blank" n={{}} loc={loc} cy={reportYear} blank variant={variant} orient={orient} />
         </>
       )}
     </div>
@@ -418,9 +449,9 @@ const DC_CSS = `
 
   .dc-head { position:relative; display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:84px; padding:10px 20px; background:linear-gradient(120deg,var(--accent),var(--accent2)); color:#fff; }
   .dc-head-main { text-align:center; padding:0 92px; display:flex; flex-direction:column; align-items:center; }
-  .dc-head-main h1 { margin:0; font-size:16px; font-weight:800; letter-spacing:.2px; }
-  .dc-sub { margin:1px 0 0; font-size:10.5px; opacity:.9; }
-  .dc-loc { display:flex; flex-wrap:wrap; justify-content:center; gap:2px 14px; margin:4px 0 0; font-size:11px; opacity:.95; }
+  .dc-head-main h1 { margin:0; font-size:18px; font-weight:800; letter-spacing:.2px; }
+  .dc-sub { margin:1px 0 0; font-size:12px; opacity:.9; }
+  .dc-loc { display:flex; flex-wrap:wrap; justify-content:center; gap:2px 14px; margin:4px 0 0; font-size:13px; opacity:.95; }
   .dc-loc b { font-weight:700; }
   .dc-qr { position:absolute; top:11px; right:14px; background:#fff; padding:3px; border-radius:7px; line-height:0; }
   .dc-badges { position:absolute; top:11px; left:14px; display:flex; flex-direction:column; gap:4px; }
@@ -430,7 +461,7 @@ const DC_CSS = `
 
   .dc-body { padding:6px 22px 4px; }
   .dc-sec { padding:10px 0; }
-  .dc-h2 { margin:0 0 10px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.7px; color:var(--accent); display:flex; align-items:center; gap:8px; }
+  .dc-h2 { margin:0 0 10px; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.7px; color:var(--accent); display:flex; align-items:center; gap:8px; }
   .dc-h2::after { content:''; flex:1; height:1px; background:var(--line); }
 
   .dc-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:7px 14px; }
@@ -439,8 +470,8 @@ const DC_CSS = `
   .dc-field.dc-wide { grid-column:span 2; }
   .dc-field .dc-label { flex-shrink:0; }
   .dc-field .dc-label::after { content:':'; }
-  .dc-label { font-size:10px; color:var(--faint); font-weight:600; text-transform:uppercase; letter-spacing:.3px; }
-  .dc-value { font-size:13px; color:var(--ink); font-weight:600; overflow-wrap:break-word; min-width:0; }
+  .dc-label { font-size:13px; color:var(--faint); font-weight:600; text-transform:uppercase; letter-spacing:.3px; }
+  .dc-value { font-size:16px; color:var(--ink); font-weight:600; overflow-wrap:break-word; min-width:0; }
 
   .dc-seema { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
   .dc-seema-box { background:var(--soft); border:1px solid #e0e7ff; border-radius:10px; padding:8px 12px; display:flex; flex-direction:column; gap:2px; }
@@ -448,12 +479,13 @@ const DC_CSS = `
   .dc-stats { display:grid; grid-template-columns:repeat(6,1fr); gap:10px; }
   .dc-stat { background:#f8fafc; border:1px solid var(--line); border-radius:10px; padding:10px 8px; text-align:center; display:flex; flex-direction:column; gap:3px; }
   .dc-stat-v { font-size:16px; font-weight:800; color:var(--ink); }
-  .dc-stat-k { font-size:9.5px; color:var(--muted); font-weight:600; }
+  .dc-stat-k { font-size:13px; color:var(--muted); font-weight:600; }
 
   .dc-tablewrap { overflow-x:auto; border:1px solid var(--line); border-radius:10px; }
-  .dc-table { width:100%; border-collapse:collapse; font-size:11px; }
-  .dc-table th { background:#f1f5f9; color:var(--muted); font-weight:700; font-size:9.5px; text-transform:uppercase; letter-spacing:.2px; padding:7px 5px; text-align:center; border-bottom:1px solid var(--line); white-space:nowrap; }
-  .dc-table td { padding:7px 5px; text-align:center; border-bottom:1px solid #f1f5f9; color:var(--ink); }
+  /* table-layout:fixed → table कधीही card पेक्षा रुंद होत नाही (print मध्ये scroll/clip नाही) */
+  .dc-table { width:100%; table-layout:fixed; border-collapse:collapse; font-size:11px; }
+  .dc-table th { background:#f1f5f9; color:var(--muted); font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.2px; padding:7px 4px; text-align:center; border-bottom:1px solid var(--line); }
+  .dc-table td { padding:7px 4px; text-align:center; border-bottom:1px solid #f1f5f9; color:var(--ink); overflow-wrap:anywhere; word-break:break-word; }
   .dc-table tr:last-child td { border-bottom:none; }
   .dc-table .dc-l { text-align:left; }
   .dc-kind { font-weight:700; color:var(--accent); }
@@ -463,14 +495,61 @@ const DC_CSS = `
   .dc-tax { display:flex; gap:16px; flex-wrap:wrap; align-items:stretch; }
   .dc-chips { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; flex:1 1 380px; }
   .dc-chip { background:#f8fafc; border:1px solid var(--line); border-radius:9px; padding:7px 10px; display:flex; flex-direction:column; gap:2px; }
-  .dc-chip-k { font-size:10px; color:var(--muted); font-weight:600; }
-  .dc-chip-v { font-size:14px; font-weight:700; color:var(--ink); }
+  .dc-chip-k { font-size:13px; color:var(--muted); font-weight:600; }
+  .dc-chip-v { font-size:16px; font-weight:700; color:var(--ink); }
   .dc-total { flex:1 1 200px; min-width:200px; background:var(--emeraldbg); border:1px solid #a7f3d0; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:6px; justify-content:center; }
-  .dc-total-row { display:flex; justify-content:space-between; font-size:12px; color:#065f46; }
+  .dc-total-row { display:flex; justify-content:space-between; font-size:14px; color:#065f46; }
   .dc-total-row b { font-weight:700; }
-  .dc-total-grand { display:flex; justify-content:space-between; align-items:center; margin-top:4px; padding-top:8px; border-top:1px dashed #6ee7b7; font-size:15px; color:var(--emerald); font-weight:800; }
+  .dc-total-grand { display:flex; justify-content:space-between; align-items:center; margin-top:4px; padding-top:8px; border-top:1px dashed #6ee7b7; font-size:18px; color:var(--emerald); font-weight:800; }
 
-  .dc-note { min-height:38px; background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:10px 12px; font-size:13px; color:#78350f; white-space:pre-wrap; }
+  .dc-note { min-height:38px; background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:10px 12px; font-size:15px; color:#78350f; white-space:pre-wrap; }
+  .dc-continued { margin:8px 0 2px; padding:8px 12px; background:var(--soft); border:1px dashed var(--accent2); border-radius:8px; font-size:12px; font-weight:600; color:var(--accent); text-align:center; }
+
+  /* portrait (vertical) — landscape पेक्षा थोडे लहान font. :not(.dc-land) => landscape वर
+     कोणताही परिणाम होत नाही (फक्त vertical मोडला लागू). */
+  .dc-report:not(.dc-land) .dc-head-main h1 { font-size:16px; }
+  .dc-report:not(.dc-land) .dc-sub { font-size:10.5px; }
+  .dc-report:not(.dc-land) .dc-loc { font-size:11px; }
+  .dc-report:not(.dc-land) .dc-h2 { font-size:11px; }
+  .dc-report:not(.dc-land) .dc-label { font-size:11px; }
+  .dc-report:not(.dc-land) .dc-value { font-size:14px; }
+  .dc-report:not(.dc-land) .dc-seema-box .dc-value { font-size:14px; }
+  .dc-report:not(.dc-land) .dc-stat-v { font-size:14px; }
+  .dc-report:not(.dc-land) .dc-stat-k { font-size:11px; }
+  .dc-report:not(.dc-land) .dc-table { font-size:10px; }
+  .dc-report:not(.dc-land) .dc-table th { font-size:11px; }
+  .dc-report:not(.dc-land) .dc-kind, .dc-report:not(.dc-land) .dc-kar { font-size:10px; }
+  .dc-report:not(.dc-land) .dc-chip-k { font-size:11px; }
+  .dc-report:not(.dc-land) .dc-chip-v { font-size:14px; }
+  .dc-report:not(.dc-land) .dc-total-row { font-size:12px; }
+  .dc-report:not(.dc-land) .dc-total-grand { font-size:15px; }
+  .dc-report:not(.dc-land) .dc-note { font-size:13px; }
+  /* short fields (voter id / aadhar / mobile / ward etc — non-wide) एका ओळीत => extra row
+     येत नाही; wide fields (नाव/पत्ता) मात्र wrap होतात (लांब मजकूर overflow होत नाही).
+     सर्व variants च्या portrait ला लागू (common fix). */
+  .dc-report:not(.dc-land) .dc-grid .dc-field:not(.dc-wide) .dc-value { white-space:nowrap; }
+
+  /* ---- portrait (vertical) — compact करून एका पानात बसवा; landscape वर परिणाम नाही (:not(.dc-land)) ---- */
+  /* owner grid: dense => orphan नाही; घट्ट अंतर */
+  .dc-report:not(.dc-land) .dc-grid { grid-auto-flow:row dense; gap:3px 14px; }
+  /* sections घट्ट => 8 rows + सर्व sections एका पानात */
+  .dc-report:not(.dc-land) .dc-body { padding-top:2px; padding-bottom:2px; }
+  .dc-report:not(.dc-land) .dc-sec { padding:3px 0; }
+  .dc-report:not(.dc-land) .dc-h2 { margin-bottom:3px; }
+  .dc-report:not(.dc-land) .dc-head { min-height:64px; padding:6px 20px; }
+  .dc-report:not(.dc-land) .dc-seema { gap:5px; }
+  .dc-report:not(.dc-land) .dc-seema-box { padding:4px 8px; }
+  .dc-report:not(.dc-land) .dc-stats { gap:5px; }
+  .dc-report:not(.dc-land) .dc-stat { padding:4px 5px; }
+  .dc-report:not(.dc-land) .dc-chips { gap:5px; }
+  .dc-report:not(.dc-land) .dc-chip { padding:4px 8px; }
+  .dc-report:not(.dc-land) .dc-total { padding:6px 10px; gap:3px; }
+  .dc-report:not(.dc-land) .dc-note { min-height:22px; padding:5px 10px; }
+  .dc-report:not(.dc-land) .dc-tip { font-size:8px; line-height:1.25; }
+  .dc-report:not(.dc-land) .dc-foot { padding:6px 20px; }
+  /* description table headers नीट wrap + घट्ट rows */
+  .dc-report:not(.dc-land) .dc-table th { white-space:normal; word-break:keep-all; line-height:1.15; padding:3px 4px; }
+  .dc-report:not(.dc-land) .dc-table td { line-height:1.15; padding:3px 4px; }
 
   .dc-foot { display:flex; justify-content:space-between; padding:12px 22px; background:#f8fafc; border-top:1px solid var(--line); font-size:11px; color:var(--muted); }
 
@@ -483,15 +562,15 @@ const DC_CSS = `
   .dc-owner-wrap { display:flex; gap:16px; align-items:flex-start; }
   .dc-owner-wrap .dc-grid { flex:1; min-width:0; }
   /* box image ला exactly wrap करतो (fixed height, width image-नुसार) → letterbox gap नाही */
-  .dc-photo { height:165px; max-width:280px; flex-shrink:0; border:1px solid var(--line); border-radius:8px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#fff; }
+  .dc-photo { height:145px; max-width:280px; flex-shrink:0; border:1px solid var(--line); border-radius:8px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#fff; }
   .dc-photo img { height:100%; width:auto; display:block; }
   .dc-photo-ph { width:190px; height:100%; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--faint); }
   /* photo असताना owner grid कमी columns (रुंद cells → wrap नाही) */
   .dc-has-photo .dc-grid { grid-template-columns:repeat(3,1fr); }
   .dc-land .dc-has-photo .dc-grid { grid-template-columns:repeat(4,1fr); }
   .dc-sign { margin-top:16px; text-align:right; font-weight:700; font-size:12px; color:var(--ink); }
-  .dc-land .dc-tip { font-size:9px; }
-  .dc-land .dc-sign { margin-top:10px; }
+  .dc-land .dc-tip { font-size:8px; line-height:1.25; }
+  .dc-land .dc-sign { margin-top:6px; }
 
   /* mobile — layout print सारखाच ठेवा, फक्त दोन्ही बाजूंनी scroll द्या (बघायचे असल्यास).
      अरुंद screen वर card cram होत नाही; horizontal + vertical scroll ने पूर्ण report बघता येते. */
@@ -513,31 +592,34 @@ const DC_CSS = `
   .dc-land .dc-sub { font-size:12px; }
   .dc-land .dc-loc { font-size:13px; }
   .dc-land .dc-h2 { font-size:13px; }
-  .dc-land .dc-label { font-size:12px; }
-  .dc-land .dc-value { font-size:15px; }
-  .dc-land .dc-seema-box .dc-label { font-size:12px; }
-  .dc-land .dc-seema-box .dc-value { font-size:15px; }
+  .dc-land .dc-label { font-size:13px; }
+  .dc-land .dc-value { font-size:16px; }
+  .dc-land .dc-seema-box .dc-label { font-size:13px; }
+  .dc-land .dc-seema-box .dc-value { font-size:16px; }
   .dc-land .dc-stat-v { font-size:20px; }
   .dc-land .dc-stat-k { font-size:12px; }
   .dc-land .dc-table th { font-size:12px; }
   .dc-land .dc-table td { font-size:14px; }
   .dc-land .dc-kind, .dc-land .dc-kar { font-size:14px; }
-  .dc-land .dc-chip-k { font-size:12px; }
+  .dc-land .dc-chip-k { font-size:13px; }
   .dc-land .dc-chip-v { font-size:16px; }
-  .dc-land .dc-total-row { font-size:13px; }
+  .dc-land .dc-total-row { font-size:14px; }
   .dc-land .dc-total-grand { font-size:18px; }
   .dc-land .dc-note { font-size:15px; }
 
   /* landscape COMPACT — tiles/boxes/chips ला inline ओळींमध्ये बदलून height कमी;
      त्यामुळे 14-15px fonts एका पानात नीट बसतात (barik न होता). */
-  .dc-land .dc-sec { padding:3px 0; }
-  .dc-land .dc-h2 { margin-bottom:3px; }
-  .dc-land .dc-head { min-height:56px; padding:7px 20px; }
+  .dc-land .dc-sec { padding:2px 0; }
+  .dc-land .dc-h2 { margin-bottom:2px; }
+  .dc-land .dc-head { min-height:42px; padding:4px 18px; }
+  .dc-land .dc-note { min-height:20px; }
   .dc-land .dc-head-main h1 { font-size:18px; }
-  .dc-land .dc-sub { font-size:11px; margin:0; }
+  .dc-land .dc-sub { font-size:12px; margin:0; }
   .dc-land .dc-loc { margin-top:2px; }
-  /* owner — 6 columns (कमी rows) */
-  .dc-land .dc-grid { grid-template-columns:repeat(6,1fr); gap:3px 16px; }
+  /* owner — 5 columns; dense => wide fields मुळे orphan row येत नाही */
+  .dc-land .dc-grid { grid-template-columns:repeat(5,1fr); gap:3px 16px; grid-auto-flow:row dense; }
+  /* owner values एका ओळीत (voter id / aadhar / mobile wrap होऊ नये) */
+  .dc-land .dc-grid .dc-value { white-space:nowrap; }
   /* चतु:सीमा — inline */
   .dc-land .dc-seema { display:flex; flex-wrap:wrap; gap:3px 26px; }
   .dc-land .dc-seema-box { flex-direction:row; align-items:baseline; gap:6px; background:none; border:none; padding:0; border-radius:0; }
@@ -546,8 +628,8 @@ const DC_CSS = `
   .dc-land .dc-stats { display:flex; flex-wrap:wrap; gap:3px 26px; }
   .dc-land .dc-stat { flex-direction:row-reverse; justify-content:flex-end; align-items:baseline; gap:6px; background:none; border:none; padding:0; border-radius:0; }
   .dc-land .dc-stat-k::after { content:':'; }
-  .dc-land .dc-stat-v { font-size:15px; }
-  .dc-land .dc-stat-k { font-size:12px; color:var(--faint); }
+  .dc-land .dc-stat-v { font-size:16px; }
+  .dc-land .dc-stat-k { font-size:13px; color:var(--faint); }
   /* कर आकारणी — inline strip (chip cards नको) */
   .dc-land .dc-tax { display:flex; flex-wrap:wrap; align-items:center; gap:4px 20px; }
   .dc-land .dc-chips { display:flex; flex-wrap:wrap; gap:3px 20px; }
@@ -555,10 +637,11 @@ const DC_CSS = `
   .dc-land .dc-chip-k::after { content:':'; }
   .dc-land .dc-total { flex-direction:row; flex-wrap:wrap; align-items:center; gap:4px 18px; background:none; border:none; padding:0; }
   .dc-land .dc-total-grand { border:none; padding:0; margin:0; }
-  /* description table — tight single-line rows (12px, wrap नको → कमी height) */
-  .dc-land .dc-table th, .dc-land .dc-table td { padding:2px 6px; font-size:12px; white-space:nowrap; }
+  /* description table — tight single-line rows (कमी height) */
+  .dc-land .dc-table th { padding:2px 5px; font-size:13px; white-space:normal; word-break:keep-all; line-height:1.2; }
+  .dc-land .dc-table td { padding:2px 5px; font-size:11px; line-height:1.15; }
   .dc-land .dc-table .dc-l { white-space:normal; }
-  .dc-land .dc-kind, .dc-land .dc-kar { font-size:12px; }
+  .dc-land .dc-kind, .dc-land .dc-kar { font-size:11px; }
 
   /* common print rules (orientation-independent). @page + card zoom orientation-specific
      DC_PRINT मध्ये (portrait / landscape). एक record = एक पान. */
@@ -568,6 +651,7 @@ const DC_CSS = `
     .dc-report { padding:0; }
     .dc-card { box-shadow:none; border:1px solid #cbd5e1; margin:0 auto; page-break-after:always; break-after:page; page-break-inside:avoid; break-inside:avoid; }
     .dc-card:last-child { page-break-after:auto; break-after:auto; }
+    .dc-tablewrap { overflow:visible !important; }
     .dc-head { min-height:82px; padding:9px 20px; }
     .dc-sec { padding:8px 0; }
     .dc-h2 { margin-bottom:6px; }
@@ -584,16 +668,16 @@ const DC_CSS = `
 
 /* orientation-specific print: @page size + margins (binding: जास्त top+left) + card zoom
    जेणेकरून पूर्ण card एका पानात बसतो. Vertical=portrait, Landscape=landscape. */
-/* zoom (--pz) प्रत्येक load ला JS ने auto-fit केला जातो (सर्वात उंच card एका पानात बसेल असा),
-   त्यामुळे प्रत्येक record नेहमी एकाच पानात; fallback zoom दिलेला. binding: जास्त top+left margin. */
+/* zoom (--pz) JS ने auto-fit केला जातो (सर्वात उंच card एका पानात बसेल असा) व सर्व cards ला
+   एकच लावला जातो — म्हणजे प्रत्येक report सारख्याच आकाराचा. binding: जास्त top+left margin. */
 const DC_PRINT: Record<'portrait' | 'landscape', string> = {
   portrait: `@media print {
     @page { size:A4 portrait; margin:18mm 8mm 12mm 20mm; }
     .dc-card { zoom:var(--pz,0.9); max-width:100%; }
   }`,
   landscape: `@media print {
-    @page { size:A4 landscape; margin:16mm 7mm 8mm 16mm; }
-    .dc-card { zoom:var(--pz,0.8); max-width:100%; }
+    @page { size:A4 landscape; margin:17mm 18px 8mm 45px; }
+    .dc-card { zoom:var(--pz,0.85); width:var(--cw,100%) !important; max-width:none !important; }
   }`,
 };
 

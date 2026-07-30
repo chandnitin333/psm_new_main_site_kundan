@@ -288,7 +288,7 @@ const Bill129_2Report = () => {
             </button>
             {ndOpen && (
               <div className="absolute left-0 z-20 mt-1 w-64 overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
-                {([['landscape', '🖥️ नवीन डिझाईन — Landscape (2 प्रती)'], ['portrait', '📄 नवीन डिझाईन — Portrait']] as const).map(([o, label]) => (
+                {([['landscape', '🖥️ नवीन डिझाईन — Landscape (2 प्रती)'] /* , ['portrait', '📄 नवीन डिझाईन — Portrait'] — तूर्त बंद (comment out) */] as const).map(([o, label]) => (
                   <button
                     key={o}
                     onClick={() => {

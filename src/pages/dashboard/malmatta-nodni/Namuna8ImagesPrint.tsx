@@ -23,6 +23,7 @@ const Namuna8ImagesPrint = () => {
   const [manora, setManora] = useState<Row[]>([]);
   const [imgUrl, setImgUrl] = useState('');
   const [zoom, setZoom] = useState(1); // SCREEN-only zoom (does not affect print)
+  const [ndOpen, setNdOpen] = useState(false); // "नवीन डिझाईन" dropdown
   const [loc] = useState(() => {
     try {
       const u = JSON.parse(localStorage.getItem('user') || '{}');
@@ -127,7 +128,8 @@ const Namuna8ImagesPrint = () => {
           .no-print { display: none !important; }
           .namuna8i-report { zoom: 0.7; padding: 0 !important; min-height: 0; }
           .n8i-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
-          .n8i-zoom { zoom: 1 !important; page-break-inside: avoid; break-inside: avoid; }
+          .n8i-zoom { zoom: 1 !important; }
+          thead { display: table-header-group; }   /* लांब असल्यास description header प्रत्येक पानावर repeat */
           /* print-only: enlarge cell text for readability (screen unaffected) */
           .namuna8i-report td { font-size: 15px !important; line-height: 1.2 !important; }
         }`}</style>
@@ -146,6 +148,38 @@ const Namuna8ImagesPrint = () => {
           <button onClick={() => setZoom((z) => Math.min(2.5, +(z + 0.1).toFixed(2)))} className="flex h-8 w-8 items-center justify-center rounded text-lg font-bold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors" title="Zoom in">+</button>
           <button onClick={() => setZoom(1)} className="ml-1 h-8 rounded px-3 text-xs font-medium text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors" title="Reset zoom">Reset</button>
         </div>
+
+        {/* नवीन डिझाईन (card) — view-namuna8-images-multi सारखेच; एकच record [n] पाठवतो */}
+        {!isPublicReportMode() && (
+          <div className="relative">
+            <button
+              onClick={() => setNdOpen((o) => !o)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-medium shadow-sm transition-colors"
+            >
+              🎨 नवीन डिझाईन (New Design) ▾
+            </button>
+            {ndOpen && (
+              <div className="absolute left-0 z-20 mt-1 w-60 overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
+                {([['portrait', '📄 नवीन डिझाईन — Vertical'], ['landscape', '🖥️ नवीन डिझाईन — Landscape']] as const).map(([o, label]) => (
+                  <button
+                    key={o}
+                    onClick={() => {
+                      try {
+                        sessionStorage.setItem('dharkachiYadiCardData', JSON.stringify([n]));
+                        sessionStorage.setItem('dharkachiYadiCardMeta', JSON.stringify({ year: cy, loc, qrUrl }));
+                      } catch { /* ignore quota */ }
+                      window.open(`/view-dharkachi-yadi-card?orient=${o}&variant=namuna8images`, '_blank');
+                      setNdOpen(false);
+                    }}
+                    className="block w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-indigo-50"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="n8i-wrap overflow-x-auto">
@@ -251,7 +285,13 @@ const Namuna8ImagesPrint = () => {
               <td className={td} colSpan={4}>{f(n.urvarit_khali_jaga_choras_foot)}</td>
               <td className={td} colSpan={4}>{f(Number(n.urvarit_khali_jaga_choras_foot || 0) * 0.092903)}</td>
             </tr>
+          </tbody>
+        </table>
 
+        {/* description — वेगळी table => हिचे column header पुढच्या पानावर continue/repeat होते */}
+        <table className="table-fixed w-full border-collapse">
+          <colgroup>{Array.from({ length: COLS }).map((_, i) => <col key={i} style={{ width: `${pageW / COLS}px` }} />)}</colgroup>
+          <thead>
             {/* ===== Taxation header ===== */}
             <tr className="font-bold bg-gray-100">
               <td className={td} colSpan={2}>मालमत्तेचे वर्णन</td>
@@ -271,6 +311,8 @@ const Namuna8ImagesPrint = () => {
               <td className={td} colSpan={3}>प्रति रु.१००० च्या भांडवली मूल्यावर</td>
               <td className={td} colSpan={3}>कर आकारणी</td>
             </tr>
+          </thead>
+          <tbody>
             {/* Land */}
             {land.map((it, i) => (
               <tr key={`l${i}`}>

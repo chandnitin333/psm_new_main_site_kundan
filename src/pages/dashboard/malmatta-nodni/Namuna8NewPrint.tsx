@@ -21,6 +21,7 @@ const Namuna8NewPrint = () => {
   const [cons, setCons] = useState<Row[]>([]);
   const [manora, setManora] = useState<Row[]>([]);
   const [zoom, setZoom] = useState(1.3); // SCREEN-only default zoom (≈ नमुना ८ width); does not affect print
+  const [ndOpen, setNdOpen] = useState(false); // "नवीन डिझाईन" dropdown
   const [loc] = useState(() => {
     try {
       const u = JSON.parse(localStorage.getItem('user') || '{}');
@@ -161,6 +162,38 @@ const Namuna8NewPrint = () => {
             Reset
           </button>
         </div>
+
+        {/* नवीन डिझाईन (card) — view-namuna8-new-multi सारखेच; एकच record [n] पाठवतो */}
+        {!isPublicReportMode() && (
+          <div className="relative">
+            <button
+              onClick={() => setNdOpen((o) => !o)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-medium shadow-sm transition-colors"
+            >
+              🎨 नवीन डिझाईन (New Design) ▾
+            </button>
+            {ndOpen && (
+              <div className="absolute left-0 z-20 mt-1 w-60 overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
+                {([['portrait', '📄 नवीन डिझाईन — Vertical'], ['landscape', '🖥️ नवीन डिझाईन — Landscape']] as const).map(([o, label]) => (
+                  <button
+                    key={o}
+                    onClick={() => {
+                      try {
+                        sessionStorage.setItem('dharkachiYadiCardData', JSON.stringify([n]));
+                        sessionStorage.setItem('dharkachiYadiCardMeta', JSON.stringify({ year: cy, loc, qrUrl }));
+                      } catch { /* ignore quota */ }
+                      window.open(`/view-dharkachi-yadi-card?orient=${o}&variant=namuna8new`, '_blank');
+                      setNdOpen(false);
+                    }}
+                    className="block w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-indigo-50"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="n8n-wrap overflow-x-auto">

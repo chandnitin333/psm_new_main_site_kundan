@@ -78,6 +78,7 @@ const RecordBlock = ({ n, loc, cy, qrUrl, blank = false }: { n: Row; loc: { dist
         </span>
       </div>
 
+      {/* property block — एकदाच (page 1 वर) */}
       <table className="table-fixed w-full border-collapse">
         <colgroup>{Array.from({ length: COLS }).map((_, i) => <col key={i} style={{ width: `${pageW / COLS}px` }} />)}</colgroup>
         <tbody>
@@ -160,7 +161,13 @@ const RecordBlock = ({ n, loc, cy, qrUrl, blank = false }: { n: Row; loc: { dist
             <td className={td} colSpan={4}>{fv(n.urvarit_khali_jaga_choras_foot)}</td>
             <td className={td} colSpan={4}>{fv(Number(n.urvarit_khali_jaga_choras_foot || 0) * 0.092903)}</td>
           </tr>
+        </tbody>
+      </table>
 
+      {/* description — वेगळी table => हिचे column header पुढच्या पानावर continue/repeat होते */}
+      <table className="table-fixed w-full border-collapse">
+        <colgroup>{Array.from({ length: COLS }).map((_, i) => <col key={i} style={{ width: `${pageW / COLS}px` }} />)}</colgroup>
+        <thead>
           <tr className="font-bold bg-gray-100">
             <td className={td} colSpan={2}>मालमत्तेचे वर्णन</td>
             <td className={td} colSpan={2}>मालमत्तेचा प्रकार</td>
@@ -179,6 +186,8 @@ const RecordBlock = ({ n, loc, cy, qrUrl, blank = false }: { n: Row; loc: { dist
             <td className={td} colSpan={3}>प्रति रु.१००० च्या भांडवली मूल्यावर</td>
             <td className={td} colSpan={3}>कर आकारणी</td>
           </tr>
+        </thead>
+        <tbody>
           {/* blank form: हाताने भरण्यासाठी रिकाम्या ओळी (29 columns) */}
           {blank && Array.from({ length: BLANK_DESC_ROWS }).map((_, i) => (
             <tr key={`blank-desc-${i}`} style={{ height: '30px' }}>
@@ -366,8 +375,10 @@ const Namuna8ImagesMultiReport = () => {
           .n8im-report { zoom: 0.72; padding: 0 !important; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .n8im-wrap { overflow: visible !important; display: flex; flex-direction: column; align-items: center; }
           .n8im-zoom { zoom: 1 !important; }
-          .n8im-page { page-break-after: always; page-break-inside: avoid; break-inside: avoid; }
+          /* record एका पानापेक्षा लांब असल्यास flow होऊ द्या (thead प्रत्येक पानावर repeat होते) */
+          .n8im-page { page-break-after: always; }
           .n8im-page:last-child { page-break-after: auto; }
+          .n8im-report thead, thead { display: table-header-group; }
           /* print-only: enlarge cell text for readability (screen unaffected) */
           .n8im-report td { font-size: 15px !important; line-height: 1.15 !important; }
         }`}</style>

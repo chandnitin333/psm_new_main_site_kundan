@@ -87,23 +87,11 @@ const GhosvaraCard = () => {
   const grandTotal = rows.reduce((s, r) => s + r.total, 0);
   const totalHouses = records.length;
 
-  // auto-fit → एका पानात
+  // गोषवारा bounded आहे (stats + ठराविक कर-प्रकार rows + signatures) => नेहमी एका पानात बसते.
+  // म्हणून FIXED zoom = 1: print मध्ये font shrink होत नाही (13-14px proper दिसतो), bleed नाही.
   useEffect(() => {
     if (loading) return;
-    const isLand = orient === 'landscape';
-    const printW = isLand ? 1035 : 688;
-    const budgetH = (isLand ? 703 : 1009) - 6;
-    const card = document.querySelector('.gc-card');
-    if (!card) return;
-    const clone = card.cloneNode(true) as HTMLElement;
-    clone.style.cssText = `position:absolute;left:-9999px;top:0;width:${printW}px;max-width:${printW}px;zoom:1`;
-    document.body.appendChild(clone);
-    const h = clone.getBoundingClientRect().height;
-    document.body.removeChild(clone);
-    if (h > 0) {
-      const z = Math.max(0.5, Math.min(1, Math.floor((budgetH / h) * 1000) / 1000));
-      document.documentElement.style.setProperty('--gpz', String(z));
-    }
+    document.documentElement.style.setProperty('--gpz', '1');
     return () => { document.documentElement.style.removeProperty('--gpz'); };
   }, [loading, records, orient]);
 
@@ -207,30 +195,30 @@ const GC_CSS = `
   .gc-card { max-width:840px; margin:0 auto; background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden; box-shadow:0 8px 30px rgba(2,6,23,.07); }
   .gc-land .gc-card { max-width:1000px; }
 
-  .gc-head { text-align:center; padding:18px 24px; background:linear-gradient(120deg,var(--accent),var(--accent2)); color:#fff; }
-  .gc-head h1 { margin:0; font-size:22px; font-weight:800; }
-  .gc-sub { margin:3px 0 0; font-size:14px; opacity:.95; }
-  .gc-loc { display:flex; flex-wrap:wrap; justify-content:center; gap:4px 20px; margin:10px 0 0; font-size:13px; opacity:.95; }
+  .gc-head { text-align:center; padding:12px 24px; background:linear-gradient(120deg,var(--accent),var(--accent2)); color:#fff; }
+  .gc-head h1 { margin:0; font-size:20px; font-weight:800; }
+  .gc-sub { margin:2px 0 0; font-size:13px; opacity:.95; }
+  .gc-loc { display:flex; flex-wrap:wrap; justify-content:center; gap:4px 20px; margin:6px 0 0; font-size:13px; opacity:.95; }
 
-  .gc-body { padding:20px 24px 24px; }
-  .gc-stats { display:grid; grid-template-columns:1fr 1.4fr; gap:14px; margin-bottom:18px; }
-  .gc-stat { border:1px solid var(--line); border-radius:12px; padding:14px 16px; text-align:center; display:flex; flex-direction:column; gap:4px; background:#f8fafc; }
+  .gc-body { padding:10px 24px 12px; }
+  .gc-stats { display:grid; grid-template-columns:1fr 1.4fr; gap:12px; margin-bottom:10px; }
+  .gc-stat { border:1px solid var(--line); border-radius:12px; padding:9px 14px; text-align:center; display:flex; flex-direction:column; gap:3px; background:#f8fafc; }
   .gc-stat-em { background:var(--emeraldbg); border-color:#a7f3d0; }
-  .gc-stat-v { font-size:24px; font-weight:800; color:var(--ink); }
+  .gc-stat-v { font-size:20px; font-weight:800; color:var(--ink); }
   .gc-stat-em .gc-stat-v { color:var(--emerald); }
   .gc-stat-k { font-size:12px; color:var(--muted); font-weight:600; }
 
-  .gc-table { width:100%; border-collapse:collapse; font-size:14px; }
-  .gc-table th { background:#f1f5f9; color:var(--muted); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.3px; padding:10px 14px; text-align:left; border-bottom:1px solid var(--line); }
-  .gc-table td { padding:9px 14px; border-bottom:1px solid #f1f5f9; }
+  .gc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .gc-table th { background:#f1f5f9; color:var(--muted); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.3px; padding:6px 14px; text-align:left; border-bottom:1px solid var(--line); }
+  .gc-table td { padding:5px 14px; border-bottom:1px solid #f1f5f9; line-height:1.3; }
   .gc-table .gc-r { text-align:right; font-variant-numeric:tabular-nums; }
   .gc-table tbody tr:nth-child(even) td { background:#fafbfc; }
-  .gc-total td { background:var(--soft) !important; font-weight:800; color:var(--accent); font-size:15px; border-top:2px solid #c7d2fe; }
+  .gc-total td { background:var(--soft) !important; font-weight:800; color:var(--accent); font-size:14px; border-top:2px solid #c7d2fe; }
 
-  .gc-note { margin:18px 0 0; padding:12px 16px; background:#fffbeb; border:1px solid #fde68a; border-radius:10px; font-size:13px; line-height:1.6; color:#78350f; text-align:center; }
+  .gc-note { margin:10px 0 0; padding:8px 14px; background:#fffbeb; border:1px solid #fde68a; border-radius:10px; font-size:12px; line-height:1.45; color:#78350f; text-align:center; }
 
-  .gc-signs { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:34px; }
-  .gc-signs-5 { grid-template-columns:repeat(5,1fr); margin-top:40px; }
+  .gc-signs { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:16px; }
+  .gc-signs-5 { grid-template-columns:repeat(5,1fr); margin-top:18px; }
   .gc-sign { display:flex; flex-direction:column; align-items:center; text-align:center; gap:2px; }
   .gc-sign-line { width:100%; border-top:1px solid var(--ink); margin-bottom:5px; }
   .gc-sign b { font-size:12px; font-weight:700; color:var(--ink); }
@@ -250,11 +238,12 @@ const GC_PRINT_PORT = `@media print {
   .gc-card { box-shadow:none; margin:0 auto; max-width:100%; zoom:var(--gpz,0.95); }
 }`;
 const GC_PRINT_LAND = `@media print {
-  @page { size:A4 landscape; margin:16mm 7mm 8mm 16mm; }
+  @page { size:A4 landscape; margin:14mm 12px 8mm 32px; }
   html, body { background:#fff !important; }
   .no-print { display:none !important; }
   .gc-report { padding:0; }
-  .gc-card { box-shadow:none; margin:0 auto; max-width:100%; zoom:var(--gpz,0.85); }
+  /* fixed zoom 1 (shrink नाही => font proper). left binding जास्त, right कमी. width पूर्ण पान. */
+  .gc-card { box-shadow:none; margin:0 auto; width:100% !important; max-width:none !important; zoom:var(--gpz,1); }
 }`;
 
 export default GhosvaraCard;
