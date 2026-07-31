@@ -1,12 +1,14 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from '../../components/layout/Header';
 import Sidebar from '../../components/layout/Sidebar';
 import PageTracker from '../../components/PageTracker';
 import ScrollToTop from '../../components/ScrollToTop';
 import GramSahayak from '../../components/assistant/GramSahayak';
+import CitizenNotifBell from '../../components/CitizenNotifBell';
 import { DASHBOARD_MENU_ITEMS, CITIZEN_MENU_ITEMS } from '../../constants/menuItems';
 import { filterMenuItems, isCitizen, can } from '../../utils/permissions';
+import { loadGpSettings } from '../../utils/gpSettings';
 import type { DashboardLayoutProps } from '../../interfaces/dashboard/DashboardLayout.types';
 
 const DashboardLayout = ({ onLogout }: DashboardLayoutProps) => {
@@ -22,6 +24,9 @@ const DashboardLayout = ({ onLogout }: DashboardLayoutProps) => {
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
+
+  // cache GP operational settings (receipt header/footer, late-fee) for sync use
+  useEffect(() => { loadGpSettings(); }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
@@ -53,6 +58,9 @@ const DashboardLayout = ({ onLogout }: DashboardLayoutProps) => {
 
       {/* AI-free guided assistant — floating; permission-gated (ग्राम सहायक) */}
       {can('gram_sahayak', 'view') && <GramSahayak />}
+
+      {/* Citizen-only floating सूचना bell with unread count */}
+      {isCitizen() && <CitizenNotifBell />}
     </div>
   );
 };

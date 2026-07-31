@@ -4,8 +4,10 @@
  */
 import { api, type ApiResponse } from './api';
 
+export type SearchType = 'property' | 'vasuli' | 'certificate' | 'water_meter';
+
 export interface SearchResult {
-  type: 'property' | 'vasuli' | 'certificate';
+  type: SearchType;
   id: number;
   label: string;
   sublabel: string;
@@ -17,9 +19,10 @@ export interface SearchResult {
 }
 
 export const searchService = {
-  /** Search across modules. Returns up to a handful of matches per type. */
-  global: async (q: string): Promise<ApiResponse<{ results: SearchResult[] }>> => {
-    return api.get(`/main/search?q=${encodeURIComponent(q)}`);
+  /** Search across modules (permission-based — `types` limits which entities are searched). */
+  global: async (q: string, types?: string[]): Promise<ApiResponse<{ results: SearchResult[] }>> => {
+    const t = types && types.length ? `&types=${encodeURIComponent(types.join(','))}` : '';
+    return api.get(`/main/search?q=${encodeURIComponent(q)}${t}`);
   },
 };
 

@@ -1,17 +1,20 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, X, Building2, Wallet, Award } from 'lucide-react';
-import { searchService, type SearchResult } from '../../services/searchService';
+import { Search, X, Building2, Wallet, Award, Droplet } from 'lucide-react';
+import { searchService, type SearchResult, type SearchType } from '../../services/searchService';
+import { canModule, can, canAnyCertificate } from '../../utils/permissions';
 
 /**
- * Header global search — one box to find a property/owner, a vasuli record or an
- * issued certificate across the whole gram panchayat. Debounced; results grouped
- * by type. Clicking a result deep-links to the relevant page (prefilled).
+ * Header global search — one box to find a property/owner, vasuli record, issued
+ * certificate or water meter across the gram panchayat. Debounced; results grouped
+ * by type. PERMISSION-BASED: only the entity types the user can access are searched
+ * (passed to the backend) and shown. Clicking a result deep-links to the page.
  */
-const TYPE_META: Record<SearchResult['type'], { label: string; Icon: typeof Building2; color: string }> = {
+const TYPE_META: Record<SearchType, { label: string; Icon: typeof Building2; color: string }> = {
   property: { label: 'मालमत्ता / खातेदार', Icon: Building2, color: 'text-blue-600 dark:text-blue-400' },
   vasuli: { label: 'वसुली', Icon: Wallet, color: 'text-emerald-600 dark:text-emerald-400' },
   certificate: { label: 'प्रमाणपत्र', Icon: Award, color: 'text-purple-600 dark:text-purple-400' },
+  water_meter: { label: 'पाणी मीटर', Icon: Droplet, color: 'text-sky-600 dark:text-sky-400' },
 };
 
 const GlobalSearch = () => {
@@ -21,6 +24,16 @@ const GlobalSearch = () => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+
+  // permission-based: which entity types this user may search
+  const allowedTypes = useMemo<SearchType[]>(() => {
+    const t: SearchType[] = [];
+    if (canModule('malmatta_nodni') || canModule('nodni_form')) t.push('property');
+    if (canModule('vasuli')) t.push('vasuli');
+    if (canAnyCertificate()) t.push('certificate');
+    if (can('malmatta_nodni', 'water_meter')) t.push('water_meter');
+    return t;
+  }, []);
 
   // debounced search
   useEffect(() => {
@@ -33,7 +46,7 @@ const GlobalSearch = () => {
     setLoading(true);
     const t = setTimeout(async () => {
       try {
-        const res = await searchService.global(term);
+        const res = await searchService.global(term, allowedTypes);
         setResults((res?.data?.results as SearchResult[]) || []);
         setOpen(true);
       } catch {
@@ -68,14 +81,20 @@ const GlobalSearch = () => {
       navigate(`/vasuli${p.toString() ? `?${p}` : ''}`);
     } else if (r.type === 'certificate' && r.cert_type) {
       navigate(`/certificates/${r.cert_type}?id=${r.id}`);
+    } else if (r.type === 'water_meter') {
+      navigate(`/water-meter/${r.id}`);
     }
     setOpen(false);
     setQ('');
     setResults([]);
   };
 
-  // group results by type, preserving order property -> vasuli -> certificate
-  const groups: SearchResult['type'][] = ['property', 'vasuli', 'certificate'];
+  // group results by type, preserving order (only the types the user can access)
+  const groups: SearchType[] = (['property', 'vasuli', 'certificate', 'water_meter'] as SearchType[])
+    .filter((t) => allowedTypes.includes(t));
+
+  // no searchable entity for this user -> hide the box entirely
+  if (allowedTypes.length === 0) return null;
 
   return (
     <div ref={boxRef} className="relative hidden md:block">

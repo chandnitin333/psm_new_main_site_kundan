@@ -19,11 +19,15 @@ export interface SaveCertificatePayload {
 
 export interface CertificateVerifyResult {
   valid: boolean;
+  status?: 'valid' | 'revoked' | 'invalid' | 'not_found';
   cert_type?: string;
   cert_name?: string;
   applicant_name?: string;
   outward_no?: string;
   issued_date?: string;
+  revoked?: boolean;
+  revoked_date?: string | null;
+  revoke_reason?: string | null;
   gram_panchayat?: string;
   taluka?: string;
   district?: string;
@@ -56,5 +60,15 @@ export const certificateService = {
   /** PUBLIC — verify a certificate's authenticity by its QR token (no login). */
   verify: async (token: string): Promise<ApiResponse<CertificateVerifyResult>> => {
     return api.get(`${CERT_ENDPOINTS.BASE}/verify/${encodeURIComponent(token)}`);
+  },
+
+  /** Revoke (रद्द) an issued certificate with a reason. GP-scoped, permission-gated. */
+  revoke: async (id: number, reason: string): Promise<ApiResponse> => {
+    return api.post(`${CERT_ENDPOINTS.BASE}/${id}/revoke`, { reason });
+  },
+
+  /** Undo a revoke — restore the certificate to valid. */
+  unrevoke: async (id: number): Promise<ApiResponse> => {
+    return api.post(`${CERT_ENDPOINTS.BASE}/${id}/unrevoke`, {});
   },
 };

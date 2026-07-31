@@ -56,7 +56,33 @@ const NODNI_ENDPOINTS = {
   MANORYACHE: '/main/manoryache-kar-aakarani',
   UPLOAD_IMAGE: '/main/malmatta-nodni/images/upload',
   GET_IMAGES_BY_NODNI: (nodniId: number) => `/main/malmatta-nodni/images/nodni/${nodniId}`,
+  GET_OLD_IMAGES_BY_NODNI: (nodniId: number) => `/main/malmatta-nodni/images/old/nodni/${nodniId}`,
+  DELETE_IMAGE: (id: number) => `/main/malmatta-nodni/images/${id}`,
+  IMPORT_LOG: '/main/nodni/user-import-log',
+  IMPORT_LOG_RESOLVE: (id: number) => `/main/nodni/user-import-log/${id}/resolve`,
+  IMPORT_LOG_REIMPORT: (id: number) => `/main/nodni/user-import-log/${id}/reimport`,
 } as const;
+
+export interface ImportLogEntry {
+  id: number;
+  source: string;                 // manual | bulk | scan | reimport
+  reason: string;                 // duplicate_user | no_mobile | error
+  nodni_id: number | null;
+  gram_panchayat_id: number | null;
+  mobile_number: string | null;
+  aadhar_card_no: string | null;
+  owner_name: string | null;
+  existing_user_id: number | null;
+  details: string | null;
+  is_resolved: number;
+  resolved_at: string | null;
+  created_at: string;
+}
+export interface ImportLogResponse {
+  total: number;
+  rows: ImportLogEntry[];
+  counts: Record<string, number>; // reason -> count + pending_total
+}
 
 export const nodniService = {
   /**
@@ -74,6 +100,18 @@ export const nodniService = {
   bulkCreate: async (rows: Record<string, unknown>[]): Promise<ApiResponse> => {
     return api.post(NODNI_ENDPOINTS.BULK, { rows });
   },
+
+  /** Import-Log: skipped/duplicate citizen-user events from manual/bulk/scan imports. */
+  getImportLog: async (params: { reason?: string; source?: string; resolved?: string } = {}): Promise<ApiResponse<ImportLogResponse>> => {
+    const qs = new URLSearchParams();
+    if (params.reason) qs.set('reason', params.reason);
+    if (params.source) qs.set('source', params.source);
+    if (params.resolved != null && params.resolved !== '') qs.set('resolved', params.resolved);
+    const q = qs.toString();
+    return api.get(q ? `${NODNI_ENDPOINTS.IMPORT_LOG}?${q}` : NODNI_ENDPOINTS.IMPORT_LOG);
+  },
+  resolveImportLog: async (id: number): Promise<ApiResponse> => api.post(NODNI_ENDPOINTS.IMPORT_LOG_RESOLVE(id), {}),
+  reimportImportLog: async (id: number): Promise<ApiResponse<{ id: number; result: string }>> => api.post(NODNI_ENDPOINTS.IMPORT_LOG_REIMPORT(id), {}),
 
   /**
    * मालमत्ता विभाजन — source record नंतर नवीन record (source copy + overrides);
@@ -282,6 +320,11 @@ export const nodniService = {
     return api.get(NODNI_ENDPOINTS.GET_IMAGES_BY_NODNI(nodniId));
   },
 
+  /** Archived (replaced) images for a nodni — read-only history */
+  getOldImagesByNodni: async (nodniId: number): Promise<ApiResponse> => {
+    return api.get(NODNI_ENDPOINTS.GET_OLD_IMAGES_BY_NODNI(nodniId));
+  },
+
   /**
    * Upload an image for a nodni record
    */
@@ -290,6 +333,11 @@ export const nodniService = {
     formData.append('nodni_id', String(nodniId));
     formData.append('image', imageFile);
     return api.upload(NODNI_ENDPOINTS.UPLOAD_IMAGE, formData);
+  },
+
+  /** Delete one property image */
+  deleteImage: async (imageId: number): Promise<ApiResponse> => {
+    return api.delete(NODNI_ENDPOINTS.DELETE_IMAGE(imageId));
   },
 };
 
