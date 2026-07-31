@@ -52,6 +52,8 @@ export const DASHBOARD_MENU_ITEMS: MenuItem[] = [
       { id: 'nodni-form', label: 'नोंदणी फॉर्म', path: '/nodni-form' },
       { id: 'malmatta-nodni', label: 'मालमत्ता नोंदणी', path: '/malmatta-nodni' },
       { id: 'malmatta-ferfar', label: 'मालमत्ता फेरफार', path: '/malmatta-ferfar' },
+      { id: 'water-meter-list', label: 'पाणी मीटर यादी', path: '/water-meter' },
+      { id: 'water-field-reading', label: 'पाणी फील्ड रीडिंग', path: '/water-meter/field-reading' },
     ]
   },
   {
@@ -66,7 +68,11 @@ export const DASHBOARD_MENU_ITEMS: MenuItem[] = [
     label: 'वसुली',
     path: '/vasuli',
     icon: 'FileCheck',
-    subMenus: []
+    subMenus: [
+      { id: 'collection-dashboard', label: 'वसुली डॅशबोर्ड', path: '/collection-dashboard' },
+      { id: 'vasuli-entry', label: 'वसुली नोंद', path: '/vasuli' },
+      { id: 'collection-mode', label: 'फिरती वसुली', path: '/collection-mode' }
+    ]
   },
   {
     id: 'ahval',
@@ -84,7 +90,8 @@ export const DASHBOARD_MENU_ITEMS: MenuItem[] = [
       { id: 'ahval-bill-ward', label: 'करांच्या मागणीचे बिल (प्रभाग)', path: '/ahval/bill-ward' },
       { id: 'ahval-namuna10', label: 'नमुना १०', path: '/ahval/namuna10' },
       { id: 'ahval-imla-kar', label: 'इमला कर', path: '/ahval/imla-kar' },
-      { id: 'ahval-pani-meter-bill', label: 'पाणी मीटर बिल', path: '/ahval/pani-meter-bill' }
+      { id: 'ahval-pani-meter-bill', label: 'पाणी मीटर बिल', path: '/ahval/pani-meter-bill' },
+      { id: 'ahval-ghosvara', label: 'घोषवारा', path: '/ahval/ghosvara' }
     ]
   },
   {
@@ -95,18 +102,17 @@ export const DASHBOARD_MENU_ITEMS: MenuItem[] = [
     subMenus: []
   },
   {
-    id: 'helpline',
-    label: 'हेल्पलाईन',
-    path: '/helpline',
+    id: 'citizen-services',
+    label: 'नागरिक सेवा',
+    path: '/citizen-services',
     icon: 'LifeBuoy',
-    subMenus: []
-  },
-  {
-    id: 'gp-posts',
-    label: 'सूचना',
-    path: '/posts',
-    icon: 'Megaphone',
-    subMenus: []
+    subMenus: [
+      { id: 'helpline', label: 'हेल्पलाईन', path: '/helpline' },
+      { id: 'gp-posts', label: 'सूचना', path: '/posts' },
+      { id: 'grievances', label: 'तक्रारी', path: '/grievances' },
+      { id: 'citizen-notifications', label: 'नागरिक सूचना', path: '/citizen-notifications' },
+      { id: 'bulk-reminder', label: 'थकबाकी स्मरणपत्र', path: '/bulk-reminder' }
+    ]
   }
 ];
 
@@ -134,6 +140,13 @@ export const CITIZEN_MENU_ITEMS: MenuItem[] = [
     subMenus: []
   },
   {
+    id: 'my-payments',
+    label: 'माझे भरणे',
+    path: '/my-payments',
+    icon: 'Receipt',
+    subMenus: []
+  },
+  {
     id: 'helpline',
     label: 'हेल्पलाईन',
     path: '/helpline',
@@ -145,6 +158,20 @@ export const CITIZEN_MENU_ITEMS: MenuItem[] = [
     label: 'सूचना',
     path: '/posts',
     icon: 'Megaphone',
+    subMenus: []
+  },
+  {
+    id: 'my-notifications',
+    label: 'माझ्या सूचना',
+    path: '/my-notifications',
+    icon: 'Bell',
+    subMenus: []
+  },
+  {
+    id: 'my-complaints',
+    label: 'माझ्या तक्रारी',
+    path: '/my-complaints',
+    icon: 'MessagesSquare',
     subMenus: []
   },
   {

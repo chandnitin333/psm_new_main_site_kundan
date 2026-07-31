@@ -13,7 +13,7 @@
 export type ActionKey =
   | 'view' | 'add' | 'edit' | 'delete'
   | 'report' | 'print' | 'pdf' | 'image_upload' | 'magil_kar' | 'water_meter' | 'divide'
-  | 'scan' | 'gallery' | 'download_template' | 'bulk_import';
+  | 'scan' | 'gallery' | 'download_template' | 'bulk_import' | 'export';
 
 type PagePermissions = Record<string, ActionKey[]>;
 
@@ -27,6 +27,10 @@ export const PATH_TO_MODULE: Record<string, string> = {
   '/vasuli': 'vasuli',
   '/collection-daybook': 'vasuli_daybook',
   '/collection-mode': 'vasuli_field',
+  '/collection-dashboard': 'collection_dashboard',
+  '/bulk-reminder': 'bulk_reminder',
+  '/water-meter': 'malmatta_nodni',
+  '/water-meter/field-reading': 'malmatta_nodni',
   '/ahval/aadhar-list': 'ahval_aadhar_list',
   '/ahval/mobile-list': 'ahval_mobile_list',
   '/ahval/pani-list': 'ahval_pani_list',
@@ -38,8 +42,11 @@ export const PATH_TO_MODULE: Record<string, string> = {
   '/ahval/namuna10': 'ahval_namuna10',
   '/ahval/imla-kar': 'ahval_imla_kar',
   '/ahval/pani-meter-bill': 'ahval_pani_meter_bill',
+  '/ahval/ghosvara': 'ahval_ghosvara',
   '/helpline': 'helpline',
   '/posts': 'gp_posts',
+  '/grievances': 'grievance',
+  '/citizen-notifications': 'citizen_notification',
   // certificates are per-type (module key = `cert_<slug>`); the /certificates menu
   // itself is gated by canAnyCertificate() (see filterMenuItems).
 };
@@ -102,6 +109,23 @@ export const can = (moduleKey: string, action: ActionKey): boolean => {
 // Module key for a route path (handles trailing segments under /ahval/*)
 export const moduleForPath = (path: string): string | undefined => PATH_TO_MODULE[path];
 
+// Some paths need a specific ACTION (not just the module) to be visible —
+// e.g. पाणी मीटर is the `water_meter` action of the malmatta_nodni module.
+export const PATH_TO_ACTION: Record<string, ActionKey> = {
+  '/water-meter': 'water_meter',
+  '/water-meter/field-reading': 'water_meter',
+};
+
+// Can the user reach a route (menu-level)? Uses action-level check when the path
+// declares one in PATH_TO_ACTION, else module-level canModule.
+export const canAccessPath = (path?: string): boolean => {
+  if (!path) return true;
+  const m = moduleForPath(path);
+  if (!m) return true;
+  const action = PATH_TO_ACTION[path];
+  return action ? can(m, action) : canModule(m);
+};
+
 // Where to land after login: dashboard if allowed, otherwise the first
 // permitted page (in PATH_TO_MODULE order). Full-access users always get dashboard.
 export const getLandingPath = (): string => {
@@ -129,17 +153,13 @@ export const filterMenuItems = <T extends MenuLike>(items: T[]): T[] => {
   for (const item of items) {
     const subs = item.subMenus || [];
     if (subs.length > 0) {
-      const visibleSubs = subs.filter((s) => {
-        const m = moduleForPath(s.path);
-        return m ? canModule(m) : true;
-      });
+      const visibleSubs = subs.filter((s) => canAccessPath(s.path));
       if (visibleSubs.length > 0) result.push({ ...item, subMenus: visibleSubs });
     } else if (item.path === '/certificates') {
       // certificates menu shows if the user can access ANY certificate type
       if (canAnyCertificate()) result.push(item);
     } else {
-      const m = item.path ? moduleForPath(item.path) : undefined;
-      if (!m || canModule(m)) result.push(item);
+      if (canAccessPath(item.path)) result.push(item);
     }
   }
   return result;

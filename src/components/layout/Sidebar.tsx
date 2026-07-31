@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronRight, X, FileText, Building2, RefreshCw, DollarSign, FileCheck, BarChart3, Home, Boxes, Loader2, Award, LifeBuoy, Megaphone, Droplet } from 'lucide-react';
+import { ChevronDown, ChevronRight, X, FileText, Building2, RefreshCw, DollarSign, FileCheck, BarChart3, Home, Boxes, Loader2, Award, LifeBuoy, Megaphone, Droplet, MessagesSquare, Receipt, Bell } from 'lucide-react';
 import type { MenuItem } from '../../interfaces';
 
 // Icon mapping
@@ -18,6 +18,9 @@ const iconMap: { [key: string]: any } = {
   LifeBuoy,
   Megaphone,
   Droplet,
+  MessagesSquare,
+  Receipt,
+  Bell,
 };
 
 interface SidebarProps {

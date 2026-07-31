@@ -13,6 +13,11 @@ const VASULI_ENDPOINTS = {
   DELETE: (id: number) => `/main/vasuli/${id}`,
   STATS: '/main/vasuli/stats',
   KPIS: '/main/vasuli/kpis',
+  MONTHLY: '/main/vasuli/monthly',
+  GHOSVARA: '/main/vasuli/ghosvara',
+  BULK_REMINDER: '/main/vasuli/bulk-reminder',
+  LEDGER: (nodniId: number) => `/main/vasuli/ledger/${nodniId}`,
+  DEFAULTERS: '/main/vasuli/defaulters',
   DAYBOOK: '/main/vasuli/daybook',
   WARD_COLLECTION: '/main/vasuli/ward-collection',
   FIND: '/main/vasuli/find',
@@ -20,7 +25,38 @@ const VASULI_ENDPOINTS = {
   PAYMENTS: (vasuliId: number) => `/main/vasuli/${vasuliId}/payments`,
   PAYMENT_DELETE: (paymentId: number) => `/main/vasuli/payments/${paymentId}`,
   PAYMENT_IMAGE_UPLOAD: '/main/vasuli/payment-image/upload',
+  MY_PAYMENTS: '/main/vasuli/my-payments',
 } as const;
+
+/** One भरणा (payment) entry for the logged-in citizen, incl. receipt fields. */
+export interface MyPayment {
+  id: number;
+  paid_at: string;
+  amount: number;
+  payment_type: string | null;      // cash | online | ...
+  kar_prakar: string | null;        // gruhkar | pani | both
+  ghar_amount: number | null;
+  pani_amount: number | null;
+  reference_no: string | null;
+  ghar_pavti_no: string | null;
+  pani_pavti_no: string | null;
+  year: number | null;
+  to_year: number | null;
+  malmatta_number: string | null;
+  anu_kramank: string | null;
+  ward_number: string | null;
+  khatedharkache_nav: string | null;
+  patta_address: string | null;
+  sillak_ekun: number | null;
+  gram_panchayat: string | null;
+  taluka: string | null;
+  district: string | null;
+}
+export interface MyPaymentsResponse {
+  payments: MyPayment[];
+  total_paid: number;
+  count: number;
+}
 
 export interface VasuliListPayload {
   page?: number;
@@ -52,6 +88,65 @@ export interface DashboardKpis {
   properties_total: number;
   today_entries: number;
   certificates_total: number;
+}
+
+export interface MonthlyCollection {
+  year: number;
+  months: { month_name: string; collected: number; count: number }[];
+  total: number;
+}
+
+export interface GhosvaraRow {
+  ward: string;
+  properties: number;
+  demand: number;
+  collected: number;
+  outstanding: number;
+  recovery_pct: number;
+}
+export interface Ghosvara {
+  year: string | null;
+  wards: GhosvaraRow[];
+  total: GhosvaraRow;
+}
+
+export interface LedgerYear {
+  id: number; year: number | string | null; to_year: number | string | null;
+  ward_number: string | null; anu_kramank: string | null; malmatta_number: string | null;
+  demand: number; collected: number; outstanding: number;
+}
+export interface LedgerPayment {
+  id: number; paid_at: string; amount: number; payment_type: string | null;
+  kar_prakar: string | null; reference_no: string | null;
+  ghar_pavti_no: string | null; pani_pavti_no: string | null;
+}
+export interface PropertyLedger {
+  property: { nodni_id: number; name: string; mobile: string; ward: string | number | null; malmatta_number: string | null; address: string };
+  years: LedgerYear[];
+  payments: LedgerPayment[];
+  totals: { demand: number; collected: number; outstanding: number };
+  water: { meter_number: string | null; total_paid: number; count: number } | null;
+}
+
+export interface BulkReminderResult {
+  inapp_sent: number;
+  sms_count: number;
+  no_mobile: number;
+  sms_list: { mobile: string; name: string; message: string }[];
+}
+
+export interface Defaulter {
+  nodni_id: number;
+  anu_kramank: string | null;
+  ward: string | null;
+  malmatta_number: string | null;
+  name: string;
+  mobile: string | null;
+  year: string | null;
+  to_year: string | null;
+  demand: number;
+  jama: number;
+  baki: number;
 }
 
 export interface DaybookPayment {
@@ -170,8 +265,37 @@ export const vasuliService = {
   },
 
   /** Consolidated dashboard KPIs — collection totals, recovery %, ward-wise बाकी, counts */
-  getKpis: async (): Promise<ApiResponse<DashboardKpis>> => {
-    return api.get(VASULI_ENDPOINTS.KPIS);
+  getKpis: async (year?: string): Promise<ApiResponse<DashboardKpis>> => {
+    return api.get(year ? `${VASULI_ENDPOINTS.KPIS}?year=${encodeURIComponent(year)}` : VASULI_ENDPOINTS.KPIS);
+  },
+
+  /** Month-wise collection for a financial year (Apr -> Mar) — मासिक वसुली trend */
+  getMonthly: async (year?: string | number): Promise<ApiResponse<MonthlyCollection>> => {
+    return api.get(year ? `${VASULI_ENDPOINTS.MONTHLY}?year=${encodeURIComponent(String(year))}` : VASULI_ENDPOINTS.MONTHLY);
+  },
+
+  /** Ward-wise घोषवारा summary (मागणी/वसुली/थकबाकी) + GP total for a year */
+  getGhosvara: async (year?: string | number): Promise<ApiResponse<Ghosvara>> => {
+    return api.get(year ? `${VASULI_ENDPOINTS.GHOSVARA}?year=${encodeURIComponent(String(year))}` : VASULI_ENDPOINTS.GHOSVARA);
+  },
+
+  /** Consolidated property खातेवही — year-wise मागणी/वसुली/थकबाकी + payments + water */
+  getLedger: async (nodniId: number): Promise<ApiResponse<PropertyLedger>> => api.get(VASULI_ENDPOINTS.LEDGER(nodniId)),
+
+  /** Bulk thakbaki reminder — in-app सूचना to defaulters + SMS text list */
+  bulkReminder: async (payload: {
+    title?: string; message?: string; send_inapp?: boolean;
+    targets: { mobile?: string | null; name?: string | null; baki?: number; year?: number | string | null }[];
+  }): Promise<ApiResponse<BulkReminderResult>> => {
+    return api.post(VASULI_ENDPOINTS.BULK_REMINDER, payload);
+  },
+
+  /** Top defaulter properties by outstanding बाकी (optionally a year) */
+  getDefaulters: async (year?: string, limit = 50): Promise<ApiResponse<{ defaulters: Defaulter[]; count: number }>> => {
+    const qs = new URLSearchParams();
+    if (year) qs.set('year', year);
+    qs.set('limit', String(limit));
+    return api.get(`${VASULI_ENDPOINTS.DEFAULTERS}?${qs.toString()}`);
   },
 
   /** दैनिक वसुली रजिस्टर — payments in a date range with totals (default: today) */
@@ -222,6 +346,11 @@ export const vasuliService = {
     formData.append('image', imageFile);
     if (field) formData.append('field', field);
     return api.upload(VASULI_ENDPOINTS.PAYMENT_IMAGE_UPLOAD, formData);
+  },
+
+  /** Citizen self-service — own भरणा इतिहास (for माझे भरणे page + पावती). */
+  getMyPayments: async (): Promise<ApiResponse<MyPaymentsResponse>> => {
+    return api.get(VASULI_ENDPOINTS.MY_PAYMENTS);
   },
 };
 

@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Home, Building2, Factory, Award, TrendingUp, MapPin, PieChart as PieIcon, BarChart3, Mail, Phone, ChevronLeft, ChevronRight, BadgeCheck, Landmark, Map as MapIcon, Navigation, IndianRupee, Wallet, Percent, CalendarPlus } from 'lucide-react';
+import { Users, Home, Building2, Factory, Award, TrendingUp, MapPin, PieChart as PieIcon, BarChart3, Mail, Phone, ChevronLeft, ChevronRight, BadgeCheck, Landmark, Map as MapIcon, Navigation, IndianRupee, Wallet, Percent, CalendarPlus, FileText, Droplet, Plus, MessagesSquare, BellRing } from 'lucide-react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import { useLoading } from '../../contexts/LoadingContext';
 import { nodniService, commonDdlService, vasuliService, authService } from '../../services';
-import type { DashboardKpis } from '../../services/vasuliService';
+import type { DashboardKpis, MonthlyCollection } from '../../services/vasuliService';
+import { fyLabel, fyOfDate } from '../../utils/fyConfig';
+import { canAnyCertificate, canModule, can } from '../../utils/permissions';
 import { isSuperUser, getActiveGp, clearActiveGp } from '../../utils/activeGp';
 import config from '../../config';
 import type { CategoryCard } from '../../interfaces/dashboard/Dashboard.types';
@@ -60,6 +62,7 @@ const Dashboard = () => {
   const [vasuliYearWise, setVasuliYearWise] = useState<{ year: string; total: number; baki: number }[]>([]);
   const [vasuliByTax, setVasuliByTax] = useState<Record<string, number>>({});
   const [kpis, setKpis] = useState<DashboardKpis | null>(null);
+  const [monthly, setMonthly] = useState<MonthlyCollection | null>(null);
   // members carousel
   const [slide, setSlide] = useState(0);
   const [perView, setPerView] = useState(3);
@@ -95,11 +98,12 @@ const Dashboard = () => {
     const loadPage = async () => {
       showLoader('डॅशबोर्ड लोड होत आहे... (Loading dashboard...)');
       try {
-        const [countsRes, membersRes, vasuliRes, kpisRes] = await Promise.all([
+        const [countsRes, membersRes, vasuliRes, kpisRes, monthlyRes] = await Promise.all([
           nodniService.getDashboardCounts(),
           commonDdlService.getGramPanchayatMembers(),
           vasuliService.getStats(),
           vasuliService.getKpis(),
+          vasuliService.getMonthly(fyOfDate()),
         ]);
         if (countsRes.success && countsRes.data) {
           const d = countsRes.data as Record<string, number>;
@@ -120,6 +124,7 @@ const Dashboard = () => {
           setVasuliByTax(v.by_tax || {});
         }
         if (kpisRes.success && kpisRes.data) setKpis(kpisRes.data as DashboardKpis);
+        if (monthlyRes.success && monthlyRes.data) setMonthly(monthlyRes.data as MonthlyCollection);
       } catch (e) {
         console.error('Failed to load dashboard data', e);
       } finally {
@@ -283,15 +288,44 @@ const Dashboard = () => {
   const wardData = (kpis?.ward_outstanding || []).map((w) => ({ name: `वॉर्ड ${w.ward}`, baki: w.baki }));
   const hasWardData = wardData.length > 0;
 
-  // top KPI tiles
+  // मासिक वसुली (financial year Apr->Mar)
+  const monthlyData = (monthly?.months || []).map((m) => ({ name: m.month_name, collected: m.collected, count: m.count }));
+  const hasMonthly = monthlyData.some((d) => d.collected > 0);
+
+  // permission gates — प्रत्येक विभाग त्याच्या module परवानगीनुसार (super_user / full-access ला सर्व)
+  const showVasuli = canModule('vasuli');
+  const showProps = canModule('malmatta_nodni') || canModule('nodni_form');
+  const showCerts = canAnyCertificate();
+
+  // top KPI tiles — फक्त परवानगी असलेलेच दाखवा
   const kpiCards = kpis ? [
-    { key: 'collected', label: 'एकूण वसुली', sub: 'Collected', value: inrShort(kpis.collected), Icon: IndianRupee, ring: 'text-emerald-600 dark:text-emerald-400', chip: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300' },
-    { key: 'outstanding', label: 'एकूण बाकी', sub: 'Outstanding', value: inrShort(kpis.outstanding), Icon: Wallet, ring: 'text-rose-600 dark:text-rose-400', chip: 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300' },
-    { key: 'recovery', label: 'वसुली टक्केवारी', sub: 'Recovery', value: `${kpis.recovery_pct}%`, Icon: Percent, ring: 'text-blue-600 dark:text-blue-400', chip: 'bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300' },
-    { key: 'properties', label: 'एकूण मालमत्ता', sub: 'Properties', value: String(kpis.properties_total), Icon: Building2, ring: 'text-amber-600 dark:text-amber-400', chip: 'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300' },
-    { key: 'certs', label: 'जारी प्रमाणपत्रे', sub: 'Certificates', value: String(kpis.certificates_total), Icon: Award, ring: 'text-purple-600 dark:text-purple-400', chip: 'bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-300' },
-    { key: 'today', label: 'आजच्या नोंदी', sub: "Today's entries", value: String(kpis.today_entries), Icon: CalendarPlus, ring: 'text-teal-600 dark:text-teal-400', chip: 'bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300' },
+    ...(showVasuli ? [
+      { key: 'collected', label: 'एकूण वसुली', sub: 'Collected', value: inrShort(kpis.collected), Icon: IndianRupee, ring: 'text-emerald-600 dark:text-emerald-400', chip: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300' },
+      { key: 'outstanding', label: 'एकूण बाकी', sub: 'Outstanding', value: inrShort(kpis.outstanding), Icon: Wallet, ring: 'text-rose-600 dark:text-rose-400', chip: 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300' },
+      { key: 'recovery', label: 'वसुली टक्केवारी', sub: 'Recovery', value: `${kpis.recovery_pct}%`, Icon: Percent, ring: 'text-blue-600 dark:text-blue-400', chip: 'bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300' },
+    ] : []),
+    ...(showProps ? [
+      { key: 'properties', label: 'एकूण मालमत्ता', sub: 'Properties', value: String(kpis.properties_total), Icon: Building2, ring: 'text-amber-600 dark:text-amber-400', chip: 'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300' },
+    ] : []),
+    // जारी प्रमाणपत्रे — फक्त certificate परवानगी असल्यासच
+    ...(showCerts ? [{ key: 'certs', label: 'जारी प्रमाणपत्रे', sub: 'Certificates', value: String(kpis.certificates_total), Icon: Award, ring: 'text-purple-600 dark:text-purple-400', chip: 'bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-300' }] : []),
+    ...(showProps ? [
+      { key: 'today', label: 'आजच्या नोंदी', sub: "Today's entries", value: String(kpis.today_entries), Icon: CalendarPlus, ring: 'text-teal-600 dark:text-teal-400', chip: 'bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300' },
+    ] : []),
   ] : [];
+
+  // permission-gated quick-action shortcuts
+  const quickActions = [
+    { show: canModule('nodni_form'), label: 'नवीन नोंदणी', to: '/nodni-form', Icon: Plus, cls: 'bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300' },
+    { show: showProps, label: 'मालमत्ता नोंदणी', to: '/malmatta-nodni', Icon: Building2, cls: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300' },
+    { show: showVasuli, label: 'वसुली', to: '/vasuli', Icon: IndianRupee, cls: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300' },
+    { show: canModule('collection_dashboard'), label: 'वसुली डॅशबोर्ड', to: '/collection-dashboard', Icon: BarChart3, cls: 'bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300' },
+    { show: showCerts, label: 'प्रमाणपत्र', to: '/certificates', Icon: Award, cls: 'bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-300' },
+    { show: can('malmatta_nodni', 'water_meter'), label: 'मीटर रीडिंग', to: '/water-meter/field-reading', Icon: Droplet, cls: 'bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300' },
+    { show: canModule('ahval_ghosvara'), label: 'घोषवारा', to: '/ahval/ghosvara', Icon: FileText, cls: 'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300' },
+    { show: canModule('grievance'), label: 'तक्रारी', to: '/grievances', Icon: MessagesSquare, cls: 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300' },
+    { show: canModule('bulk_reminder'), label: 'स्मरणपत्र', to: '/bulk-reminder', Icon: BellRing, cls: 'bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300' },
+  ].filter((a) => a.show);
 
   return (
     <div className="p-6">
@@ -309,6 +343,25 @@ const Dashboard = () => {
           >
             बदला (Change)
           </button>
+        </div>
+      )}
+
+      {/* Quick actions — permission-gated shortcuts to common tasks */}
+      {quickActions.length > 0 && (
+        <div className="mb-8">
+          <h2 className="mb-3 text-sm font-bold text-gray-700 dark:text-gray-200">त्वरित कृती (Quick Actions)</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {quickActions.map((a) => (
+              <button
+                key={a.to}
+                onClick={() => navigate(a.to)}
+                className="flex flex-col items-center gap-2 rounded-xl border border-gray-100 bg-white px-3 py-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+              >
+                <span className={`flex h-10 w-10 items-center justify-center rounded-lg ${a.cls}`}><a.Icon className="h-5 w-5" /></span>
+                <span className="text-center text-xs font-medium text-gray-700 dark:text-gray-200">{a.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -333,6 +386,8 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* Category cards + distribution charts — property/nodni permission */}
+      {showProps && (<>
       {/* Category Cards — compact stat tiles */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
         {categories.map((category) => {
@@ -417,8 +472,10 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* वसुली charts — render only when data exists */}
-      {(hasVasuliYear || hasVasuliTax) && (
+      </>)}
+
+      {/* वसुली charts — render only when data exists (vasuli permission) */}
+      {showVasuli && (hasVasuliYear || hasVasuliTax) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Year-wise वसुली (bar) */}
           {hasVasuliYear && (
@@ -479,8 +536,32 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Ward-wise outstanding — top defaulter wards (बाकी) */}
-      {hasWardData && (
+      {/* मासिक वसुली — financial-year month-by-month collection (vasuli permission) */}
+      {showVasuli && hasMonthly && monthly && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-primary-600" />
+              मासिक वसुली — सन {fyLabel(monthly.year)}
+            </h2>
+            <span className="rounded-lg bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+              एकूण {inrShort(monthly.total)}
+            </span>
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={monthlyData} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={56} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => inrShort(Number(v))} width={70} />
+              <Tooltip formatter={((v: number, _n: string, p: { payload?: { count?: number } }) => [`${inr(v)} (${p?.payload?.count ?? 0} भरणे)`, 'वसुली']) as never} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
+              <Bar dataKey="collected" fill="#6366f1" radius={[6, 6, 0, 0]} maxBarSize={44} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Ward-wise outstanding — top defaulter wards (बाकी) (vasuli permission) */}
+      {showVasuli && hasWardData && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <Wallet className="w-5 h-5 text-rose-600" />

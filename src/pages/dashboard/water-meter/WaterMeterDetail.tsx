@@ -8,6 +8,7 @@ import { waterMeterService, WATER_MONTHS, type WaterMeter, type WaterReading } f
 import YearPicker from '../../../components/common/YearPicker';
 import { DatePicker, MarathiInput } from '../../../components/common';
 import BillDoc from './BillDoc';
+import WaterPaymentsPanel from './WaterPaymentsPanel';
 import { fyLabel } from '../../../utils/fyConfig';
 
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
@@ -468,7 +469,10 @@ const WaterMeterDetail = () => {
       {/* ===== SCREEN ===== */}
       <div className="no-print space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <button onClick={() => navigate('/water-meter')} className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300"><ArrowLeft className="h-4 w-4" /> मागे</button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/water-meter')} className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300"><ArrowLeft className="h-4 w-4" /> मागे</button>
+            <button onClick={() => navigate('/water-meter/field-reading')} className="flex items-center gap-1.5 rounded-lg border border-primary-300 px-3 py-1.5 text-sm font-medium text-primary-700 hover:bg-primary-50 dark:border-primary-700 dark:text-primary-300 dark:hover:bg-primary-900/20"><Droplet className="h-4 w-4" /> फिल्ड रीडिंग</button>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <label className="text-sm text-gray-600 dark:text-gray-300">वर्ष:</label>
             <div className="w-40">
@@ -699,6 +703,9 @@ const WaterMeterDetail = () => {
             <button onClick={() => doPrint('bill')} className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"><Receipt className="h-4 w-4" /> बिल प्रिंट</button>
           </div>
           <p className="mt-2 text-[11px] text-gray-400">"बिल पहा" ने खाली preview बघा · "बिल जतन" ने DB मध्ये साठवा (tracking) · "बिल प्रिंट" दाबल्यावरही आपोआप साठते व २ प्रती छापल्या जातात.</p>
+
+          {/* पाणी बिल भरणा (payment record + पावती) */}
+          <WaterPaymentsPanel meterId={meterId} canEdit={canEdit} suggestedAmount={netDue} year={year} meter={meter} gp={H} />
 
           {/* on-screen bill preview (fill केल्यावर बघा — print preview ची गरज नाही) */}
           {showBillPreview && (

@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { commonDdlService } from '../../../services';
 import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
 import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
+import { ExportButtons, type ExportColumn } from '../../../components/common';
 
 /* आधार कार्ड व वोटर कार्ड यादी (ward-wise) — same as old `ward-wise-adhar-list`.
    Ward number is passed via sessionStorage ('aadharReportWard') from the Aadhar List page. */
@@ -63,6 +64,15 @@ const AadharReport = () => {
   const th = 'border border-black px-2 py-1 text-[12px] font-bold text-center bg-gray-100';
   const td = 'border border-black px-2 py-1 text-[12px] text-center align-middle';
 
+  const exportCols: ExportColumn<Row>[] = [
+    { header: 'अ.क्र', value: (r) => s(r.anu_kramank), width: 8 },
+    { header: 'मालमत्ता क्र.', value: (r) => s(r.malmatta_number), width: 14 },
+    { header: 'खातेधारकाचे नाव', value: (r) => s(r.ghar_malkache_nav), width: 28 },
+    { header: 'भोगवटदाराचे नाव', value: (r) => s(r.bhogavat_darache_nav), width: 28 },
+    { header: 'आधार कार्ड', value: (r) => s(r.aadahar_card_number), width: 18 },
+    { header: 'वोटर कार्ड', value: (r) => s(r.matdar_card_number), width: 16 },
+  ];
+
   return (
     <div className="aadhar-report bg-white text-black p-4" style={{ colorScheme: 'light' }}>
       <style>{`
@@ -98,6 +108,17 @@ const AadharReport = () => {
           >
             🎨 नवीन डिझाईन 📄
           </button>
+        )}
+        {!isPublicReportMode() && (
+          <ExportButtons
+            moduleKey="ahval_aadhar_list"
+            size="md"
+            columns={exportCols}
+            rows={records}
+            filename={`aadhar-yadi-ward-${ward || 'all'}`}
+            title="आधार कार्ड व वोटर कार्ड यादी"
+            subtitle={`वार्ड ${ward} · ${loc.gramPanchayat}`}
+          />
         )}
       </div>
 

@@ -9,6 +9,11 @@ import UnderMaintenance from './pages/public/UnderMaintenance';
 import MaintenanceBanner from './components/MaintenanceBanner';
 import { api } from './services/api';
 import { trackAction, flushTracker } from './utils/tracker';
+import AppErrorBoundary from './components/AppErrorBoundary';
+import { initErrorCapture } from './utils/errorLog';
+
+// self-hosted client error monitoring — attach global handlers once
+initErrorCapture();
 
 function App() {
   // Maintenance gate — controlled from admin System Settings (maintenance_mode).
@@ -81,14 +86,16 @@ function App() {
   }
 
   return (
-    <ThemeProvider>
-      <LoadingProvider>
-        {maintenance.scheduled && <MaintenanceBanner seconds={maintenance.remaining} />}
-        <RouterProvider router={router} />
-        <InstallPWA />
-        <AppLock />
-      </LoadingProvider>
-    </ThemeProvider>
+    <AppErrorBoundary>
+      <ThemeProvider>
+        <LoadingProvider>
+          {maintenance.scheduled && <MaintenanceBanner seconds={maintenance.remaining} />}
+          <RouterProvider router={router} />
+          <InstallPWA />
+          <AppLock />
+        </LoadingProvider>
+      </ThemeProvider>
+    </AppErrorBoundary>
   );
 }
 

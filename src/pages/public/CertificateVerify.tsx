@@ -32,6 +32,7 @@ const CertificateVerify = () => {
   }, [token]);
 
   const valid = !!result?.valid;
+  const revoked = result?.status === 'revoked' || !!result?.revoked;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
@@ -66,6 +67,23 @@ const CertificateVerify = () => {
                 <Row k="ग्रामपंचायत" v={result?.gram_panchayat} />
                 <Row k="तालुका" v={result?.taluka} />
                 <Row k="जिल्हा" v={result?.district} />
+              </dl>
+            </>
+          ) : revoked ? (
+            <>
+              <div className="mb-5 text-center">
+                <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-rose-100 text-3xl">🚫</div>
+                <p className="text-lg font-bold text-rose-700">रद्द केलेले प्रमाणपत्र</p>
+                <p className="text-sm text-gray-500">हे प्रमाणपत्र ग्रामपंचायतीने रद्द केले आहे — ते आता वैध नाही.</p>
+              </div>
+              <dl className="space-y-2 text-sm">
+                <Row k="प्रमाणपत्र" v={result?.cert_name} />
+                <Row k="अर्जदार / लाभार्थी" v={result?.applicant_name} />
+                <Row k="जावक क्र." v={result?.outward_no} />
+                <Row k="दिनांक" v={result?.issued_date} />
+                <Row k="रद्द दिनांक" v={result?.revoked_date || undefined} />
+                <Row k="रद्द कारण" v={result?.revoke_reason || undefined} />
+                <Row k="ग्रामपंचायत" v={result?.gram_panchayat} />
               </dl>
             </>
           ) : (

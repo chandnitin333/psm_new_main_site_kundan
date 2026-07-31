@@ -5,6 +5,8 @@ export { default as Modal } from './Modal';
 export { default as Select2 } from './Select2';
 export { default as MarathiInput } from './MarathiInput';
 export { default as Loader } from './Loader';
+export { default as ExportButtons } from './ExportButtons';
+export type { ExportColumn } from '../../utils/exportUtils';
 export type { Column, TableAction } from './Table';
 export type { ModalSize } from './Modal';
 export type { Select2Option } from './Select2';

@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { commonDdlService } from '../../../services';
 import { getPublicReportData, isPublicReportMode } from '../../../utils/publicReport';
 import { useReportShareUrl } from '../../../hooks/useReportShareUrl';
+import { ExportButtons, type ExportColumn } from '../../../components/common';
 
 /* पाणी व्यवस्था यादी (ward-wise) — same as old `ward-wise-pinyache-pani-list`.
    Ward number is passed via sessionStorage ('paniReportWard') from the Pani List page. */
@@ -63,6 +64,14 @@ const PaniReport = () => {
   const th = 'border border-black px-2 py-1 text-[12px] font-bold text-center bg-gray-100';
   const td = 'border border-black px-2 py-1 text-[12px] text-center align-middle';
 
+  const exportCols: ExportColumn<Row>[] = [
+    { header: 'अ.क्र', value: (r) => s(r.anu_kramank), width: 8 },
+    { header: 'मालमत्ता क्र.', value: (r) => s(r.malmatta_number), width: 14 },
+    { header: 'खातेधारकाचे नाव', value: (r) => s(r.ghar_malkache_nav), width: 28 },
+    { header: 'भोगवटदाराचे नाव', value: (r) => s(r.bhogavat_darache_nav), width: 28 },
+    { header: 'पाण्याची व्यवस्था', value: (r) => s(r.pinyacha_panyachi_vyavastha), width: 20 },
+  ];
+
   return (
     <div className="pani-report bg-white text-black p-4" style={{ colorScheme: 'light' }}>
       <style>{`
@@ -98,6 +107,17 @@ const PaniReport = () => {
           >
             🎨 नवीन डिझाईन 📄
           </button>
+        )}
+        {!isPublicReportMode() && (
+          <ExportButtons
+            moduleKey="ahval_pani_list"
+            size="md"
+            columns={exportCols}
+            rows={records}
+            filename={`pani-yadi-ward-${ward || 'all'}`}
+            title="पाणी व्यवस्था यादी"
+            subtitle={`वार्ड ${ward} · ${loc.gramPanchayat}`}
+          />
         )}
       </div>
 

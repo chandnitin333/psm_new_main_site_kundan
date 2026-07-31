@@ -30,6 +30,15 @@ import NodniForm from '../pages/dashboard/nodni-form/NodniForm';
 import MalmattaNodni from '../pages/dashboard/malmatta-nodni/MalmattaNodni';
 import PropertyHistory from '../pages/dashboard/malmatta-nodni/PropertyHistory';
 import CollectionDaybook from '../pages/dashboard/vasuli/CollectionDaybook';
+import CollectionDashboard from '../pages/dashboard/vasuli/CollectionDashboard';
+import BulkReminder from '../pages/dashboard/vasuli/BulkReminder';
+import PropertyLedger from '../pages/dashboard/vasuli/PropertyLedger';
+import MyComplaints from '../pages/dashboard/MyComplaints';
+import GrievancesAdmin from '../pages/dashboard/GrievancesAdmin';
+import NodniImportLog from '../pages/dashboard/nodni-form/NodniImportLog';
+import MyPayments from '../pages/dashboard/MyPayments';
+import MyNotifications from '../pages/dashboard/MyNotifications';
+import CitizenNotifications from '../pages/dashboard/CitizenNotifications';
 import CollectionMode from '../pages/dashboard/vasuli/CollectionMode';
 import MalmattaFerfar from '../pages/dashboard/malmatta-ferfar/MalmattaFerfar';
 import FerfarForm from '../pages/dashboard/malmatta-ferfar/FerfarForm';
@@ -81,6 +90,7 @@ import Namuna8 from '../pages/dashboard/ahval/Namuna8';
 import Namuna9 from '../pages/dashboard/ahval/Namuna9';
 import BillWard from '../pages/dashboard/ahval/BillWard';
 import ImlaKar from '../pages/dashboard/ahval/ImlaKar';
+import GhosvaraReport from '../pages/dashboard/ahval/GhosvaraReport';
 import PaniMeterBill from '../pages/dashboard/ahval/PaniMeterBill';
 import WaterMeterMultiReport from '../pages/dashboard/water-meter/WaterMeterMultiReport';
 import Loaders from '../pages/dashboard/loaders/Loaders';
@@ -94,6 +104,7 @@ import CitizenPosts from '../pages/dashboard/CitizenPosts';
 import Posts from '../pages/dashboard/posts/Posts';
 import WaterMeter from '../pages/dashboard/water-meter/WaterMeter';
 import WaterMeterDetail from '../pages/dashboard/water-meter/WaterMeterDetail';
+import WaterFieldReading from '../pages/dashboard/water-meter/WaterFieldReading';
 import CitizenWaterBill from '../pages/dashboard/CitizenWaterBill';
 
 interface ProtectedRouteProps {
@@ -158,6 +169,21 @@ const MyPropertyHome = () => {
 // /my-bill: citizen-only tax demand bill.
 const MyBillHome = () => {
   return isCitizen() ? <CitizenBill /> : <Navigate to={getLandingPath()} replace />;
+};
+
+// /my-complaints: citizen-only grievance page (direct, no permission).
+const MyComplaintsHome = () => {
+  return isCitizen() ? <MyComplaints /> : <Navigate to={getLandingPath()} replace />;
+};
+
+// /my-payments: citizen-only payment history + receipt (direct, no permission).
+const MyPaymentsHome = () => {
+  return isCitizen() ? <MyPayments /> : <Navigate to={getLandingPath()} replace />;
+};
+
+// /my-notifications: citizen-only in-app notifications (direct, no permission).
+const MyNotificationsHome = () => {
+  return isCitizen() ? <MyNotifications /> : <Navigate to={getLandingPath()} replace />;
 };
 
 // /helpline: citizens get the read-only directory; staff get the management page.
@@ -230,6 +256,17 @@ export const createRouter = (handleLogout: () => void) =>
       ],
     },
     {
+      path: '/nodni-import-log',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <NodniImportLog /> },
+      ],
+    },
+    {
       path: '/malmatta-nodni',
       element: (
         <ProtectedRoute>
@@ -260,6 +297,39 @@ export const createRouter = (handleLogout: () => void) =>
       ),
       children: [
         { index: true, element: <CollectionDaybook /> },
+      ],
+    },
+    {
+      path: '/collection-dashboard',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <CollectionDashboard /> },
+      ],
+    },
+    {
+      path: '/bulk-reminder',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <BulkReminder /> },
+      ],
+    },
+    {
+      path: '/property-ledger/:nodniId',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <PropertyLedger /> },
       ],
     },
     {
@@ -605,6 +675,7 @@ export const createRouter = (handleLogout: () => void) =>
         { path: 'namuna10', element: <Vasuli /> },
         { path: 'imla-kar', element: <ImlaKar /> },
         { path: 'pani-meter-bill', element: <PaniMeterBill /> },
+        { path: 'ghosvara', element: <GhosvaraReport /> },
       ],
     },
     {
@@ -671,6 +742,61 @@ export const createRouter = (handleLogout: () => void) =>
       ],
     },
     {
+      path: '/my-complaints',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <MyComplaintsHome /> },
+      ],
+    },
+    {
+      path: '/my-payments',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <MyPaymentsHome /> },
+      ],
+    },
+    {
+      path: '/my-notifications',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <MyNotificationsHome /> },
+      ],
+    },
+    {
+      path: '/citizen-notifications',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <CitizenNotifications /> },
+      ],
+    },
+    {
+      path: '/grievances',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <GrievancesAdmin /> },
+      ],
+    },
+    {
       path: '/helpline',
       element: (
         <ProtectedRoute>
@@ -701,6 +827,7 @@ export const createRouter = (handleLogout: () => void) =>
       ),
       children: [
         { index: true, element: <StaffOnly><WaterMeter /></StaffOnly> },
+        { path: 'field-reading', element: <StaffOnly><WaterFieldReading /></StaffOnly> },
         { path: ':id', element: <StaffOnly><WaterMeterDetail /></StaffOnly> },
       ],
     },

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Upload, X, ScanLine, Camera, Image as ImageIcon, Plus, Trash2, Users, Download, FileSpreadsheet } from 'lucide-react';
+import { Upload, X, ScanLine, Camera, Image as ImageIcon, Plus, Trash2, Users, Download, FileSpreadsheet, Inbox } from 'lucide-react';
 import { config } from '../../../config';
 import { compressImage } from '../../../utils/imageCompress';
 import KhulaBhukhandModal from './KhulaBhukhandModal';
@@ -1194,6 +1194,10 @@ const NodniForm = () => {
                     {importing ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <FileSpreadsheet className="h-4 w-4" />} बल्क इम्पोर्ट
                   </button>
                   <input ref={bulkFileRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={handleBulkFile} />
+                  <button type="button" onClick={() => navigate('/nodni-import-log')}
+                    className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">
+                    <Inbox className="h-4 w-4" /> आयात लॉग
+                  </button>
                 </>
               )}
             </div>

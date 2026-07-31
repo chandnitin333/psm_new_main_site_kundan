@@ -7,6 +7,7 @@ import { can } from '../../../utils/permissions';
 import { trackAction } from '../../../utils/tracker';
 import { waterMeterService, type WaterMeter as Meter, type WaterMeterPayload } from '../../../services';
 import { MarathiInput } from '../../../components/common';
+import { gpSetting } from '../../../utils/gpSettings';
 
 const EMPTY: WaterMeterPayload = {
   khatedar_name: '', bhogwatdar_name: '', meter_number: '', mobile: '', anu_kramank: '',
@@ -53,7 +54,7 @@ const WaterMeter = () => {
   }, [drawerOpen]);
 
   const setF = (k: keyof WaterMeterPayload, v: string | number) => setForm((p) => ({ ...p, [k]: v }));
-  const openAdd = () => { setEditingId(null); setForm(EMPTY); setDrawerOpen(true); };
+  const openAdd = () => { setEditingId(null); setForm({ ...EMPTY, late_fee: gpSetting('water_late_fee_default') ?? 10 }); setDrawerOpen(true); };
   const openEdit = (m: Meter) => {
     setEditingId(m.id);
     setForm({
@@ -93,7 +94,10 @@ const WaterMeter = () => {
             <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900 dark:text-white">
               <Droplet className="h-6 w-6 text-primary-600" /> पाणी मीटर (Water Meter)
             </h1>
-            {canAdd && <button onClick={openAdd} className="flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"><Plus className="h-4 w-4" /> नवीन मीटर</button>}
+            <div className="flex flex-wrap items-center gap-2">
+              <button onClick={() => navigate('/water-meter/field-reading')} className="flex items-center gap-2 rounded-lg border border-primary-300 px-4 py-2 text-sm font-medium text-primary-700 hover:bg-primary-50 dark:border-primary-700 dark:text-primary-300 dark:hover:bg-primary-900/20"><Droplet className="h-4 w-4" /> फिल्ड रीडिंग</button>
+              {canAdd && <button onClick={openAdd} className="flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"><Plus className="h-4 w-4" /> नवीन मीटर</button>}
+            </div>
           </div>
 
           <div className="mb-4 flex gap-2">

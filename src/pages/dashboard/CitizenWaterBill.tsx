@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Droplet, IndianRupee } from 'lucide-react';
+import { Droplet, IndianRupee, Download, Receipt } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
-import { waterMeterService, type WaterMeter } from '../../services';
+import { waterMeterService, type WaterMeter, type WaterPayment } from '../../services';
 import { billTotals } from './water-meter/billTotals';
 import { fyLabel } from '../../utils/fyConfig';
+import { printWaterReceipt } from '../../utils/waterReceipt';
 
 const money = (v: number) => `₹ ${Math.round(v).toLocaleString('en-IN')}`;
 
@@ -23,19 +24,27 @@ const CitizenWaterBill = () => {
   const { toast, ToastContainer } = useToast();
   const H = gpHeader();
   const [meters, setMeters] = useState<WaterMeter[]>([]);
+  const [payments, setPayments] = useState<WaterPayment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     document.title = 'पाणी बिल / Water Bill';
     (async () => {
       try {
-        const res = await waterMeterService.myMeters();
-        setMeters(res?.success && Array.isArray(res.data) ? res.data : []);
-      } catch { setMeters([]); toast.error('माहिती लोड करताना त्रुटी'); }
+        const [mRes, pRes] = await Promise.all([
+          waterMeterService.myMeters(),
+          waterMeterService.myWaterPayments(),
+        ]);
+        setMeters(mRes?.success && Array.isArray(mRes.data) ? mRes.data : []);
+        setPayments(pRes?.success && pRes.data ? pRes.data.payments || [] : []);
+      } catch { setMeters([]); setPayments([]); toast.error('माहिती लोड करताना त्रुटी'); }
       finally { setLoading(false); }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const fmtD = (v?: string | null) => { if (!v) return '-'; const m = String(v).replace('T', ' ').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}-${m[2]}-${m[1]}` : String(v).slice(0, 10); };
+  const MODE: Record<string, string> = { cash: 'रोख', online: 'ऑनलाइन', cheque: 'धनादेश', upi: 'UPI' };
 
   return (
     <>
@@ -134,6 +143,31 @@ const CitizenWaterBill = () => {
                   </div>
                 );
               })}
+
+              {/* भरणा इतिहास + पावती */}
+              {payments.length > 0 && (
+                <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                  <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-3 dark:border-gray-700">
+                    <Receipt className="h-5 w-5 text-primary-600" />
+                    <h2 className="font-bold text-gray-900 dark:text-white">भरणा इतिहास व पावती</h2>
+                  </div>
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {payments.map((p) => (
+                      <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                        <div className="min-w-0">
+                          <span className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">{money(Number(p.amount || 0))}</span>
+                          <span className="ml-2 rounded bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">{MODE[String(p.payment_type || '').toLowerCase()] || p.payment_type || '—'}</span>
+                          <p className="mt-0.5 text-[11px] text-gray-400">मीटर {p.meter_number || '—'} · दि. {fmtD(p.paid_date || p.created_at)}{p.receipt_no ? ` · पावती ${p.receipt_no}` : ''}</p>
+                        </div>
+                        <button onClick={() => printWaterReceipt(p)}
+                          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-primary-300 px-3 py-1.5 text-xs font-semibold text-primary-700 hover:bg-primary-50 dark:border-primary-700 dark:text-primary-300 dark:hover:bg-primary-900/20">
+                          <Download className="h-3.5 w-3.5" /> पावती
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

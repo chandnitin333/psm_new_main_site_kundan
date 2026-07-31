@@ -55,6 +55,37 @@ export interface WaterReading {
 
 export type WaterMeterPayload = Partial<Omit<WaterMeter, 'id' | 'readings'>>;
 
+/** One water bill payment (पाणी बिल भरणा) entry. */
+export interface WaterPayment {
+  id: number;
+  meter_id?: number;
+  water_bill_id?: number | null;
+  amount: number;
+  payment_type?: string | null;   // cash | online | cheque | upi
+  reference_no?: string | null;
+  receipt_no?: string | null;
+  paid_date?: string | null;
+  year?: number | null;
+  from_seq?: number | null;
+  to_seq?: number | null;
+  remark?: string | null;
+  created_at?: string;
+  // citizen view (joined meter/GP)
+  meter_number?: string | null;
+  khatedar_name?: string | null;
+  address?: string | null;
+  ward?: string | null;
+  malmatta_number?: string | null;
+  gram_panchayat?: string | null;
+  taluka?: string | null;
+  district?: string | null;
+}
+export interface WaterPaymentsResponse {
+  payments: WaterPayment[];
+  total_paid: number;
+  count: number;
+}
+
 // Financial-year month order (April -> March)
 export const WATER_MONTHS = ['एप्रिल', 'मे', 'जून', 'जुलै', 'ऑगस्ट', 'सप्टेंबर', 'ऑक्टोबर', 'नोव्हेंबर', 'डिसेंबर', 'जानेवारी', 'फेब्रुवारी', 'मार्च'];
 
@@ -71,7 +102,29 @@ const E = {
   BY_NODNI: (nid: number) => `/main/water-meter/by-nodni/${nid}`,
   SAVE_BILL: (id: number) => `/main/water-meter/${id}/bill`,
   LATEST_BILL: (id: number) => `/main/water-meter/${id}/bill/latest`,
+  ADD_PAYMENT: (id: number) => `/main/water-meter/${id}/payment`,
+  LIST_PAYMENTS: (id: number) => `/main/water-meter/${id}/payments`,
+  DEL_PAYMENT: (pid: number) => `/main/water-meter/payment/${pid}`,
+  MY_PAYMENTS: '/main/water-meter/my-water-payments',
+  FIELD: '/main/water-meter/field',
 } as const;
+
+/** One meter row for field-mode reading entry. */
+export interface FieldMeter {
+  meter_id: number;
+  meter_number: string | null;
+  khatedar_name: string | null;
+  mobile: string | null;
+  ward: string | null;
+  malmatta_number: string | null;
+  rate: number;
+  prev_reading: string | null;
+  arrears: number;
+  reading_id: number | null;
+  current_reading: string | null;
+  saved: boolean;
+}
+export interface FieldMetersResponse { year: number; month_seq: number; meters: FieldMeter[]; count: number; }
 
 export const waterMeterService = {
   list: async (search = ''): Promise<ApiResponse<WaterMeter[]>> => api.post(E.LIST, { search }),
@@ -93,6 +146,19 @@ export const waterMeterService = {
     if (toSeq) qs.set('to_seq', String(toSeq));
     const q = qs.toString();
     return api.get(q ? `${E.LATEST_BILL(id)}?${q}` : E.LATEST_BILL(id));
+  },
+  // ---- payments (पाणी बिल भरणा) ----
+  addPayment: async (meterId: number, p: Partial<WaterPayment>): Promise<ApiResponse> => api.post(E.ADD_PAYMENT(meterId), p),
+  listPayments: async (meterId: number): Promise<ApiResponse<WaterPaymentsResponse>> => api.get(E.LIST_PAYMENTS(meterId)),
+  deletePayment: async (paymentId: number): Promise<ApiResponse> => api.delete(E.DEL_PAYMENT(paymentId)),
+  myWaterPayments: async (): Promise<ApiResponse<WaterPaymentsResponse>> => api.get(E.MY_PAYMENTS),
+
+  /** Field mode — meters with previous reading + arrears for quick current-reading entry. */
+  fieldMeters: async (year: number, monthSeq: number, ward?: string, search?: string): Promise<ApiResponse<FieldMetersResponse>> => {
+    const qs = new URLSearchParams({ year: String(year), month_seq: String(monthSeq) });
+    if (ward != null && ward !== '') qs.set('ward', ward);
+    if (search) qs.set('search', search);
+    return api.get(`${E.FIELD}?${qs.toString()}`);
   },
 };
 
