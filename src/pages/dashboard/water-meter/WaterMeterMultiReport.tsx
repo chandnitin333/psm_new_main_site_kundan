@@ -116,7 +116,7 @@ const WaterMeterMultiReport = () => {
     setP(merged);
     (async () => {
       try {
-        const res = await waterMeterService.report({ year: merged.year, ward: merged.ward || undefined });
+        const res = await waterMeterService.report({ year: merged.year, ward: merged.ward !== '' ? merged.ward : undefined });
         const data = res?.success && Array.isArray(res.data) ? (res.data as WaterMeter[]) : [];
         setMeters(data);
         trackAction(`पाणी मीटर अहवाल — ${data.length} मीटर`, { page: '/water-meter-report', year: merged.year, ward: merged.ward, mode: merged.mode });

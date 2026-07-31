@@ -43,7 +43,7 @@ const PaniMeterBill = () => {
     const params = { year, ward: form.ward, fromSeq: form.fromSeq, toSeq: form.toSeq, mode: form.mode };
     openReportIfData<WaterMeter>({
       fetcher: async () => {
-        const res = await waterMeterService.report({ year, ward: form.ward || undefined });
+        const res = await waterMeterService.report({ year, ward: form.ward !== '' ? form.ward : undefined });
         return res?.success && Array.isArray(res.data) ? (res.data as WaterMeter[]) : [];
       },
       url: '/water-meter-report',

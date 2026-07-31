@@ -63,7 +63,8 @@ const GlobalSearch = () => {
     } else if (r.type === 'vasuli') {
       const p = new URLSearchParams();
       if (r.anu_kramank) p.set('anu_kramank', String(r.anu_kramank));
-      if (r.ward_number) p.set('ward_number', String(r.ward_number));
+      // ward '0' हा वैध ward आहे — फक्त null/undefined/'' वगळा (0 ला all मानू नका)
+      if (r.ward_number !== null && r.ward_number !== undefined && String(r.ward_number) !== '') p.set('ward_number', String(r.ward_number));
       navigate(`/vasuli${p.toString() ? `?${p}` : ''}`);
     } else if (r.type === 'certificate' && r.cert_type) {
       navigate(`/certificates/${r.cert_type}?id=${r.id}`);
