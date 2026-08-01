@@ -113,6 +113,13 @@ export const DASHBOARD_MENU_ITEMS: MenuItem[] = [
       { id: 'citizen-notifications', label: 'नागरिक सूचना', path: '/citizen-notifications' },
       { id: 'bulk-reminder', label: 'थकबाकी स्मरणपत्र', path: '/bulk-reminder' }
     ]
+  },
+  {
+    id: 'personal-expense',
+    label: 'खर्च नोंद',
+    path: '/personal-expense',
+    icon: 'Wallet',
+    subMenus: []
   }
 ];
 
@@ -179,6 +186,13 @@ export const CITIZEN_MENU_ITEMS: MenuItem[] = [
     label: 'पाणी बिल',
     path: '/water-bill',
     icon: 'Droplet',
+    subMenus: []
+  },
+  {
+    id: 'my-expense',
+    label: 'माझा हिशोब',
+    path: '/personal-expense',
+    icon: 'Wallet',
     subMenus: []
   }
 ];

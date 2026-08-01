@@ -31,6 +31,7 @@ import Components from '../pages/dashboard/components/Components';
 import NodniForm from '../pages/dashboard/nodni-form/NodniForm';
 import MalmattaNodni from '../pages/dashboard/malmatta-nodni/MalmattaNodni';
 import DuplicateMobiles from '../pages/dashboard/malmatta-nodni/DuplicateMobiles';
+import PersonalExpense from '../pages/dashboard/PersonalExpense';
 import PropertyHistory from '../pages/dashboard/malmatta-nodni/PropertyHistory';
 import CollectionDaybook from '../pages/dashboard/vasuli/CollectionDaybook';
 import CollectionDashboard from '../pages/dashboard/vasuli/CollectionDashboard';
@@ -131,8 +132,9 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     if (!canAnyCertificate() && path !== landing) return <Navigate to={landing} replace />;
   } else {
     const mod = moduleForPath(path);
-    // citizens may always view their own pages (helpline directory, posts feed)
-    const citizenAllowed = isCitizen() && (mod === 'helpline' || mod === 'gp_posts');
+    // citizens may always view their own pages (helpline directory, posts feed,
+    // and their private expense diary) — no permission needed for these.
+    const citizenAllowed = isCitizen() && (mod === 'helpline' || mod === 'gp_posts' || mod === 'personal_expense');
     if (mod && !canModule(mod) && !citizenAllowed && path !== landing) return <Navigate to={landing} replace />;
   }
 
@@ -337,6 +339,18 @@ export const createRouter = (handleLogout: () => void) =>
       ),
       children: [
         { index: true, element: <BulkReminder /> },
+      ],
+    },
+    {
+      // Personal / GP expense diary — citizen: direct; staff: permission-gated (personal_expense)
+      path: '/personal-expense',
+      element: (
+        <ProtectedRoute>
+          <DashboardLayout onLogout={handleLogout} />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <PersonalExpense /> },
       ],
     },
     {

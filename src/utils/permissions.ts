@@ -29,6 +29,7 @@ export const PATH_TO_MODULE: Record<string, string> = {
   '/collection-mode': 'vasuli_field',
   '/collection-dashboard': 'collection_dashboard',
   '/bulk-reminder': 'bulk_reminder',
+  '/personal-expense': 'personal_expense',
   '/water-meter': 'water_meter',
   '/water-meter/field-reading': 'water_field_reading',
   '/ahval/aadhar-list': 'ahval_aadhar_list',
