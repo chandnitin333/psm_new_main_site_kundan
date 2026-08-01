@@ -3,7 +3,7 @@ import { Wallet, Plus, Trash2, Lock, IndianRupee, Pencil, Check, X, Loader2, Che
 import { useToast } from '../../hooks/useToast';
 import { useLoading } from '../../contexts/LoadingContext';
 import personalExpenseService, { type ExpenseData, type MonthSheet } from '../../services/personalExpenseService';
-import { isCitizen } from '../../utils/permissions';
+import { isCitizen, can } from '../../utils/permissions';
 import { MarathiInput } from '../../components/common';
 import ExportButtons from '../../components/common/ExportButtons';
 import type { ExportColumn } from '../../utils/exportUtils';
@@ -17,6 +17,9 @@ const PersonalExpense = () => {
   const { toast, ToastContainer } = useToast();
   const { showLoader, hideLoader } = useLoading();
   const citizen = isCitizen();
+  // citizens manage their OWN data freely; staff need edit/delete permission on this module
+  const canEdit = citizen || can('personal_expense', 'edit');
+  const canDelete = citizen || can('personal_expense', 'delete');
 
   const [data, setData] = useState<ExpenseData>({});
   const [month, setMonth] = useState<string>(thisMonth());
@@ -223,8 +226,9 @@ const PersonalExpense = () => {
                         <td className={`px-3 py-2 text-right font-semibold tabular-nums ${running < 0 ? 'text-red-600' : 'text-gray-800 dark:text-gray-100'}`}>{inr(running)}</td>
                         <td className="px-3 py-2 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <button onClick={() => startEdit(e)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400" title="संपादित"><Pencil className="h-4 w-4" /></button>
-                            <button onClick={() => delRow(e.id)} className="text-red-500 hover:text-red-700" title="हटвा"><Trash2 className="h-4 w-4" /></button>
+                            {canEdit && <button onClick={() => startEdit(e)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400" title="संपादित"><Pencil className="h-4 w-4" /></button>}
+                            {canDelete && <button onClick={() => delRow(e.id)} className="text-red-500 hover:text-red-700" title="हटवा"><Trash2 className="h-4 w-4" /></button>}
+                            {!canEdit && !canDelete && <span className="text-[11px] text-gray-400">—</span>}
                           </div>
                         </td>
                       </>
