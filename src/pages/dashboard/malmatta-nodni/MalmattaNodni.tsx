@@ -321,7 +321,8 @@ const MalmattaNodni = () => {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               मालमत्ता नोंदणी (Malmatta Nodni)
             </h1>
-            {/* Find one person's multiple properties (shared mobile) — to bind later */}
+            {/* Find one person's multiple properties (shared mobile) — permission-gated (malmatta view) */}
+            {canModule('malmatta_nodni') && (
             <button
               type="button"
               onClick={() => navigate('/malmatta-nodni/duplicates')}
@@ -331,6 +332,7 @@ const MalmattaNodni = () => {
               <Users className="h-4 w-4" />
               डुप्लिकेट मोबाईल / एकच मालक
             </button>
+            )}
           </div>
 
           <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>

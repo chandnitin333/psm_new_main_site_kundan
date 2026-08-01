@@ -347,7 +347,8 @@ const Dashboard = () => {
       )}
 
       {/* App QR poster — staff print this so citizens can scan & install the app.
-          Opens in a new tab; tooltip explains its purpose. */}
+          Permission-gated (property-management staff); opens in a new tab. */}
+      {canModule('malmatta_nodni') && (
       <a
         href="/app-poster"
         target="_blank"
@@ -370,6 +371,7 @@ const Dashboard = () => {
           उघडा →
         </span>
       </a>
+      )}
 
       {/* Quick actions — permission-gated shortcuts to common tasks */}
       {quickActions.length > 0 && (
