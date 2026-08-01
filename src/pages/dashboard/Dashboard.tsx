@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Home, Building2, Factory, Award, TrendingUp, MapPin, PieChart as PieIcon, BarChart3, Mail, Phone, ChevronLeft, ChevronRight, BadgeCheck, Landmark, Map as MapIcon, Navigation, IndianRupee, Wallet, Percent, CalendarPlus, FileText, Droplet, Plus, MessagesSquare, BellRing } from 'lucide-react';
+import { Users, Home, Building2, Factory, Award, TrendingUp, MapPin, PieChart as PieIcon, BarChart3, Mail, Phone, ChevronLeft, ChevronRight, BadgeCheck, Landmark, Map as MapIcon, Navigation, IndianRupee, Wallet, Percent, CalendarPlus, FileText, Droplet, Plus, MessagesSquare, BellRing, QrCode } from 'lucide-react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
@@ -345,6 +345,31 @@ const Dashboard = () => {
           </button>
         </div>
       )}
+
+      {/* App QR poster — staff print this so citizens can scan & install the app.
+          Opens in a new tab; tooltip explains its purpose. */}
+      <a
+        href="/app-poster"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="नागरिकांसाठी अ‍ॅप QR पोस्टर — प्रिंट करून कार्यालयात लावा. नागरिक QR स्कॅन करून अ‍ॅप इन्स्टॉल करू शकतात."
+        className="mb-6 flex items-center gap-3 rounded-xl border border-primary-200 bg-gradient-to-r from-primary-50 to-white px-4 py-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-primary-800 dark:from-primary-900/30 dark:to-gray-800"
+      >
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-white">
+          <QrCode className="h-6 w-6" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-bold text-gray-900 dark:text-white">
+            अ‍ॅप QR पोस्टर (नागरिकांसाठी)
+          </span>
+          <span className="block text-xs text-gray-600 dark:text-gray-300">
+            QR पोस्टर प्रिंट करा — नागरिक स्कॅन करून अ‍ॅप इन्स्टॉल करतील
+          </span>
+        </span>
+        <span className="hidden shrink-0 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white sm:inline">
+          उघडा →
+        </span>
+      </a>
 
       {/* Quick actions — permission-gated shortcuts to common tasks */}
       {quickActions.length > 0 && (

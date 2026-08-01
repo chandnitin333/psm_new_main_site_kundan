@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Edit2, Trash2, Printer, Image, FileText, History, Droplet, Split } from 'lucide-react';
+import { Edit2, Trash2, Printer, Image, FileText, History, Droplet, Split, Users } from 'lucide-react';
 import MagilKarJodaModal from './MagilKarJodaModal';
 import PropertyDivideModal from '../../../components/PropertyDivideModal';
 import PrintModal from './PrintModal';
@@ -317,9 +317,21 @@ const MalmattaNodni = () => {
       <ToastContainer />
       <div className="space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">
-            मालमत्ता नोंदणी (Malmatta Nodni)
-          </h1>
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-2 dark:border-gray-700">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              मालमत्ता नोंदणी (Malmatta Nodni)
+            </h1>
+            {/* Find one person's multiple properties (shared mobile) — to bind later */}
+            <button
+              type="button"
+              onClick={() => navigate('/malmatta-nodni/duplicates')}
+              title="एकच मोबाईल क्रमांकावर अनेक मालमत्ता असलेले खातेदार पाहा (एका व्यक्तीच्या सर्व मालमत्ता ओळखण्यासाठी)"
+              className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-300 dark:hover:bg-amber-900/50"
+            >
+              <Users className="h-4 w-4" />
+              डुप्लिकेट मोबाईल / एकच मालक
+            </button>
+          </div>
 
           <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
             {/* First Row - 6 Fields */}

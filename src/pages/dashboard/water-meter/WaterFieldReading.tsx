@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Droplet, Loader2, Check, Search, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Droplet, Loader2, Check, Search, AlertTriangle, Camera, X } from 'lucide-react';
 import { useToast } from '../../../hooks/useToast';
 import { waterMeterService, commonDdlService, WATER_MONTHS, type FieldMeter } from '../../../services';
 import { can } from '../../../utils/permissions';
 import { fyOfDate, fyLabel } from '../../../utils/fyConfig';
 import YearPicker from '../../../components/common/YearPicker';
+import { compressImageToDataUrl, base64Bytes } from '../../../utils/imageCompress';
 
 /* पाणी मीटर रीडिंग (फिल्ड) — mobile-friendly quick entry. Ward + महिना निवडा → meter-by-meter
    आताचे reading daalo → auto units/आकारणी/एकूण → जतन. permission: malmatta_nodni.water_meter. */
@@ -27,8 +28,24 @@ const WaterFieldReading = () => {
   const [search, setSearch] = useState('');
   const [meters, setMeters] = useState<FieldMeter[]>([]);
   const [inputs, setInputs] = useState<Record<number, string>>({});
+  const [photos, setPhotos] = useState<Record<number, string>>({}); // meter_id -> compressed base64 (newly captured)
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState<number | null>(null);
+
+  const onPhoto = async (meterId: number, file: File | null | undefined) => {
+    if (!file) return;
+    try {
+      const dataUrl = await compressImageToDataUrl(file, 1000, 0.6);
+      if (base64Bytes(dataUrl) > 900 * 1024) {
+        // still too big — re-compress smaller
+        const smaller = await compressImageToDataUrl(file, 800, 0.5);
+        setPhotos((p) => ({ ...p, [meterId]: smaller }));
+      } else {
+        setPhotos((p) => ({ ...p, [meterId]: dataUrl }));
+      }
+    } catch { toast.error('फोटो घेता आला नाही'); }
+  };
+  const clearPhoto = (meterId: number) => setPhotos((p) => { const n = { ...p }; delete n[meterId]; return n; });
 
   useEffect(() => {
     document.title = 'पाणी मीटर रीडिंग (फिल्ड)';
@@ -61,29 +78,31 @@ const WaterFieldReading = () => {
   const calc = (m: FieldMeter) => {
     const cur = num(inputs[m.meter_id]);
     const prev = num(m.prev_reading);
-    const units = Math.max(0, cur - prev);
-    const charge = Math.round(units * num(m.rate));
+    // GP model — same as /water-meter/:id : एकून रीडिंग = आत्ताचे + मागील (बेरीज, वजाबाकी नाही).
+    const ekun = cur + prev;
+    const charge = Math.round(cur * num(m.rate));   // आकारणी = आत्ताचे रीडिंग × दर
     const arrears = Math.round(num(m.arrears));
-    const total = charge + arrears;
-    return { cur, prev, units, charge, arrears, total };
+    const total = charge + arrears;                 // एकूण देय = आकारणी + मागील थकबाकी
+    return { cur, prev, ekun, charge, arrears, total };
   };
 
   const save = async (m: FieldMeter) => {
     const raw = inputs[m.meter_id];
     if (raw === '' || raw == null) { toast.error('आताचे रीडिंग टाका'); return; }
-    const { cur, prev, units, charge, arrears, total } = calc(m);
-    if (cur < prev) { toast.error('आताचे रीडिंग मागील पेक्षा कमी आहे'); return; }
+    const { cur, prev, ekun, charge, arrears, total } = calc(m);
     setSavingId(m.meter_id);
     try {
+      const photo = photos[m.meter_id];
       const res = await waterMeterService.saveReading(m.meter_id, {
         year, month_seq: monthSeq, month_name: WATER_MONTHS[monthSeq - 1],
         current_reading: String(cur), previous_reading: String(prev),
-        units, rate: num(m.rate), current_charge: charge, arrears, late_fee: 0,
-        total, paid_amount: 0, balance: total,
+        units: ekun, ekun_reading: String(ekun), rate: num(m.rate), current_charge: charge,
+        arrears, late_fee: 0, total, paid_amount: 0, balance: total,
+        ...(photo ? { reading_photo: photo } : {}),
       });
       if (res?.success) {
         toast.success('रीडिंग जतन झाले');
-        setMeters((prevList) => prevList.map((x) => x.meter_id === m.meter_id ? { ...x, saved: true, current_reading: String(cur) } : x));
+        setMeters((prevList) => prevList.map((x) => x.meter_id === m.meter_id ? { ...x, saved: true, current_reading: String(cur), has_photo: x.has_photo || !!photo } : x));
       } else toast.error(res?.message || 'जतन अयशस्वी');
     } catch (e) { toast.error((e as { message?: string })?.message || 'त्रुटी'); }
     finally { setSavingId(null); }
@@ -167,19 +186,33 @@ const WaterFieldReading = () => {
                     <input type="number" inputMode="numeric" value={inputs[m.meter_id] ?? ''} onChange={(e) => setInputs((s) => ({ ...s, [m.meter_id]: e.target.value }))} className={inp} />
                   </div>
                   <div>
-                    <label className="mb-0.5 block text-[11px] text-gray-500 dark:text-gray-400">युनिट</label>
-                    <div className="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-200">{c.units}</div>
+                    <label className="mb-0.5 block text-[11px] text-gray-500 dark:text-gray-400">एकून रीडिंग</label>
+                    <div className="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-200">{c.ekun}</div>
                   </div>
                   <div>
                     <label className="mb-0.5 block text-[11px] text-gray-500 dark:text-gray-400">एकूण (₹)</label>
                     <div className="rounded-lg bg-primary-50 px-3 py-2 text-sm font-bold text-primary-700 dark:bg-primary-900/20 dark:text-primary-300">{c.total}</div>
                   </div>
                 </div>
-                <div className="mt-2 flex items-center justify-between">
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                   <span className="text-[11px] text-gray-400">दर ₹{m.rate}/युनिट{c.arrears > 0 ? ` · थकबाकी ₹${c.arrears}` : ''}</span>
-                  <button onClick={() => save(m)} disabled={busy} className="flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50">
-                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} {m.saved ? 'अद्यतन' : 'जतन'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* meter photo (compressed) */}
+                    {photos[m.meter_id] ? (
+                      <div className="relative">
+                        <img src={photos[m.meter_id]} alt="मीटर फोटो" className="h-9 w-9 rounded-lg border border-gray-200 object-cover dark:border-gray-600" />
+                        <button type="button" onClick={() => clearPhoto(m.meter_id)} className="absolute -right-1.5 -top-1.5 rounded-full bg-red-500 p-0.5 text-white" title="फोटो काढा"><X className="h-3 w-3" /></button>
+                      </div>
+                    ) : (
+                      <label className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium ${m.has_photo ? 'border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-300' : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300'}`} title="मीटरचा फोटो घ्या">
+                        <Camera className="h-4 w-4" /> {m.has_photo ? 'फोटो ✓' : 'फोटो'}
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { onPhoto(m.meter_id, e.target.files?.[0]); e.target.value = ''; }} />
+                      </label>
+                    )}
+                    <button onClick={() => save(m)} disabled={busy} className="flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50">
+                      {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} {m.saved ? 'अद्यतन' : 'जतन'}
+                    </button>
+                  </div>
                 </div>
               </div>
             );

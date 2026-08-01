@@ -121,6 +121,13 @@ const Login = () => {
           localStorage.setItem('user', JSON.stringify(response.data.user));
           localStorage.setItem('userRole', formData.loginAs);
           localStorage.setItem('isAuthenticated', 'true');
+          // Citizen on the default password → force a password change before use
+          if (response.data.user.user_type === 'citizen' && response.data.user.must_change_password) {
+            localStorage.setItem('psm_force_pwd', '1');
+          } else {
+            localStorage.removeItem('psm_force_pwd');
+          }
+          window.dispatchEvent(new Event('psm-auth-changed'));
 
           // Set loader config
           setLoaderConfig('ring', 'white-900');

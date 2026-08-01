@@ -51,6 +51,8 @@ export interface WaterReading {
   paid_amount?: number | null;
   balance?: number | null;
   remark?: string | null;
+  reading_photo?: string | null; // compressed base64 data URL (per-month reading photo)
+  config_locked?: number | null; // 1 once आकारणी दर/विलंब config confirmed on the detail page
 }
 
 export type WaterMeterPayload = Partial<Omit<WaterMeter, 'id' | 'readings'>>;
@@ -97,6 +99,7 @@ const E = {
   GET: (id: number) => `/main/water-meter/${id}`,
   READING: (id: number) => `/main/water-meter/${id}/reading`,
   DEL_READING: (rid: number) => `/main/water-meter/reading/${rid}`,
+  LOCK_CONFIG: (id: number) => `/main/water-meter/${id}/lock-config`,
   MY: '/main/water-meter/my',
   REPORT: '/main/water-meter/report',
   BY_NODNI: (nid: number) => `/main/water-meter/by-nodni/${nid}`,
@@ -123,6 +126,7 @@ export interface FieldMeter {
   reading_id: number | null;
   current_reading: string | null;
   saved: boolean;
+  has_photo?: boolean;
 }
 export interface FieldMetersResponse { year: number; month_seq: number; meters: FieldMeter[]; count: number; }
 
@@ -134,6 +138,7 @@ export const waterMeterService = {
   getMeter: async (id: number, year?: number): Promise<ApiResponse<WaterMeter>> =>
     api.get(year ? `${E.GET(id)}?year=${year}` : E.GET(id)),
   saveReading: async (id: number, r: WaterReading): Promise<ApiResponse> => api.post(E.READING(id), r),
+  lockConfig: async (id: number, year: number): Promise<ApiResponse> => api.post(E.LOCK_CONFIG(id), { year }),
   deleteReading: async (rid: number): Promise<ApiResponse> => api.delete(E.DEL_READING(rid)),
   myMeters: async (): Promise<ApiResponse<WaterMeter[]>> => api.get(E.MY),
   report: async (params: { year?: number; ward?: string }): Promise<ApiResponse<WaterMeter[]>> => api.post(E.REPORT, params),

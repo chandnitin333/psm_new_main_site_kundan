@@ -64,6 +64,12 @@ const WaterMeterDetail = () => {
   const [vilambFreq, setVilambFreq] = useState<'monthly' | 'quarterly'>('quarterly');
   // once a reading is saved for this year, freeze the reading-type selection
   const [typeLocked, setTypeLocked] = useState(false);
+  // Bill config (आकारणी दर / विलंब दंड / विलंब दंड कधी) lock — SEPARATE from reading-type lock.
+  // Readings made quickly from field-reading leave config unconfirmed → editable here the first
+  // time (+ a "config जतन" button); once confirmed (or saved directly here) it locks.
+  const [configLocked, setConfigLocked] = useState(false);
+  const [configPending, setConfigPending] = useState(false); // saved rows exist but config not yet confirmed
+  const [savingConfig, setSavingConfig] = useState(false);
   const canEdit = can('malmatta_nodni', 'water_meter');
   const H = gpHeader();
 
@@ -227,7 +233,12 @@ const WaterMeterDetail = () => {
         setVilambVal(vv);
         setVilambFreq(vf);
         setTopRate(effRate != null ? String(effRate) : '');
-        setTypeLocked(!!savedRow); // record असल्यास प्रकार + top freeze
+        setTypeLocked(!!savedRow); // record असल्यास रिडिंग प्रकार freeze
+        // config lock: locked only once confirmed here (config_locked=1). Rows created from
+        // field-reading are config_locked=0 → config stays editable + "config जतन" shows.
+        const anyConfigLocked = existing.some((r) => Number(r.config_locked) === 1);
+        setConfigLocked(anyConfigLocked);
+        setConfigPending(!!savedRow && !anyConfigLocked);
         const merged = Array.from({ length: 12 }, (_, i) => {
           const seq = i + 1;
           const found = existing.find((r) => r.month_seq === seq && r.year === year);
@@ -308,14 +319,35 @@ const WaterMeterDetail = () => {
   const saveRow = async (r: WaterReading) => {
     setSavingSeq(r.month_seq);
     try {
-      const res = await waterMeterService.saveReading(meterId, r);
+      // Saving directly here confirms the config → lock it (existing behaviour).
+      const res = await waterMeterService.saveReading(meterId, { ...r, config_locked: 1 });
       const newId = (res?.data as { id?: number } | undefined)?.id;
       if (newId) setRows((prev) => prev.map((x) => (x.month_seq === r.month_seq ? { ...x, id: newId } : x)));
       trackAction(`पाणी रीडिंग जतन — ${meter?.khatedar_name} ${r.month_name}`, { page: '/water-meter', meter_id: meterId, month: r.month_seq });
-      setTypeLocked(true); // या वर्षासाठी record आला → रिडिंग प्रकार freeze
+      setTypeLocked(true);            // या वर्षासाठी record आला → रिडिंग प्रकार freeze
+      setConfigLocked(true); setConfigPending(false); // config confirmed
       toast.success(`${r.month_name} जतन झाले`);
     } catch (e) { toast.error((e as { message?: string })?.message || 'जतन अयशस्वी'); }
     finally { setSavingSeq(null); }
+  };
+
+  // "config जतन" — confirm आकारणी दर / विलंब दंड / विलंब कधी for readings that came from
+  // field-reading. Persists meter rate + freq, re-saves the filled rows with the new config,
+  // then locks. After this those three fields become read-only (like a direct entry).
+  const saveConfig = async () => {
+    setSavingConfig(true);
+    try {
+      await waterMeterService.update(meterId, { rate: Number(topRate) || 0, late_fee_freq: vilambFreq });
+      const filled = rows.filter((r) => rowFilled(r));
+      for (const r of filled) {
+        await waterMeterService.saveReading(meterId, { ...r, config_locked: 1 });
+      }
+      await waterMeterService.lockConfig(meterId, year);
+      trackAction(`पाणी आकारणी दर/विलंब जतन — ${meter?.khatedar_name}`, { page: '/water-meter', meter_id: meterId, year });
+      setConfigLocked(true); setConfigPending(false); setTypeLocked(true);
+      toast.success('आकारणी दर व विलंब दंड जतन झाले — आता लॉक');
+    } catch (e) { toast.error((e as { message?: string })?.message || 'जतन अयशस्वी'); }
+    finally { setSavingConfig(false); }
   };
 
   const [savingBill, setSavingBill] = useState(false);
@@ -454,13 +486,22 @@ const WaterMeterDetail = () => {
       )}
 
       <style>{`@media print { @page { size: A4 landscape; margin: 8mm; } .no-print{display:none!important} .print-area{display:block!important} body{background:#fff}
+        /* print backgrounds + borders EXACTLY as on screen (Chrome drops them otherwise) */
+        .print-area, .print-area * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         /* even, crisp borders in print — collapsed tables render ~0.8px while div borders are 1px,
            which looks uneven/dark on paper. Force a single uniform 1px black everywhere. */
-        .print-area table { border-collapse: collapse !important; }
-        .print-area th, .print-area td { border: 1px solid #000 !important; }
-        .print-area .border, .print-area .border-2 { border-width: 1px !important; border-color: #000 !important; }
-        .print-area .border-b { border-bottom-width: 1px !important; border-bottom-color: #000 !important; }
-        .print-area .border-r { border-right-width: 1px !important; border-right-color: #000 !important; }
+        /* Chrome print DROPS some collapsed-table borders (top edge + seams after spanning
+           cells) even though they show on screen. Use separate mode instead: the table draws
+           top+left, every cell draws right+bottom → a complete, reliably-printed 1px grid
+           with no double lines and no missing seam above अनु क्रमांक. */
+        /* separate mode + border-spacing 0 + EVERY cell draws all four borders: each grid
+           line is drawn by BOTH adjacent cells, so Chrome print can never drop it (the
+           collapse bug merged them into one droppable border). Robust — no missing lines. */
+        .print-area table { border-collapse: separate !important; border-spacing: 0 !important; border: 1px solid #888 !important; }
+        .print-area th, .print-area td { border: 1px solid #888 !important; background-clip: padding-box !important; }
+        .print-area .border, .print-area .border-2 { border-width: 1px !important; border-color: #888 !important; }
+        .print-area .border-b { border-bottom-width: 1px !important; border-bottom-color: #888 !important; }
+        .print-area .border-r { border-right-width: 1px !important; border-right-color: #888 !important; }
         /* मागणी बिल — किमान 15px वाचनीय font (print) */
         .bill-print td, .bill-print th { font-size: 15px !important; line-height: 1.3 !important; }
       }
@@ -531,28 +572,37 @@ const WaterMeterDetail = () => {
               {typeLocked && <p className="mt-0.5 text-[10px] text-gray-400">या वर्षासाठी record आहे — प्रकार बदलता येणार नाही</p>}
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">आकारणी दर {typeLocked && <span className="text-amber-600">🔒</span>}</label>
-              <input value={topRate} onChange={(e) => onTopRate(e.target.value)} disabled={!canEdit || typeLocked} inputMode="decimal" className={`${fieldCls} disabled:cursor-not-allowed disabled:opacity-70`} placeholder="दर (उदा. 6.5)" />
+              <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">आकारणी दर {configLocked && <span className="text-amber-600">🔒</span>}</label>
+              <input value={topRate} onChange={(e) => onTopRate(e.target.value)} disabled={!canEdit || configLocked} inputMode="decimal" className={`${fieldCls} disabled:cursor-not-allowed disabled:opacity-70`} placeholder="दर (उदा. 6.5)" />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">विलंब दंड प्रकार {typeLocked && <span className="text-amber-600">🔒</span>}</label>
-              <select value={vilambType} onChange={(e) => onVilambType(e.target.value as 'percent' | 'amount')} disabled={!canEdit || typeLocked} className={`${fieldCls} disabled:cursor-not-allowed disabled:opacity-70`}>
+              <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">विलंब दंड प्रकार {configLocked && <span className="text-amber-600">🔒</span>}</label>
+              <select value={vilambType} onChange={(e) => onVilambType(e.target.value as 'percent' | 'amount')} disabled={!canEdit || configLocked} className={`${fieldCls} disabled:cursor-not-allowed disabled:opacity-70`}>
                 <option value="amount">रक्कम (Amount ₹)</option>
                 <option value="percent">टक्केवारी (Percent %)</option>
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">{vilambType === 'percent' ? 'विलंब दंड %' : 'विलंब दंड ₹'} {typeLocked && <span className="text-amber-600">🔒</span>}</label>
-              <input value={vilambVal} onChange={(e) => onVilambVal(e.target.value)} disabled={!canEdit || typeLocked} inputMode="decimal" className={`${fieldCls} disabled:cursor-not-allowed disabled:opacity-70`} placeholder={vilambType === 'percent' ? 'उदा. 5' : 'उदा. 10'} />
+              <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">{vilambType === 'percent' ? 'विलंब दंड %' : 'विलंब दंड ₹'} {configLocked && <span className="text-amber-600">🔒</span>}</label>
+              <input value={vilambVal} onChange={(e) => onVilambVal(e.target.value)} disabled={!canEdit || configLocked} inputMode="decimal" className={`${fieldCls} disabled:cursor-not-allowed disabled:opacity-70`} placeholder={vilambType === 'percent' ? 'उदा. 5' : 'उदा. 10'} />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">विलंब दंड कधी {typeLocked && <span className="text-amber-600">🔒</span>}</label>
-              <select value={vilambFreq} onChange={(e) => onVilambFreq(e.target.value as 'monthly' | 'quarterly')} disabled={!canEdit || typeLocked} className={`${fieldCls} disabled:cursor-not-allowed disabled:opacity-70`}>
+              <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">विलंब दंड कधी {configLocked && <span className="text-amber-600">🔒</span>}</label>
+              <select value={vilambFreq} onChange={(e) => onVilambFreq(e.target.value as 'monthly' | 'quarterly')} disabled={!canEdit || configLocked} className={`${fieldCls} disabled:cursor-not-allowed disabled:opacity-70`}>
                 <option value="monthly">दर महिना (Monthly)</option>
                 <option value="quarterly">तिमाही — ३ महिन्यांतून (Quarterly)</option>
               </select>
             </div>
           </div>
+          {/* Field-reading entry: config not yet confirmed — allow setting it once, then lock. */}
+          {configPending && canEdit && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800/60 dark:bg-amber-900/20">
+              <span className="text-[11px] text-amber-700 dark:text-amber-300">ही नोंद फिल्ड रीडिंगमधून आली आहे — आकारणी दर व विलंब दंड एकदा सेट करून जतन करा.</span>
+              <button onClick={saveConfig} disabled={savingConfig} className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50">
+                {savingConfig ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <Save className="h-4 w-4" />} आकारणी दर/विलंब जतन
+              </button>
+            </div>
+          )}
           <p className="mt-2 text-[11px] text-gray-400">
             {readingType === 'reading'
               ? 'रीडिंग: चालु रीडिंग टाका → एकूण=चालु+मागील, चालु आकारणी=चालु×दर आपोआप. थकीत=मागील महिन्याची थकबाकी. एकूण=चालु आकारणी+थकीत+विलंब. थकबाकी=एकूण−भरणा. आंशिक भरणा केल्यास न भरलेली युनिट्स पुढील महिन्याची मागील रीडिंग होते. भरणा + पावती क्र. टाकल्यास पेमेंट नोंद होते.'

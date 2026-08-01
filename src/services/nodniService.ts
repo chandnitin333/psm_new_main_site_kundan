@@ -46,6 +46,7 @@ const NODNI_ENDPOINTS = {
   HISTORY: (id: number) => `/main/nodni/${id}/history`,
   SEARCH: '/main/malmatta-nodni/search',
   FILTER: '/main/malmatta-nodni/filter',
+  DUPLICATE_MOBILES: '/main/malmatta-nodni/duplicate-mobiles',
   MY_PROPERTIES: '/main/malmatta-nodni/my-properties',
   MY_PROPERTY_UPDATE: (id: number) => `/main/malmatta-nodni/my-property/${id}`,
   CHECK_SILLAK_JODA: '/main/malmatta-nodni/previous-tax/check-sillak-joda-exist',
@@ -227,6 +228,14 @@ export const nodniService = {
    */
   filter: async (payload: Record<string, unknown>): Promise<ApiResponse> => {
     return api.post(NODNI_ENDPOINTS.FILTER, payload);
+  },
+
+  /**
+   * Mobile numbers shared by more than one property (same person, multiple
+   * malmatta — possibly across wards). Returns groups with name/ward/malmatta.
+   */
+  duplicateMobiles: async (search?: string): Promise<ApiResponse> => {
+    return api.post(NODNI_ENDPOINTS.DUPLICATE_MOBILES, { search: search || '' });
   },
 
   /**

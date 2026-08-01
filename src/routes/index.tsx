@@ -14,6 +14,8 @@ import Partners from '../pages/public/Partners';
 import LegalPage from '../pages/public/LegalPage';
 import PublicReportViewer from '../pages/public/PublicReportViewer';
 import CertificateVerify from '../pages/public/CertificateVerify';
+import InstallApp from '../pages/public/InstallApp';
+import AppPoster from '../pages/dashboard/AppPoster';
 import Register from '../pages/public/Register';
 import ForgotPassword from '../pages/public/ForgotPassword';
 import ResetPassword from '../pages/public/ResetPassword';
@@ -28,6 +30,7 @@ import ChangePassword from '../pages/dashboard/ChangePassword';
 import Components from '../pages/dashboard/components/Components';
 import NodniForm from '../pages/dashboard/nodni-form/NodniForm';
 import MalmattaNodni from '../pages/dashboard/malmatta-nodni/MalmattaNodni';
+import DuplicateMobiles from '../pages/dashboard/malmatta-nodni/DuplicateMobiles';
 import PropertyHistory from '../pages/dashboard/malmatta-nodni/PropertyHistory';
 import CollectionDaybook from '../pages/dashboard/vasuli/CollectionDaybook';
 import CollectionDashboard from '../pages/dashboard/vasuli/CollectionDashboard';
@@ -236,6 +239,20 @@ export const createRouter = (handleLogout: () => void) =>
       element: <CertificateVerify />,
     },
     {
+      // PUBLIC install landing page — target of the scanned "App QR poster" (no login, no layout)
+      path: '/install',
+      element: <InstallApp />,
+    },
+    {
+      // Printable QR poster generator for GP staff (standalone, login required)
+      path: '/app-poster',
+      element: (
+        <ProtectedRoute>
+          <AppPoster />
+        </ProtectedRoute>
+      ),
+    },
+    {
       // super_user: pick the gram panchayat to work in (standalone, no dashboard layout)
       path: '/select-gp',
       element: (
@@ -275,6 +292,7 @@ export const createRouter = (handleLogout: () => void) =>
       ),
       children: [
         { index: true, element: <MalmattaNodni /> },
+        { path: 'duplicates', element: <DuplicateMobiles /> },
       ],
     },
     {
