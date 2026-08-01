@@ -70,7 +70,7 @@ const WaterMeterDetail = () => {
   const [configLocked, setConfigLocked] = useState(false);
   const [configPending, setConfigPending] = useState(false); // saved rows exist but config not yet confirmed
   const [savingConfig, setSavingConfig] = useState(false);
-  const canEdit = can('malmatta_nodni', 'water_meter');
+  const canEdit = can('water_meter', 'edit');
   const H = gpHeader();
 
   // register मध्ये दर सोडून सर्व रक्कम पूर्ण संख्येत (round). दर decimal राहतो (round2 मधून जात नाही).

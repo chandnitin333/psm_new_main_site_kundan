@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, Building2, Wallet, Award, Droplet } from 'lucide-react';
 import { searchService, type SearchResult, type SearchType } from '../../services/searchService';
-import { canModule, can, canAnyCertificate } from '../../utils/permissions';
+import { canModule, canAnyCertificate } from '../../utils/permissions';
 
 /**
  * Header global search — one box to find a property/owner, vasuli record, issued
@@ -31,7 +31,7 @@ const GlobalSearch = () => {
     if (canModule('malmatta_nodni') || canModule('nodni_form')) t.push('property');
     if (canModule('vasuli')) t.push('vasuli');
     if (canAnyCertificate()) t.push('certificate');
-    if (can('malmatta_nodni', 'water_meter')) t.push('water_meter');
+    if (canModule('water_meter')) t.push('water_meter');
     return t;
   }, []);
 

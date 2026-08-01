@@ -7,7 +7,7 @@ import PrintModal from './PrintModal';
 import ImageUploadModal from './ImageUploadModal';
 import { useToast } from '../../../hooks/useToast';
 import { useLoading } from '../../../contexts/LoadingContext';
-import { can } from '../../../utils/permissions';
+import { can, canModule } from '../../../utils/permissions';
 import { trackAction } from '../../../utils/tracker';
 import { nodniService, waterMeterService } from '../../../services';
 import { config } from '../../../config';
@@ -571,7 +571,7 @@ const MalmattaNodni = () => {
                           >
                             <History className="w-5 h-5" />
                           </button>
-                          {can('malmatta_nodni', 'water_meter') && (
+                          {canModule('water_meter') && (
                           <button
                             type="button"
                             onClick={() => handleWaterMeter(record)}

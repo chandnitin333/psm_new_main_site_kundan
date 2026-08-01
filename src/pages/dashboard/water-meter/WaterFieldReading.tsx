@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Droplet, Loader2, Check, Search, AlertTriangle, Camera, X } from 'lucide-react';
 import { useToast } from '../../../hooks/useToast';
 import { waterMeterService, commonDdlService, WATER_MONTHS, type FieldMeter } from '../../../services';
-import { can } from '../../../utils/permissions';
+import { canModule } from '../../../utils/permissions';
 import { fyOfDate, fyLabel } from '../../../utils/fyConfig';
 import YearPicker from '../../../components/common/YearPicker';
 import { compressImageToDataUrl, base64Bytes } from '../../../utils/imageCompress';
@@ -20,7 +20,7 @@ const currentSeq = () => { const m = new Date().getMonth() + 1; return m >= 4 ? 
 const WaterFieldReading = () => {
   const navigate = useNavigate();
   const { toast, ToastContainer } = useToast();
-  const allowed = can('malmatta_nodni', 'water_meter');
+  const allowed = canModule('water_field_reading');
   const [wards, setWards] = useState<(string | number)[]>([]);
   const [ward, setWard] = useState('');
   const [year, setYear] = useState(fyOfDate());

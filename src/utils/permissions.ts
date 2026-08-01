@@ -29,8 +29,8 @@ export const PATH_TO_MODULE: Record<string, string> = {
   '/collection-mode': 'vasuli_field',
   '/collection-dashboard': 'collection_dashboard',
   '/bulk-reminder': 'bulk_reminder',
-  '/water-meter': 'malmatta_nodni',
-  '/water-meter/field-reading': 'malmatta_nodni',
+  '/water-meter': 'water_meter',
+  '/water-meter/field-reading': 'water_field_reading',
   '/ahval/aadhar-list': 'ahval_aadhar_list',
   '/ahval/mobile-list': 'ahval_mobile_list',
   '/ahval/pani-list': 'ahval_pani_list',
@@ -109,12 +109,9 @@ export const can = (moduleKey: string, action: ActionKey): boolean => {
 // Module key for a route path (handles trailing segments under /ahval/*)
 export const moduleForPath = (path: string): string | undefined => PATH_TO_MODULE[path];
 
-// Some paths need a specific ACTION (not just the module) to be visible —
-// e.g. पाणी मीटर is the `water_meter` action of the malmatta_nodni module.
-export const PATH_TO_ACTION: Record<string, ActionKey> = {
-  '/water-meter': 'water_meter',
-  '/water-meter/field-reading': 'water_meter',
-};
+// Some paths need a specific ACTION (not just the module) to be visible.
+// (पाणी मीटर व फील्ड रीडिंग are now their own modules — see PATH_TO_MODULE.)
+export const PATH_TO_ACTION: Record<string, ActionKey> = {};
 
 // Can the user reach a route (menu-level)? Uses action-level check when the path
 // declares one in PATH_TO_ACTION, else module-level canModule.

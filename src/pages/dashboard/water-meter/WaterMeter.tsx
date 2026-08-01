@@ -25,9 +25,8 @@ const WaterMeter = () => {
   const [saving, setSaving] = useState(false);
   const [delId, setDelId] = useState<number | null>(null);
 
-  const canManage = can('malmatta_nodni', 'water_meter');
-  const canEdit = canManage;
-  const canDelete = canManage;
+  const canEdit = can('water_meter', 'edit');
+  const canDelete = can('water_meter', 'delete');
 
   const load = useCallback(async (q = '') => {
     try {

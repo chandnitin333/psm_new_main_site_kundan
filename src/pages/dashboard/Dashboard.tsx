@@ -8,7 +8,7 @@ import { useLoading } from '../../contexts/LoadingContext';
 import { nodniService, commonDdlService, vasuliService, authService } from '../../services';
 import type { DashboardKpis, MonthlyCollection } from '../../services/vasuliService';
 import { fyLabel, fyOfDate } from '../../utils/fyConfig';
-import { canAnyCertificate, canModule, can } from '../../utils/permissions';
+import { canAnyCertificate, canModule } from '../../utils/permissions';
 import { isSuperUser, getActiveGp, clearActiveGp } from '../../utils/activeGp';
 import config from '../../config';
 import type { CategoryCard } from '../../interfaces/dashboard/Dashboard.types';
@@ -321,7 +321,7 @@ const Dashboard = () => {
     { show: showVasuli, label: 'वसुली', to: '/vasuli', Icon: IndianRupee, cls: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300' },
     { show: canModule('collection_dashboard'), label: 'वसुली डॅशबोर्ड', to: '/collection-dashboard', Icon: BarChart3, cls: 'bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300' },
     { show: showCerts, label: 'प्रमाणपत्र', to: '/certificates', Icon: Award, cls: 'bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-300' },
-    { show: can('malmatta_nodni', 'water_meter'), label: 'मीटर रीडिंग', to: '/water-meter/field-reading', Icon: Droplet, cls: 'bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300' },
+    { show: canModule('water_field_reading'), label: 'मीटर रीडिंग', to: '/water-meter/field-reading', Icon: Droplet, cls: 'bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300' },
     { show: canModule('ahval_ghosvara'), label: 'घोषवारा', to: '/ahval/ghosvara', Icon: FileText, cls: 'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300' },
     { show: canModule('grievance'), label: 'तक्रारी', to: '/grievances', Icon: MessagesSquare, cls: 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300' },
     { show: canModule('bulk_reminder'), label: 'स्मरणपत्र', to: '/bulk-reminder', Icon: BellRing, cls: 'bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300' },
