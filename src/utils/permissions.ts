@@ -127,7 +127,7 @@ export const canAccessPath = (path?: string): boolean => {
 // Where to land after login: dashboard if allowed, otherwise the first
 // permitted page (in PATH_TO_MODULE order). Full-access users always get dashboard.
 export const getLandingPath = (): string => {
-  if (isCitizen()) return '/my-property';
+  if (isCitizen()) return '/citizen-dashboard';
   if (isFullAccess() || canModule('dashboard')) return '/dashboard';
   for (const [path, moduleKey] of Object.entries(PATH_TO_MODULE)) {
     if (path === '/dashboard') continue;

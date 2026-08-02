@@ -111,6 +111,44 @@ const PersonalExpense = () => {
     return () => clearTimeout(t);
   }, [data, doSave]);
 
+  // ---- View mode + Year / multi-year report ----
+  const [mode, setMode] = useState<'entry' | 'report'>('entry');
+  const [reportYear, setReportYear] = useState<string>(String(new Date().getFullYear()));
+
+  const availableYears = useMemo(() => {
+    const ys = new Set<string>();
+    Object.keys(data).forEach((m) => { const y = m.slice(0, 4); if (/^\d{4}$/.test(y)) ys.add(y); });
+    const arr = Array.from(ys).sort().reverse();
+    return arr.length ? arr : [String(new Date().getFullYear())];
+  }, [data]);
+
+  // DATE-WISE detailed report: every expense (कोणत्या दिनांकाला काय), date-sorted,
+  // with a running शिल्लक (period's total budget − cumulative expense).
+  const fmtDMY = (d: string) => { const m = String(d).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}-${m[2]}-${m[1]}` : String(d); };
+  interface DetailRow { date: string; name: string; amount: number; balance: number }
+  const { reportDetail, reportTotals } = useMemo(() => {
+    const keys = Object.keys(data).filter((m) => reportYear === 'all' || m.startsWith(reportYear + '-')).sort();
+    let budget = 0;
+    const items: { date: string; name: string; amount: number }[] = [];
+    keys.forEach((k) => {
+      const s = data[k];
+      budget += Number(s.budget || 0);
+      (s.expenses || []).forEach((e) => items.push({ date: e.date, name: e.name, amount: Number(e.amount || 0) }));
+    });
+    items.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    let run = budget;
+    const detail: DetailRow[] = items.map((it) => { run -= it.amount; return { ...it, balance: run }; });
+    const expense = items.reduce((a, x) => a + x.amount, 0);
+    return { reportDetail: detail, reportTotals: { budget, expense, balance: budget - expense } };
+  }, [data, reportYear]);
+
+  const reportCols: ExportColumn<DetailRow>[] = [
+    { header: 'दिनांक', value: (r) => fmtDMY(r.date) },
+    { header: 'खर्चाचे नाव', value: (r) => r.name },
+    { header: 'रक्कम', value: (r) => r.amount },
+    { header: 'शिल्लक', value: (r) => r.balance },
+  ];
+
   // running remaining after each row (budget - cumulative)
   let running = Number(sheet.budget || 0);
 
@@ -141,17 +179,37 @@ const PersonalExpense = () => {
                 <span className="text-red-500">⚠ जतन अयशस्वी</span>
               ) : null}
             </span>
-            <input type="month" value={month} onChange={(e) => setMonth(e.target.value || thisMonth())} className={`${inp} w-auto`} />
-            <ExportButtons
-              columns={exportCols}
-              rows={exportRows}
-              filename={`kharch-${month}`}
-              title={`खर्च नोंद — ${month}`}
-              subtitle={`मासिक रक्कम: ${inr(sheet.budget || 0)} · एकूण खर्च: ${inr(totalExpense)} · शिल्लक: ${inr(remaining)}`}
-            />
+            {/* view mode toggle */}
+            <div className="flex overflow-hidden rounded-lg border border-gray-300 dark:border-gray-600">
+              {(['entry', 'report'] as const).map((m) => (
+                <button key={m} onClick={() => setMode(m)}
+                  className={`px-3 py-1.5 text-sm font-medium ${mode === m ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 dark:bg-gray-700 dark:text-gray-200'}`}>
+                  {m === 'entry' ? 'महिना' : 'अहवाल'}
+                </button>
+              ))}
+            </div>
+            {mode === 'entry' ? (
+              <>
+                <input type="month" value={month} onChange={(e) => setMonth(e.target.value || thisMonth())} className={`${inp} w-auto`} />
+                <ExportButtons columns={exportCols} rows={exportRows} filename={`kharch-${month}`}
+                  title={`खर्च नोंद — ${month}`}
+                  subtitle={`मासिक रक्कम: ${inr(sheet.budget || 0)} · एकूण खर्च: ${inr(totalExpense)} · शिल्लक: ${inr(remaining)}`} />
+              </>
+            ) : (
+              <>
+                <select value={reportYear} onChange={(e) => setReportYear(e.target.value)} className={`${inp} w-auto`}>
+                  {availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
+                  <option value="all">सर्व वर्षे</option>
+                </select>
+                <ExportButtons columns={reportCols} rows={reportDetail} filename={`kharch-report-${reportYear}`}
+                  title={`खर्च अहवाल (दिनांकनिहाय) — ${reportYear === 'all' ? 'सर्व वर्षे' : reportYear}`}
+                  subtitle={`एकूण रक्कम: ${inr(reportTotals.budget)} · एकूण खर्च: ${inr(reportTotals.expense)} · शिल्लक: ${inr(reportTotals.balance)}`} />
+              </>
+            )}
           </div>
         </div>
 
+        {mode === 'entry' && (<>
         {/* monthly amount (top) */}
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-primary-200 bg-primary-50 p-4 dark:border-primary-800 dark:bg-primary-900/20">
           <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">मासिक रक्कम (या महिन्याची):</label>
@@ -241,6 +299,59 @@ const PersonalExpense = () => {
         </div>
 
         <p className="text-center text-[11px] text-gray-400">बदल आपोआप जतन होतात 🔒 (Auto-saved)</p>
+        </>)}
+
+        {/* ===== अहवाल (Year / multi-year report) ===== */}
+        {mode === 'report' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { l: 'एकूण रक्कम', v: reportTotals.budget, c: 'text-primary-700 dark:text-primary-300' },
+                { l: 'एकूण खर्च', v: reportTotals.expense, c: 'text-red-600 dark:text-red-400' },
+                { l: 'शिल्लक', v: reportTotals.balance, c: reportTotals.balance < 0 ? 'text-red-600' : 'text-emerald-600 dark:text-emerald-400' },
+              ].map((s) => (
+                <div key={s.l} className="rounded-xl border border-gray-100 bg-white p-3 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                  <div className={`text-lg font-bold tabular-nums ${s.c}`}>{inr(s.v)}</div>
+                  <div className="text-[11px] text-gray-500 dark:text-gray-400">{s.l}</div>
+                </div>
+              ))}
+            </div>
+            <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                    <th className="px-3 py-2 font-medium">दिनांक</th>
+                    <th className="px-3 py-2 font-medium">खर्चाचे नाव</th>
+                    <th className="px-3 py-2 text-right font-medium">रक्कम</th>
+                    <th className="px-3 py-2 text-right font-medium">शिल्लक</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                  {reportDetail.length === 0 ? (
+                    <tr><td colSpan={4} className="px-3 py-8 text-center text-sm text-gray-400">या कालावधीसाठी नोंद नाही</td></tr>
+                  ) : reportDetail.map((r, i) => (
+                    <tr key={i} className="text-gray-800 dark:text-gray-200">
+                      <td className="whitespace-nowrap px-3 py-2 tabular-nums">{fmtDMY(r.date)}</td>
+                      <td className="px-3 py-2">{r.name}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-red-600 dark:text-red-400">− {inr(r.amount)}</td>
+                      <td className={`px-3 py-2 text-right font-semibold tabular-nums ${r.balance < 0 ? 'text-red-600' : 'text-gray-800 dark:text-gray-100'}`}>{inr(r.balance)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                {reportDetail.length > 0 && (
+                  <tfoot>
+                    <tr className="border-t-2 border-gray-200 font-bold dark:border-gray-600">
+                      <td className="px-3 py-2" colSpan={2}>एकूण खर्च</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-red-600">{inr(reportTotals.expense)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-emerald-600">{inr(reportTotals.balance)}</td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+            <p className="text-center text-[11px] text-gray-400">{reportYear === 'all' ? 'सर्व वर्षे' : reportYear} — दिनांकनिहाय संपूर्ण नोंदी · PDF/Excel एक्सपोर्ट करा</p>
+          </div>
+        )}
       </div>
     </>
   );

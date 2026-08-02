@@ -71,7 +71,8 @@ export const DASHBOARD_MENU_ITEMS: MenuItem[] = [
     subMenus: [
       { id: 'collection-dashboard', label: 'वसुली डॅशबोर्ड', path: '/collection-dashboard' },
       { id: 'vasuli-entry', label: 'वसुली नोंद', path: '/vasuli' },
-      { id: 'collection-mode', label: 'फिरती वसुली', path: '/collection-mode' }
+      { id: 'collection-mode', label: 'फिरती वसुली', path: '/collection-mode' },
+      { id: 'gp-expense', label: 'खर्च नोंद', path: '/personal-expense' }
     ]
   },
   {
@@ -113,13 +114,6 @@ export const DASHBOARD_MENU_ITEMS: MenuItem[] = [
       { id: 'citizen-notifications', label: 'नागरिक सूचना', path: '/citizen-notifications' },
       { id: 'bulk-reminder', label: 'थकबाकी स्मरणपत्र', path: '/bulk-reminder' }
     ]
-  },
-  {
-    id: 'personal-expense',
-    label: 'खर्च नोंद',
-    path: '/personal-expense',
-    icon: 'Wallet',
-    subMenus: []
   }
 ];
 
@@ -133,66 +127,36 @@ export const CITIZEN_MENU_ITEMS: MenuItem[] = [
     subMenus: []
   },
   {
-    id: 'my-property',
-    label: 'माझी मालमत्ता',
+    id: 'my-account',
+    label: 'माझे खाते',
     path: '/my-property',
     icon: 'Building2',
-    subMenus: []
+    subMenus: [
+      { id: 'my-property', label: 'माझी मालमत्ता', path: '/my-property' },
+      { id: 'my-payments', label: 'माझे भरणे', path: '/my-payments' },
+      { id: 'my-expense', label: 'माझा हिशोब', path: '/personal-expense' }
+    ]
   },
   {
-    id: 'my-bill',
-    label: 'कर बिल',
+    id: 'bills',
+    label: 'बिल',
     path: '/my-bill',
     icon: 'FileText',
-    subMenus: []
+    subMenus: [
+      { id: 'my-bill', label: 'कर बिल', path: '/my-bill' },
+      { id: 'water-bill', label: 'पाणी बिल', path: '/water-bill' }
+    ]
   },
   {
-    id: 'my-payments',
-    label: 'माझे भरणे',
-    path: '/my-payments',
-    icon: 'Receipt',
-    subMenus: []
-  },
-  {
-    id: 'helpline',
-    label: 'हेल्पलाईन',
+    id: 'citizen-services',
+    label: 'नागरिक सेवा',
     path: '/helpline',
     icon: 'LifeBuoy',
-    subMenus: []
-  },
-  {
-    id: 'gp-posts',
-    label: 'सूचना',
-    path: '/posts',
-    icon: 'Megaphone',
-    subMenus: []
-  },
-  {
-    id: 'my-notifications',
-    label: 'माझ्या सूचना',
-    path: '/my-notifications',
-    icon: 'Bell',
-    subMenus: []
-  },
-  {
-    id: 'my-complaints',
-    label: 'माझ्या तक्रारी',
-    path: '/my-complaints',
-    icon: 'MessagesSquare',
-    subMenus: []
-  },
-  {
-    id: 'water-bill',
-    label: 'पाणी बिल',
-    path: '/water-bill',
-    icon: 'Droplet',
-    subMenus: []
-  },
-  {
-    id: 'my-expense',
-    label: 'माझा हिशोब',
-    path: '/personal-expense',
-    icon: 'Wallet',
-    subMenus: []
+    subMenus: [
+      { id: 'helpline', label: 'हेल्पलाईन', path: '/helpline' },
+      { id: 'gp-posts', label: 'सूचना', path: '/posts' },
+      { id: 'my-notifications', label: 'माझ्या सूचना', path: '/my-notifications' },
+      { id: 'my-complaints', label: 'माझ्या तक्रारी', path: '/my-complaints' }
+    ]
   }
 ];
