@@ -174,11 +174,8 @@ const QuickPay = ({ prop, onClose, onDone, toastError, toastOk }: {
         kar_prakar: head === 'ghar' ? 'gruhkar' : 'pani',
       });
       if (!payRes.success) { toastError(payRes.message || 'पेमेंट जतन झाले नाही'); setSaving(false); return; }
-      // 2) keep the vasuli snapshot in sync (jama += amt, baki -= amt)
-      await vasuliService.update(prop.vasuli_id, {
-        jama_keleli_ekun: prop.jama + amt,
-        sillak_ekun: Math.max(0, prop.baki - amt),
-      });
+      // vasuli jama/sillak is now recomputed server-side from payments (add_vasuli_payment),
+      // so no client-side snapshot patch is needed — and no stale read-modify-write race.
       toastOk('पावती नोंदवली ✓');
       onDone();
     } catch {

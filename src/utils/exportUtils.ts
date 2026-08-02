@@ -60,11 +60,16 @@ export function exportToPdf<T>(opts: {
   <style>
     @page { size: A4 ${landscape ? 'landscape' : 'portrait'}; margin: 12mm 10mm; }
     * { font-family: 'Noto Sans Devanagari', 'Mangal', 'Nirmala UI', Arial, sans-serif; box-sizing: border-box; }
-    body { margin: 0; color: #111; }
+    body { margin: 0; color: #111; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     h1 { font-size: 16px; margin: 0 0 2px; text-align: center; }
     .sub { font-size: 11px; color: #555; text-align: center; margin: 0 0 10px; }
-    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    /* separate mode + border-spacing 0 + every cell draws all 4 borders → each grid line
+       (incl. the last row / outer edges) is drawn by the cells themselves, so Chrome print
+       never clips or drops it (border-collapse merged them into one droppable border). */
+    table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; }
     th, td { border: 1px solid #999; padding: 4px 6px; text-align: left; vertical-align: top; }
+    thead { display: table-header-group; }         /* repeat header on every page */
+    tr { page-break-inside: avoid; }               /* don't split a row (cuts its border) */
     thead th { background: #f0f0f0; font-weight: 700; }
     tbody tr:nth-child(even) { background: #fafafa; }
     tfoot td { font-size: 9px; color: #888; border: none; padding-top: 8px; }

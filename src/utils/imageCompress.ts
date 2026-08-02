@@ -72,4 +72,40 @@ export async function compressImage(file: File, opts: CompressOptions = {}): Pro
   }
 }
 
+/**
+ * Compress an image File to a small JPEG **base64 data URL** — for storing the
+ * image inline (e.g. a water-meter reading photo saved as a DB string) rather
+ * than uploading a file. A phone photo becomes ~30–100 KB.
+ */
+export async function compressImageToDataUrl(
+  file: File,
+  maxDimension = 1000,
+  quality = 0.6,
+): Promise<string> {
+  const dataUrl = await readAsDataURL(file);
+  try {
+    const img = await loadImage(dataUrl);
+    let { width, height } = img;
+    const scale = Math.min(1, maxDimension / Math.max(width, height));
+    width = Math.max(1, Math.round(width * scale));
+    height = Math.max(1, Math.round(height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return dataUrl;
+    ctx.drawImage(img, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', quality);
+  } catch {
+    return dataUrl; // fallback: original (rare)
+  }
+}
+
+/** Rough byte size of a base64 data URL. */
+export const base64Bytes = (dataUrl: string): number => {
+  const i = dataUrl.indexOf(',');
+  const b64 = i >= 0 ? dataUrl.slice(i + 1) : dataUrl;
+  return Math.floor((b64.length * 3) / 4);
+};
+
 export default compressImage;

@@ -4,6 +4,9 @@ import { appLockService, type LockSettings } from '../../services';
 import { biometricUnlock, getStoredCredentialId } from '../../utils/biometric';
 
 const LOCAL_HASH_KEY = 'psm_applock_h';
+// Persisted lock flag — survives page refresh/reopen so the lock screen stays up
+// until the correct PIN is entered (a refresh must NOT bypass the lock).
+export const LOCK_STATE_KEY = 'psm_applock_locked';
 
 const sha256 = async (s: string): Promise<string> => {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
@@ -14,7 +17,8 @@ const isAuthed = () => localStorage.getItem('isAuthenticated') === 'true';
 
 const AppLock = () => {
   const [settings, setSettings] = useState<LockSettings | null>(null);
-  const [locked, setLocked] = useState(false);
+  // Initialise from the persisted flag so a refresh keeps the lock screen up.
+  const [locked, setLocked] = useState<boolean>(() => isAuthed() && localStorage.getItem(LOCK_STATE_KEY) === '1');
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -26,7 +30,12 @@ const AppLock = () => {
     if (!isAuthed()) { setSettings(null); return; }
     try {
       const res = await appLockService.getSettings();
-      if (res?.success && res.data) setSettings(res.data);
+      if (res?.success && res.data) {
+        setSettings(res.data);
+        // If the feature was turned off since the flag was set, don't keep the
+        // user stuck behind a lock they can no longer disable.
+        if (!res.data.is_enabled) { localStorage.removeItem(LOCK_STATE_KEY); setLocked(false); }
+      }
     } catch { /* ignore */ }
   }, []);
 
@@ -44,6 +53,7 @@ const AppLock = () => {
   const doLock = useCallback(() => {
     if (isAuthed() && settingsRef.current?.is_enabled) {
       setPin(''); setError('');
+      localStorage.setItem(LOCK_STATE_KEY, '1');
       setLocked(true);
     }
   }, []);
@@ -74,6 +84,7 @@ const AppLock = () => {
   }, [settings, locked, resetInactivity, doLock]);
 
   const finishUnlock = useCallback(() => {
+    localStorage.removeItem(LOCK_STATE_KEY);
     setLocked(false); setPin(''); setError('');
     resetInactivity();
   }, [resetInactivity]);

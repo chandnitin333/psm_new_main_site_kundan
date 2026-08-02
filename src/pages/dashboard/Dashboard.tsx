@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Home, Building2, Factory, Award, TrendingUp, MapPin, PieChart as PieIcon, BarChart3, Mail, Phone, ChevronLeft, ChevronRight, BadgeCheck, Landmark, Map as MapIcon, Navigation, IndianRupee, Wallet, Percent, CalendarPlus, FileText, Droplet, Plus, MessagesSquare, BellRing } from 'lucide-react';
+import { Users, Home, Building2, Factory, Award, TrendingUp, MapPin, PieChart as PieIcon, BarChart3, Mail, Phone, ChevronLeft, ChevronRight, BadgeCheck, Landmark, Map as MapIcon, Navigation, IndianRupee, Wallet, Percent, CalendarPlus, FileText, Droplet, Plus, MessagesSquare, BellRing, QrCode } from 'lucide-react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
@@ -8,7 +8,7 @@ import { useLoading } from '../../contexts/LoadingContext';
 import { nodniService, commonDdlService, vasuliService, authService } from '../../services';
 import type { DashboardKpis, MonthlyCollection } from '../../services/vasuliService';
 import { fyLabel, fyOfDate } from '../../utils/fyConfig';
-import { canAnyCertificate, canModule, can } from '../../utils/permissions';
+import { canAnyCertificate, canModule } from '../../utils/permissions';
 import { isSuperUser, getActiveGp, clearActiveGp } from '../../utils/activeGp';
 import config from '../../config';
 import type { CategoryCard } from '../../interfaces/dashboard/Dashboard.types';
@@ -321,7 +321,7 @@ const Dashboard = () => {
     { show: showVasuli, label: 'वसुली', to: '/vasuli', Icon: IndianRupee, cls: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300' },
     { show: canModule('collection_dashboard'), label: 'वसुली डॅशबोर्ड', to: '/collection-dashboard', Icon: BarChart3, cls: 'bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300' },
     { show: showCerts, label: 'प्रमाणपत्र', to: '/certificates', Icon: Award, cls: 'bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-300' },
-    { show: can('malmatta_nodni', 'water_meter'), label: 'मीटर रीडिंग', to: '/water-meter/field-reading', Icon: Droplet, cls: 'bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300' },
+    { show: canModule('water_field_reading'), label: 'मीटर रीडिंग', to: '/water-meter/field-reading', Icon: Droplet, cls: 'bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300' },
     { show: canModule('ahval_ghosvara'), label: 'घोषवारा', to: '/ahval/ghosvara', Icon: FileText, cls: 'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300' },
     { show: canModule('grievance'), label: 'तक्रारी', to: '/grievances', Icon: MessagesSquare, cls: 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300' },
     { show: canModule('bulk_reminder'), label: 'स्मरणपत्र', to: '/bulk-reminder', Icon: BellRing, cls: 'bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300' },
@@ -344,6 +344,33 @@ const Dashboard = () => {
             बदला (Change)
           </button>
         </div>
+      )}
+
+      {/* App QR poster — staff print this so citizens can scan & install the app.
+          Permission-gated (property-management staff); opens in a new tab. */}
+      {canModule('malmatta_nodni') && (
+      <a
+        href="/app-poster"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="नागरिकांसाठी अ‍ॅप QR पोस्टर — प्रिंट करून कार्यालयात लावा. नागरिक QR स्कॅन करून अ‍ॅप इन्स्टॉल करू शकतात."
+        className="mb-6 flex items-center gap-3 rounded-xl border border-primary-200 bg-gradient-to-r from-primary-50 to-white px-4 py-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-primary-800 dark:from-primary-900/30 dark:to-gray-800"
+      >
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-white">
+          <QrCode className="h-6 w-6" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-bold text-gray-900 dark:text-white">
+            अ‍ॅप QR पोस्टर (नागरिकांसाठी)
+          </span>
+          <span className="block text-xs text-gray-600 dark:text-gray-300">
+            QR पोस्टर प्रिंट करा — नागरिक स्कॅन करून अ‍ॅप इन्स्टॉल करतील
+          </span>
+        </span>
+        <span className="hidden shrink-0 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white sm:inline">
+          उघडा →
+        </span>
+      </a>
       )}
 
       {/* Quick actions — permission-gated shortcuts to common tasks */}

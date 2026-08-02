@@ -19,7 +19,7 @@ export interface LoginCredentials {
 }
 
 // API Login Types
-export type UserType = 'user' | 'bdo' | 'super_user';
+export type UserType = 'user' | 'bdo' | 'super_user' | 'citizen';
 
 export interface LoginPayload {
   email: string;
@@ -50,6 +50,8 @@ export interface ApiUser {
   gram_panchayat?: string;
   gat_gram_panchayat?: string;
   designation?: string;
+  /** citizen still on the shared default password — must change it on first login */
+  must_change_password?: boolean;
   permissions?: Array<{
     id: number;
     name: string;

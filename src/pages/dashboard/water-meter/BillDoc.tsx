@@ -33,7 +33,7 @@ const BillDoc = ({ H, meter, bill, year, periodFrom, periodTo, billRows, paaniDe
             <tbody>
               {/* branded header band */}
               <tr>
-                <td colSpan={9} className="relative border border-black bg-gray-100 px-2 py-1 text-center">
+                <td colSpan={9} className="bd-band relative border border-black bg-gray-100 px-2 py-1 text-center">
                   {qrUrl && (
                     <span className="absolute right-1 top-1" title="स्कॅन करा">
                       <QRCodeSVG value={qrUrl} size={46} level="M" marginSize={0} />

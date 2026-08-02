@@ -95,6 +95,15 @@ const CitizenWaterBill = () => {
                       </div>
                     </div>
 
+                    {rows.length === 0 ? (
+                      /* No reading/bill uploaded for this meter yet — show a message, not an empty bill */
+                      <div className="px-5 py-10 text-center">
+                        <Droplet className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" />
+                        <p className="mt-2 text-sm font-semibold text-gray-700 dark:text-gray-200">अद्याप कोणतीही रीडिंग / बिल उपलब्ध नाही</p>
+                        <p className="mt-0.5 text-xs text-gray-400">या मीटरसाठी रीडिंग नोंदवल्यानंतर बिल येथे दिसेल.</p>
+                      </div>
+                    ) : (
+                    <>
                     <div className="overflow-x-auto px-5 py-4">
                       <table className="min-w-[720px] w-full border-collapse text-sm">
                         <thead>
@@ -140,6 +149,8 @@ const CitizenWaterBill = () => {
                         </div>
                       </div>
                     </div>
+                    </>
+                    )}
                   </div>
                 );
               })}

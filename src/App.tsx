@@ -5,6 +5,7 @@ import { LoadingProvider } from './contexts/LoadingContext';
 import { createRouter } from './routes';
 import InstallPWA from './components/pwa/InstallPWA';
 import AppLock from './components/applock/AppLock';
+import ForcePasswordChange from './components/auth/ForcePasswordChange';
 import UnderMaintenance from './pages/public/UnderMaintenance';
 import MaintenanceBanner from './components/MaintenanceBanner';
 import { api } from './services/api';
@@ -93,6 +94,7 @@ function App() {
           <RouterProvider router={router} />
           <InstallPWA />
           <AppLock />
+          <ForcePasswordChange />
         </LoadingProvider>
       </ThemeProvider>
     </AppErrorBoundary>

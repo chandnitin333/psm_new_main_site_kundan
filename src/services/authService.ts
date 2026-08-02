@@ -123,6 +123,8 @@ export const authService = {
       localStorage.removeItem(key);
     });
     localStorage.removeItem('activeGp'); // super_user's selected gram panchayat
+    localStorage.removeItem('psm_applock_locked'); // clear persisted app-lock flag on logout
+    localStorage.removeItem('psm_force_pwd'); // clear forced password-change flag on logout
   },
 
   /**
