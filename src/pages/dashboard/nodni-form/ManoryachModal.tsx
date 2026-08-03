@@ -173,7 +173,7 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
     <Modal
       isOpen={isOpen}
       onClose={handleCancel}
-      title="मनोऱ्याचे कर आकारणी (Entertainment Tax Assessment)"
+      title="मनोऱ्याचे कर आकारणी"
       size="x-large"
       footer={
         <>
@@ -182,14 +182,14 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
             onClick={handleSave}
             className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
           >
-            {initialData ? 'बदल करा (Update)' : 'जतन करा (Save)'}
+            {initialData ? 'बदल करा' : 'जतन करा'}
           </button>
           <button
             type="button"
             onClick={handleCancel}
             className="px-6 py-2 bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-700 transition-colors font-medium"
           >
-            रद्द करा (Cancel)
+            रद्द करा
           </button>
         </>
       }
@@ -203,7 +203,7 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
               value={formData.malmattechePrakar}
               onChange={handleMalmattechePrakarChange}
               placeholder="Select Type"
-              label="मालमत्तेचे प्रकार (Property Type)"
+              label="मालमत्तेचे प्रकार"
               searchable={true}
               clearable={false}
             />
@@ -215,7 +215,7 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
               value={formData.malmattecheVarnan}
               onChange={handleMalmattecheVarnanChange}
               placeholder="Select Description"
-              label="मालमत्तेचे वर्णन (Property Description)"
+              label="मालमत्तेचे वर्णन"
               searchable={true}
               clearable={false}
             />
@@ -223,7 +223,7 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              वापर प्रकार (Usage Type)
+              वापर प्रकार
             </label>
             <MarathiInput
               name="vaparPrakar"
@@ -240,7 +240,7 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
               value={formData.manorycheBhag}
               onChange={handleManorycheBhagChange}
               placeholder="Select Section"
-              label="मनोऱ्याचे भाग (Entertainment Section)"
+              label="मनोऱ्याचे भाग"
               searchable={true}
               clearable={false}
             />
@@ -251,7 +251,7 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              क्षेत्रफळ पूर्व पश्चिम (चौरस फूट) (Area East-West in Sq. Feet)
+              क्षेत्रफळ पूर्व पश्चिम (चौरस फूट)
             </label>
             <input
               type="number" min="0" step="any"
@@ -265,7 +265,7 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              क्षेत्रफळ उत्तर दक्षिण (चौरस फूट) (Area North-South in Sq. Feet)
+              क्षेत्रफळ उत्तर दक्षिण (चौरस फूट)
             </label>
             <input
               type="number" min="0" step="any"
@@ -279,7 +279,7 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              एकूण क्षेत्रफळ (चौरस फूट) (Total Area in Sq. Feet)
+              एकूण क्षेत्रफळ (चौरस फूट)
             </label>
             <input
               type="number" min="0" step="any"
@@ -292,11 +292,11 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
           </div>
         </div>
 
-        {/* Row 3 - 4 Fields */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Row 3 - 3 Fields */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              क्षेत्रफळ पूर्व पश्चिम (चौरस मीटर) (Area East-West in Sq. Meter)
+              क्षेत्रफळ पूर्व पश्चिम (चौरस मीटर)
             </label>
             <input
               type="text"
@@ -310,7 +310,7 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              क्षेत्रफळ उत्तर दक्षिण (चौरस मीटर) (Area North-South in Sq. Meter)
+              क्षेत्रफळ उत्तर दक्षिण (चौरस मीटर)
             </label>
             <input
               type="text"
@@ -324,7 +324,7 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              एकूण क्षेत्रफळ (चौरस मीटर) (Total Area in Sq. Meter)
+              एकूण क्षेत्रफळ (चौरस मीटर)
             </label>
             <input
               type="text"
@@ -345,7 +345,7 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              आकारणी दर (Assessment Rate)
+              आकारणी दर
             </label>
             <input
               type="number" min="0" step="any"
@@ -359,7 +359,7 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              मजला (Floor)
+              मजला
             </label>
             <input
               type="number" min="0" step="any"
@@ -373,7 +373,7 @@ const ManoryachModal = ({ isOpen, onClose, onSave, initialData }: ManoryachModal
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              कर आकारणी (Tax Assessment) = एकूण क्षेत्रफळ (चौ.फू.) × आकारणी दर × मजला
+              कर आकारणी = एकूण क्षेत्रफळ (चौ.फू.) × आकारणी दर × मजला
             </label>
             <input
               type="text"

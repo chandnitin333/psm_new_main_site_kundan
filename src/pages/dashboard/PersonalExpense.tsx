@@ -4,6 +4,7 @@ import { useToast } from '../../hooks/useToast';
 import { useLoading } from '../../contexts/LoadingContext';
 import personalExpenseService, { type ExpenseData, type MonthSheet } from '../../services/personalExpenseService';
 import { isCitizen, can } from '../../utils/permissions';
+import { isSuperUser } from '../../utils/activeGp';
 import { MarathiInput } from '../../components/common';
 import DatePicker from '../../components/common/DatePicker';
 import ExportButtons from '../../components/common/ExportButtons';
@@ -20,9 +21,10 @@ const PersonalExpense = () => {
   const { toast, ToastContainer } = useToast();
   const { showLoader, hideLoader } = useLoading();
   const citizen = isCitizen();
+  const viewOnly = isSuperUser(); // super_user can only VIEW the GP expense sheet
   // citizens manage their OWN data freely; staff need edit/delete permission on this module
-  const canEdit = citizen || can('personal_expense', 'edit');
-  const canDelete = citizen || can('personal_expense', 'delete');
+  const canEdit = !viewOnly && (citizen || can('personal_expense', 'edit'));
+  const canDelete = !viewOnly && (citizen || can('personal_expense', 'delete'));
 
   const [data, setData] = useState<ExpenseData>({});
   const [month, setMonth] = useState<string>(thisMonth());
@@ -123,11 +125,12 @@ const PersonalExpense = () => {
   }, []);
 
   useEffect(() => {
+    if (viewOnly) return;              // super_user: view only, never save
     if (!touched.current) return;      // don't save the just-loaded data
     setAutoState('saving');
     const t = setTimeout(() => doSave(data), 700);
     return () => clearTimeout(t);
-  }, [data, doSave]);
+  }, [data, doSave, viewOnly]);
 
   // ---- View mode + Year / multi-year report ----
   const [mode, setMode] = useState<'entry' | 'report'>('entry');
@@ -251,8 +254,9 @@ const PersonalExpense = () => {
           <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">मासिक रक्कम (या महिन्याची):</label>
           <div className="relative">
             <IndianRupee className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input inputMode="numeric" value={sheet.budget || ''} onChange={(e) => setBudget(e.target.value.replace(/[^0-9]/g, ''))} placeholder="0" className={`${inp} w-40 pl-8`} />
+            <input inputMode="numeric" readOnly={viewOnly} value={sheet.budget || ''} onChange={(e) => setBudget(e.target.value.replace(/[^0-9]/g, ''))} placeholder="0" className={`${inp} w-40 pl-8 ${viewOnly ? 'cursor-not-allowed opacity-70' : ''}`} />
           </div>
+          {viewOnly && <span className="text-xs font-medium text-amber-600 dark:text-amber-400">👁 फक्त पाहण्यासाठी (View only)</span>}
         </div>
 
         {/* summary */}
@@ -269,7 +273,8 @@ const PersonalExpense = () => {
           ))}
         </div>
 
-        {/* add row — always a single line : छोटी दिनांक · नाव · रक्कम · पुरावा · जोडा */}
+        {/* add row — hidden for super_user (view only) */}
+        {!viewOnly && (
         <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="w-[8.5rem] shrink-0">
             <DatePicker format="DD-MM-YYYY" value={nDate} onChange={(v) => setNDate(v || today())} placeholder="दिनांक" />
@@ -295,6 +300,7 @@ const PersonalExpense = () => {
             <Plus className="h-4 w-4" /> <span className="hidden sm:inline">जोडा</span>
           </button>
         </div>
+        )}
 
         {/* table */}
         <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
