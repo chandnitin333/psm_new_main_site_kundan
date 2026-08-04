@@ -4,25 +4,25 @@ import type { MenuItem } from '../interfaces';
 export const PUBLIC_MENU_ITEMS: MenuItem[] = [
   {
     id: 'home',
-    label: 'Home',
+    label: 'मुख्यपृष्ठ',
     path: '/',
     subMenus: []
   },
   {
     id: 'about',
-    label: 'About',
+    label: 'आमच्याबद्दल',
     path: '/about',
     subMenus: []
   },
   {
     id: 'contact',
-    label: 'Contact Us',
+    label: 'संपर्क',
     path: '/contact',
     subMenus: []
   },
   {
     id: 'login',
-    label: 'Login',
+    label: 'लॉगिन',
     path: '/login',
     subMenus: []
   }
