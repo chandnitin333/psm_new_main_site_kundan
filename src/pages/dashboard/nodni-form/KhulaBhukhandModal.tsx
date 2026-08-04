@@ -219,7 +219,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
     <Modal
       isOpen={isOpen}
       onClose={handleCancel}
-      title="खुला भूखंड कर आकारणी (Open Land Tax Assessment)"
+      title="खुला भूखंड कर आकारणी"
       size="x-large"
       footer={
         <>
@@ -228,14 +228,14 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
             onClick={handleSave}
             className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
           >
-            {initialData ? 'बदल करा (Update)' : 'जतन करा (Save)'}
+            {initialData ? 'बदल करा' : 'जतन करा'}
           </button>
           <button
             type="button"
             onClick={handleCancel}
             className="px-6 py-2 bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-700 transition-colors font-medium"
           >
-            रद्द करा (Cancel)
+            रद्द करा
           </button>
         </>
       }
@@ -249,7 +249,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
               value={formData.malmattechePrakar}
               onChange={handleMalmattechePrakarChange}
               placeholder="Select Type"
-              label="मालमत्तेचे प्रकार (Property Type)"
+              label="मालमत्तेचे प्रकार"
               searchable={true}
               clearable={false}
             />
@@ -261,7 +261,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
               value={formData.malmattecheVarnan}
               onChange={handleMalmattecheVarnanChange}
               placeholder="Select Description"
-              label="मालमत्तेचे वर्णन (Property Description)"
+              label="मालमत्तेचे वर्णन"
               searchable={true}
               clearable={false}
             />
@@ -269,7 +269,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              वापर प्रकार (Usage Type)
+              वापर प्रकार
             </label>
             <MarathiInput
               name="vaparPrakar"
@@ -286,7 +286,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
               value={formData.gavacheNav}
               onChange={handleGavacheNavChange}
               placeholder="Select Village"
-              label="गावाचे नाव (Village Name)"
+              label="गावाचे नाव"
               searchable={true}
               clearable={false}
             />
@@ -301,7 +301,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
               value={formData.gavthanBaher}
               onChange={handleGavthanBaherChange}
               placeholder="Select"
-              label="गावठाण/गावठाण बाहेर (Within/Outside Village)"
+              label="गावठाण/गावठाण बाहेर"
               searchable={true}
               clearable={false}
             />
@@ -309,7 +309,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              क्षेत्रफळ पूर्व पश्चिम (फूट) (Area East-West in Feet)
+              क्षेत्रफळ पूर्व पश्चिम (फूट)
             </label>
             <input
               type="number" min="0" step="any"
@@ -323,7 +323,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              क्षेत्रफळ उत्तर दक्षिण (फूट) (Area North-South in Feet)
+              क्षेत्रफळ उत्तर दक्षिण (फूट)
             </label>
             <input
               type="number" min="0" step="any"
@@ -337,7 +337,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              एकूण क्षेत्रफळ (चौरस फूट) (Total Area in Sq. Feet)
+              एकूण क्षेत्रफळ (चौरस फूट)
             </label>
             <input
               type="number" min="0" step="any"
@@ -354,7 +354,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              क्षेत्रफळ पूर्व पश्चिम (मीटर) (Area East-West in Meter)
+              क्षेत्रफळ पूर्व पश्चिम (मीटर)
             </label>
             <input
               type="text"
@@ -368,7 +368,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              क्षेत्रफळ उत्तर दक्षिण (मीटर) (Area North-South in Meter)
+              क्षेत्रफळ उत्तर दक्षिण (मीटर)
             </label>
             <input
               type="text"
@@ -382,7 +382,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              एकूण क्षेत्रफळ (चौरस मीटर) (Total Area in Sq. Meter)
+              एकूण क्षेत्रफळ (चौरस मीटर)
             </label>
             <input
               type="text"
@@ -399,7 +399,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              जमिनीचे वार्षिक मूल्य (Annual Land Value)
+              जमिनीचे वार्षिक मूल्य
             </label>
             <input
               type="number" min="0" step="any"
@@ -413,7 +413,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              आकारणी दर (Assessment Rate)
+              आकारणी दर
             </label>
             <input
               type="number" min="0" step="any"
@@ -430,7 +430,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              जमिनीचे भांडवली मूल्य (Land Capital Value) = क्षेत्रफळ × वार्षिक मूल्य
+              जमिनीचे भांडवली मूल्य = क्षेत्रफळ × वार्षिक मूल्य
             </label>
             <input
               type="text"
@@ -452,7 +452,7 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              कर आकारणी (Tax Assessment) = भांडवली मूल्य × आकारणी दर / 1000
+              कर आकारणी = भांडवली मूल्य × आकारणी दर / 1000
             </label>
             <input
               type="text"

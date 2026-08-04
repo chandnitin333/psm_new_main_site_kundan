@@ -96,6 +96,9 @@ const About = () => {
     ? statsSec.items.map((it) => ({ value: it.heading || '', label: it.sub_heading || '' }))
     : FB_STATS;
 
+  // ---- About overview (full details, above Vision & Mission) ----
+  const aboutSec = sec('about');
+
   // ---- Vision / Mission / Impact (text) ----
   const visionSec = sec('vision');
   const missionSec = sec('mission');
@@ -220,6 +223,26 @@ const About = () => {
                 );
               })}
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* ===== About overview (full details) — above Vision & Mission ===== */}
+      {aboutSec?.body && (
+        <section className="py-16">
+          <div className="container mx-auto px-4 max-w-4xl">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-600 to-primary-800 text-white rounded-2xl mb-4 shadow-lg shadow-primary-600/30">
+                <BookOpen className="w-8 h-8" />
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+                {aboutSec.heading || 'आमच्याबद्दल'}
+              </h2>
+            </div>
+            <div
+              className="home-about-content text-gray-700 dark:text-gray-300 leading-relaxed text-base md:text-lg [&_p]:mb-4 [&_p:last-child]:mb-0 [&_h3]:font-bold [&_h3]:text-gray-900 dark:[&_h3]:text-white [&_h3]:mt-6 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_li]:mb-1"
+              dangerouslySetInnerHTML={{ __html: aboutSec.body }}
+            />
           </div>
         </section>
       )}

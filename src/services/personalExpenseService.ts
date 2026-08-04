@@ -11,6 +11,7 @@ export interface ExpenseRow {
   date: string;      // YYYY-MM-DD
   name: string;
   amount: number;
+  img?: string | null; // optional proof (compressed base64 data URL) — cheque/screenshot etc.
 }
 // One month's sheet
 export interface MonthSheet {

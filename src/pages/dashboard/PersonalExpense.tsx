@@ -1,25 +1,30 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Wallet, Plus, Trash2, Lock, IndianRupee, Pencil, Check, X, Loader2, CheckCircle2 } from 'lucide-react';
+import { Wallet, Plus, Trash2, Lock, IndianRupee, Pencil, Check, X, Loader2, CheckCircle2, Camera } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import { useLoading } from '../../contexts/LoadingContext';
 import personalExpenseService, { type ExpenseData, type MonthSheet } from '../../services/personalExpenseService';
 import { isCitizen, can } from '../../utils/permissions';
+import { isSuperUser } from '../../utils/activeGp';
 import { MarathiInput } from '../../components/common';
+import DatePicker from '../../components/common/DatePicker';
 import ExportButtons from '../../components/common/ExportButtons';
 import type { ExportColumn } from '../../utils/exportUtils';
+import { compressImageToDataUrl, base64Bytes } from '../../utils/imageCompress';
 
 const inr = (n: number) => '₹ ' + Math.round(Number(n || 0)).toLocaleString('en-IN');
 const thisMonth = () => new Date().toISOString().slice(0, 7); // YYYY-MM
 const today = () => new Date().toISOString().slice(0, 10);
+const MONTHS = ['जानेवारी', 'फेब्रुवारी', 'मार्च', 'एप्रिल', 'मे', 'जून', 'जुलै', 'ऑगस्ट', 'सप्टेंबर', 'ऑक्टोबर', 'नोव्हेंबर', 'डिसेंबर'];
 const emptySheet = (): MonthSheet => ({ budget: 0, expenses: [] });
 
 const PersonalExpense = () => {
   const { toast, ToastContainer } = useToast();
   const { showLoader, hideLoader } = useLoading();
   const citizen = isCitizen();
+  const viewOnly = isSuperUser(); // super_user can only VIEW the GP expense sheet
   // citizens manage their OWN data freely; staff need edit/delete permission on this module
-  const canEdit = citizen || can('personal_expense', 'edit');
-  const canDelete = citizen || can('personal_expense', 'delete');
+  const canEdit = !viewOnly && (citizen || can('personal_expense', 'edit'));
+  const canDelete = !viewOnly && (citizen || can('personal_expense', 'delete'));
 
   const [data, setData] = useState<ExpenseData>({});
   const [month, setMonth] = useState<string>(thisMonth());
@@ -29,6 +34,20 @@ const PersonalExpense = () => {
   const [nDate, setNDate] = useState(today());
   const [nName, setNName] = useState('');
   const [nAmt, setNAmt] = useState('');
+  const [nImg, setNImg] = useState<string | null>(null); // proof for the new row
+  const [viewImg, setViewImg] = useState<string | null>(null); // lightbox
+  const nImgRef = useRef<HTMLInputElement>(null); // add-row file input
+  const eImgRef = useRef<HTMLInputElement>(null); // edit-row file input
+
+  // compress an image file to a small base64 data URL (proof — cheque/screenshot)
+  const pickImage = async (file: File | null | undefined, set: (v: string | null) => void) => {
+    if (!file) return;
+    try {
+      let d = await compressImageToDataUrl(file, 1000, 0.6);
+      if (base64Bytes(d) > 900 * 1024) d = await compressImageToDataUrl(file, 800, 0.5);
+      set(d);
+    } catch { toast.error('फोटो घेता आला नाही'); }
+  };
 
   useEffect(() => {
     document.title = citizen ? 'माझा हिशोब' : 'खर्च नोंद';
@@ -71,9 +90,9 @@ const PersonalExpense = () => {
     const amt = Number(nAmt);
     if (!nName.trim()) { toast.error('खर्चाचे नाव टाका'); return; }
     if (!amt || amt <= 0) { toast.error('रक्कम टाका'); return; }
-    const row = { id: Date.now(), date: nDate || today(), name: nName.trim(), amount: amt };
+    const row = { id: Date.now(), date: nDate || today(), name: nName.trim(), amount: amt, img: nImg || null };
     setSheet({ expenses: [...(sheet.expenses || []), row] });
-    setNName(''); setNAmt(''); setNDate(today());
+    setNName(''); setNAmt(''); setNDate(today()); setNImg(null);
   };
 
   const delRow = (id: number) => setSheet({ expenses: sheet.expenses.filter((e) => e.id !== id) });
@@ -83,15 +102,16 @@ const PersonalExpense = () => {
   const [eDate, setEDate] = useState('');
   const [eName, setEName] = useState('');
   const [eAmt, setEAmt] = useState('');
-  const startEdit = (e: { id: number; date: string; name: string; amount: number }) => {
-    setEditId(e.id); setEDate(e.date); setEName(e.name); setEAmt(String(e.amount));
+  const [eImg, setEImg] = useState<string | null>(null);
+  const startEdit = (e: { id: number; date: string; name: string; amount: number; img?: string | null }) => {
+    setEditId(e.id); setEDate(e.date); setEName(e.name); setEAmt(String(e.amount)); setEImg(e.img || null);
   };
   const cancelEdit = () => setEditId(null);
   const saveEdit = () => {
     const amt = Number(eAmt);
     if (!eName.trim()) { toast.error('खर्चाचे नाव टाका'); return; }
     if (!amt || amt <= 0) { toast.error('रक्कम टाका'); return; }
-    setSheet({ expenses: sheet.expenses.map((x) => (x.id === editId ? { ...x, date: eDate || today(), name: eName.trim(), amount: amt } : x)) });
+    setSheet({ expenses: sheet.expenses.map((x) => (x.id === editId ? { ...x, date: eDate || today(), name: eName.trim(), amount: amt, img: eImg || null } : x)) });
     setEditId(null);
   };
 
@@ -105,11 +125,12 @@ const PersonalExpense = () => {
   }, []);
 
   useEffect(() => {
+    if (viewOnly) return;              // super_user: view only, never save
     if (!touched.current) return;      // don't save the just-loaded data
     setAutoState('saving');
     const t = setTimeout(() => doSave(data), 700);
     return () => clearTimeout(t);
-  }, [data, doSave]);
+  }, [data, doSave, viewOnly]);
 
   // ---- View mode + Year / multi-year report ----
   const [mode, setMode] = useState<'entry' | 'report'>('entry');
@@ -121,6 +142,16 @@ const PersonalExpense = () => {
     const arr = Array.from(ys).sort().reverse();
     return arr.length ? arr : [String(new Date().getFullYear())];
   }, [data]);
+
+  // year options for the entry month/year selector (current ±, + any years with data)
+  const pickYears = useMemo(() => {
+    const cur = new Date().getFullYear();
+    const set = new Set<number>();
+    for (let y = cur - 6; y <= cur + 1; y++) set.add(y);
+    availableYears.forEach((y) => set.add(Number(y)));
+    set.add(Number(month.slice(0, 4)));
+    return Array.from(set).filter((y) => y > 1900).sort((a, b) => b - a).map(String);
+  }, [availableYears, month]);
 
   // DATE-WISE detailed report: every expense (कोणत्या दिनांकाला काय), date-sorted,
   // with a running शिल्लक (period's total budget − cumulative expense).
@@ -157,7 +188,7 @@ const PersonalExpense = () => {
   return (
     <>
       <ToastContainer />
-      <div className="mx-auto max-w-4xl space-y-5 p-4">
+      <div className="mx-auto max-w-6xl space-y-5 p-4">
         {/* header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -190,7 +221,15 @@ const PersonalExpense = () => {
             </div>
             {mode === 'entry' ? (
               <>
-                <input type="month" value={month} onChange={(e) => setMonth(e.target.value || thisMonth())} className={`${inp} w-auto`} />
+                {/* custom month + year selector — full-width own row (same as अहवाल) */}
+                <div className="flex w-full items-center gap-2">
+                  <select value={Number(month.slice(5, 7))} onChange={(e) => setMonth(`${month.slice(0, 4)}-${String(e.target.value).padStart(2, '0')}`)} className={`${inp} min-w-0 flex-1`}>
+                    {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                  </select>
+                  <select value={month.slice(0, 4)} onChange={(e) => setMonth(`${e.target.value}-${month.slice(5, 7)}`)} className={`${inp} !w-28 shrink-0`}>
+                    {pickYears.map((y) => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
                 <ExportButtons columns={exportCols} rows={exportRows} filename={`kharch-${month}`}
                   title={`खर्च नोंद — ${month}`}
                   subtitle={`मासिक रक्कम: ${inr(sheet.budget || 0)} · एकूण खर्च: ${inr(totalExpense)} · शिल्लक: ${inr(remaining)}`} />
@@ -215,8 +254,9 @@ const PersonalExpense = () => {
           <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">मासिक रक्कम (या महिन्याची):</label>
           <div className="relative">
             <IndianRupee className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input inputMode="numeric" value={sheet.budget || ''} onChange={(e) => setBudget(e.target.value.replace(/[^0-9]/g, ''))} placeholder="0" className={`${inp} w-40 pl-8`} />
+            <input inputMode="numeric" readOnly={viewOnly} value={sheet.budget || ''} onChange={(e) => setBudget(e.target.value.replace(/[^0-9]/g, ''))} placeholder="0" className={`${inp} w-40 pl-8 ${viewOnly ? 'cursor-not-allowed opacity-70' : ''}`} />
           </div>
+          {viewOnly && <span className="text-xs font-medium text-amber-600 dark:text-amber-400">👁 फक्त पाहण्यासाठी (View only)</span>}
         </div>
 
         {/* summary */}
@@ -233,15 +273,34 @@ const PersonalExpense = () => {
           ))}
         </div>
 
-        {/* add row */}
-        <div className="grid grid-cols-2 gap-2 rounded-xl border border-gray-100 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:grid-cols-[130px_1fr_120px_auto]">
-          <input type="date" value={nDate} onChange={(e) => setNDate(e.target.value)} className={inp} />
-          <MarathiInput name="exp" value={nName} onChange={(e) => setNName(e.target.value)} placeholder="खर्चाचे नाव (उदा. किराणा)" className={inp} />
-          <input inputMode="numeric" value={nAmt} onChange={(e) => setNAmt(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={(e) => e.key === 'Enter' && addRow()} placeholder="रक्कम" className={inp} />
-          <button onClick={addRow} className="flex items-center justify-center gap-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-            <Plus className="h-4 w-4" /> जोडा
+        {/* add row — hidden for super_user (view only) */}
+        {!viewOnly && (
+        <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <div className="w-[8.5rem] shrink-0">
+            <DatePicker format="DD-MM-YYYY" value={nDate} onChange={(v) => setNDate(v || today())} placeholder="दिनांक" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <MarathiInput name="exp" value={nName} onChange={(e) => setNName(e.target.value)} placeholder="खर्चाचे नाव (उदा. किराणा)" className={`${inp} w-full`} />
+          </div>
+          <input inputMode="numeric" value={nAmt} onChange={(e) => setNAmt(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={(e) => e.key === 'Enter' && addRow()} placeholder="रक्कम" className={`${inp} !w-28 shrink-0`} />
+          {/* proof (cheque / screenshot) — file input ALWAYS mounted so its ref stays valid
+              even after removing an image (fixes re-upload not opening the picker) */}
+          {nImg ? (
+            <div className="relative shrink-0">
+              <img src={nImg} alt="पुरावा" title="क्लिक करून पहा (View)" className="h-10 w-10 cursor-zoom-in rounded-lg border border-gray-300 object-cover ring-1 ring-transparent transition hover:ring-primary-500 dark:border-gray-600" onClick={() => setViewImg(nImg)} />
+              <button type="button" onClick={() => setNImg(null)} title="काढा" className="absolute -right-1.5 -top-1.5 rounded-full bg-red-500 p-0.5 text-white shadow"><X className="h-3 w-3" /></button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => nImgRef.current?.click()} className="flex shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-gray-300 px-2.5 py-2 text-xs font-medium text-gray-600 dark:border-gray-600 dark:text-gray-300" title="पुरावा (चेक/स्क्रीनशॉट)">
+              <Camera className="h-4 w-4" /> <span className="hidden sm:inline">पुरावा</span>
+            </button>
+          )}
+          <input ref={nImgRef} type="file" accept="image/*" className="hidden" onChange={(e) => { pickImage(e.target.files?.[0], setNImg); e.target.value = ''; }} />
+          <button onClick={addRow} title="जोडा" className="flex shrink-0 items-center justify-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">जोडा</span>
           </button>
         </div>
+        )}
 
         {/* table */}
         <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
@@ -265,12 +324,23 @@ const PersonalExpense = () => {
                   <tr key={e.id} className="text-gray-800 dark:text-gray-200">
                     {editing ? (
                       <>
-                        <td className="px-2 py-1.5"><input type="date" value={eDate} onChange={(ev) => setEDate(ev.target.value)} className={inp} /></td>
+                        <td className="px-2 py-1.5"><DatePicker format="DD-MM-YYYY" value={eDate} onChange={(v) => setEDate(v || today())} placeholder="दिनांक" /></td>
                         <td className="px-2 py-1.5"><MarathiInput name="ename" value={eName} onChange={(ev) => setEName(ev.target.value)} className={inp} /></td>
                         <td className="px-2 py-1.5"><input inputMode="numeric" value={eAmt} onChange={(ev) => setEAmt(ev.target.value.replace(/[^0-9]/g, ''))} onKeyDown={(ev) => ev.key === 'Enter' && saveEdit()} className={`${inp} text-right`} /></td>
                         <td className="px-3 py-2 text-right tabular-nums text-gray-400">{inr(running)}</td>
                         <td className="px-3 py-2 text-right">
                           <div className="flex items-center justify-end gap-2">
+                            {eImg ? (
+                              <span className="relative">
+                                <img src={eImg} alt="पुरावा" onClick={() => setViewImg(eImg)} className="h-7 w-7 cursor-pointer rounded border border-gray-200 object-cover dark:border-gray-600" />
+                                <button type="button" onClick={() => setEImg(null)} className="absolute -right-1.5 -top-1.5 rounded-full bg-red-500 p-0.5 text-white"><X className="h-2.5 w-2.5" /></button>
+                              </span>
+                            ) : (
+                              <button type="button" onClick={() => eImgRef.current?.click()} className="cursor-pointer text-gray-500 hover:text-gray-700" title="पुरावा जोडा">
+                                <Camera className="h-4 w-4" />
+                              </button>
+                            )}
+                            <input ref={eImgRef} type="file" accept="image/*" className="hidden" onChange={(ev) => { pickImage(ev.target.files?.[0], setEImg); ev.target.value = ''; }} />
                             <button onClick={saveEdit} className="text-emerald-600 hover:text-emerald-800" title="जतन"><Check className="h-4 w-4" /></button>
                             <button onClick={cancelEdit} className="text-gray-400 hover:text-gray-600" title="रद्द"><X className="h-4 w-4" /></button>
                           </div>
@@ -279,7 +349,12 @@ const PersonalExpense = () => {
                     ) : (
                       <>
                         <td className="whitespace-nowrap px-3 py-2 tabular-nums">{e.date}</td>
-                        <td className="px-3 py-2">{e.name}</td>
+                        <td className="px-3 py-2">
+                          <span className="flex items-center gap-2">
+                            {e.name}
+                            {e.img && <img src={e.img} alt="पुरावा" onClick={() => setViewImg(e.img || null)} className="h-7 w-7 shrink-0 cursor-pointer rounded border border-gray-200 object-cover dark:border-gray-600" title="पुरावा पहा" />}
+                          </span>
+                        </td>
                         <td className="px-3 py-2 text-right tabular-nums text-red-600 dark:text-red-400">− {inr(e.amount)}</td>
                         <td className={`px-3 py-2 text-right font-semibold tabular-nums ${running < 0 ? 'text-red-600' : 'text-gray-800 dark:text-gray-100'}`}>{inr(running)}</td>
                         <td className="px-3 py-2 text-right">
@@ -353,6 +428,14 @@ const PersonalExpense = () => {
           </div>
         )}
       </div>
+
+      {/* proof image lightbox */}
+      {viewImg && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 p-4" onClick={() => setViewImg(null)}>
+          <img src={viewImg} alt="पुरावा" className="max-h-[90vh] max-w-full rounded-lg object-contain" />
+          <button onClick={() => setViewImg(null)} className="absolute right-4 top-4 rounded-full bg-white/20 p-2 text-white hover:bg-white/30"><X className="h-5 w-5" /></button>
+        </div>
+      )}
     </>
   );
 };
