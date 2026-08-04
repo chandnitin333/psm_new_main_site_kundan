@@ -11,6 +11,7 @@ import { config } from '../../config';
 import {
   CAROUSEL_SLIDES,
   MARQUEE_NOTICES,
+  ABOUT_FEATURES,
   TEAM_MEMBERS,
   GALLERY_IMAGES,
   PARTNERS,
@@ -110,6 +111,10 @@ const Home = () => {
   const aboutImage = aboutSec?.image
     ? imgUrl(aboutSec.image)
     : 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&h=800&fit=crop';
+  // Feature highlights — managed from admin (About section items); fallback to defaults.
+  const aboutFeatures = aboutSec?.items?.length
+    ? aboutSec.items.map((it) => it.heading || '').filter(Boolean)
+    : ABOUT_FEATURES;
 
   // ---- Partners ----
   const partnersSec = sec('partners');
@@ -286,15 +291,17 @@ const Home = () => {
                 </>
               )}
 
-              {/* Feature highlights */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-7">
-                {['पारदर्शक कारभार', 'डिजिटल सेवा', 'जलद नागरिक सुविधा', 'विश्वासार्ह व्यवस्थापन'].map((f) => (
-                  <div key={f} className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                    <CheckCircle2 className="w-5 h-5 text-primary-600 dark:text-primary-400 flex-shrink-0" />
-                    <span className="text-sm font-medium">{f}</span>
-                  </div>
-                ))}
-              </div>
+              {/* Feature highlights — dynamic from admin (About section items) */}
+              {aboutFeatures.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-7">
+                  {aboutFeatures.map((f) => (
+                    <div key={f} className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                      <CheckCircle2 className="w-5 h-5 text-primary-600 dark:text-primary-400 flex-shrink-0" />
+                      <span className="text-sm font-medium">{f}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <a
                 href="/about"

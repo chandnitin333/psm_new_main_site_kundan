@@ -36,6 +36,14 @@ export const MARQUEE_NOTICES = [
   'Special training program for gram panchayat members starting soon'
 ];
 
+// About Us feature highlights — fallback shown until admin adds About-section items.
+export const ABOUT_FEATURES = [
+  'पारदर्शक कारभार',
+  'डिजिटल सेवा',
+  'जलद नागरिक सुविधा',
+  'विश्वासार्ह व्यवस्थापन',
+];
+
 export const TEAM_MEMBERS = [
   {
     id: '1',
