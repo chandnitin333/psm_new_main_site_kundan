@@ -565,6 +565,7 @@ const MalmattaNodni = () => {
                             <Edit2 className="w-5 h-5" />
                           </button>
                           )}
+                          {can('malmatta_nodni', 'history') && (
                           <button
                             type="button"
                             onClick={() => navigate(`/property-history?id=${record.id}`)}
@@ -573,6 +574,7 @@ const MalmattaNodni = () => {
                           >
                             <History className="w-5 h-5" />
                           </button>
+                          )}
                           {canModule('water_meter') && (
                           <button
                             type="button"
@@ -603,12 +605,12 @@ const MalmattaNodni = () => {
                             <Trash2 className="w-5 h-5" />
                           </button>
                           )}
-                          {can('malmatta_nodni', 'print') && (
+                          {(can('report_namuna8', 'view') || can('report_namuna9', 'view') || can('report_sarkari8', 'view') || can('report_namuna8_new', 'view') || can('report_namuna8_images', 'view')) && (
                           <button
                             type="button"
                             onClick={() => handlePrint(record)}
                             className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors"
-                            title="प्रिंट करा (Print)"
+                            title="प्रिंट / अहवाल (Print / Report)"
                           >
                             <Printer className="w-5 h-5" />
                           </button>

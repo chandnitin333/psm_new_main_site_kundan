@@ -13,7 +13,7 @@
 export type ActionKey =
   | 'view' | 'add' | 'edit' | 'delete'
   | 'report' | 'print' | 'pdf' | 'image_upload' | 'magil_kar' | 'water_meter' | 'divide'
-  | 'scan' | 'gallery' | 'download_template' | 'bulk_import' | 'export';
+  | 'scan' | 'gallery' | 'download_template' | 'bulk_import' | 'export' | 'history';
 
 type PagePermissions = Record<string, ActionKey[]>;
 
@@ -22,7 +22,14 @@ export const PATH_TO_MODULE: Record<string, string> = {
   '/dashboard': 'dashboard',
   '/nodni-form': 'nodni_form',
   '/malmatta-nodni': 'malmatta_nodni',
+  '/property-history': 'malmatta_nodni',
   '/malmatta-ferfar': 'malmatta_ferfar',
+  // Malmatta print/report pages — EACH report has its OWN permission.
+  '/namuna-8-1': 'report_namuna8',
+  '/namuna-9-1': 'report_namuna9',
+  '/namuna-8-sarkari-1': 'report_sarkari8',
+  '/namuna-8-new-1': 'report_namuna8_new',
+  '/namuna-8-images-1': 'report_namuna8_images',
   '/kar-aakarani': 'kar_aakarani',
   '/vasuli': 'vasuli',
   '/collection-daybook': 'vasuli_daybook',
@@ -112,7 +119,9 @@ export const moduleForPath = (path: string): string | undefined => PATH_TO_MODUL
 
 // Some paths need a specific ACTION (not just the module) to be visible.
 // (पाणी मीटर व फील्ड रीडिंग are now their own modules — see PATH_TO_MODULE.)
-export const PATH_TO_ACTION: Record<string, ActionKey> = {};
+export const PATH_TO_ACTION: Record<string, ActionKey> = {
+  '/property-history': 'history',
+};
 
 // Can the user reach a route (menu-level)? Uses action-level check when the path
 // declares one in PATH_TO_ACTION, else module-level canModule.

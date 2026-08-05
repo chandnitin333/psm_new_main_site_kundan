@@ -5,11 +5,13 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { Sk, SkLines } from '../../components/common/Skeleton';
+import { getCmsIcon } from '../../utils/cmsIcons';
 
 // ---- CMS types ----
 interface CmsItem {
   id: number;
   image: string | null;
+  icon: string | null;
   heading: string | null;
   sub_heading: string | null;
   body: string | null;
@@ -51,10 +53,10 @@ const FB_STATS = [
   { value: '50+', label: 'Team Members' },
 ];
 const FB_VALUES = [
-  { title: 'Excellence', description: 'We strive for the highest standards in everything we do' },
-  { title: 'Community First', description: 'Communities are at the heart of all our initiatives' },
-  { title: 'Innovation', description: 'Embracing technology to solve traditional challenges' },
-  { title: 'Transparency', description: 'Open and accountable in all our operations' },
+  { title: 'Excellence', description: 'We strive for the highest standards in everything we do', icon: null as string | null },
+  { title: 'Community First', description: 'Communities are at the heart of all our initiatives', icon: null as string | null },
+  { title: 'Innovation', description: 'Embracing technology to solve traditional challenges', icon: null as string | null },
+  { title: 'Transparency', description: 'Open and accountable in all our operations', icon: null as string | null },
 ];
 const FB_JOURNEY = [
   { title: 'A Small Initiative', stage: 'सुरुवात', text: 'What started as a small initiative to digitize records in a handful of gram panchayats grew from a vision to transform rural governance through digital innovation.' },
@@ -62,10 +64,10 @@ const FB_JOURNEY = [
   { title: 'A Trusted Partner', stage: 'आज', text: 'Today we stand as a trusted partner for rural communities, government agencies, and development organizations working towards rural transformation.' },
 ];
 const FB_SERVICES = [
-  { title: 'Digital Platform', description: 'Integrated solutions for record management, citizen services, and financial management' },
-  { title: 'Training Programs', description: 'Comprehensive capacity building from basic literacy to advanced analytics' },
-  { title: 'Consulting Services', description: 'Expert guidance for development planning and scheme implementation' },
-  { title: 'Technical Support', description: 'Dedicated helpdesk and field support teams for continuous assistance' },
+  { title: 'Digital Platform', description: 'Integrated solutions for record management, citizen services, and financial management', icon: null as string | null },
+  { title: 'Training Programs', description: 'Comprehensive capacity building from basic literacy to advanced analytics', icon: null as string | null },
+  { title: 'Consulting Services', description: 'Expert guidance for development planning and scheme implementation', icon: null as string | null },
+  { title: 'Technical Support', description: 'Dedicated helpdesk and field support teams for continuous assistance', icon: null as string | null },
 ];
 
 const About = () => {
@@ -107,7 +109,7 @@ const About = () => {
   // ---- Values ----
   const valuesSec = sec('values');
   const values = valuesSec?.items?.length
-    ? valuesSec.items.map((it) => ({ title: it.heading || '', description: it.sub_heading || '' }))
+    ? valuesSec.items.map((it) => ({ title: it.heading || '', description: it.sub_heading || '', icon: it.icon }))
     : FB_VALUES;
   const valuesTitle = valuesSec?.heading || 'Our Core Values';
   const valuesSub = valuesSec?.sub_heading || 'The principles that guide our work and define our approach to rural development';
@@ -122,7 +124,7 @@ const About = () => {
   // ---- Services ----
   const servicesSec = sec('services');
   const services = servicesSec?.items?.length
-    ? servicesSec.items.map((it) => ({ title: it.heading || '', description: it.sub_heading || '' }))
+    ? servicesSec.items.map((it) => ({ title: it.heading || '', description: it.sub_heading || '', icon: it.icon }))
     : FB_SERVICES;
   const servicesTitle = servicesSec?.heading || 'Our Services';
   const servicesSub = servicesSec?.sub_heading || 'Comprehensive solutions designed to support every aspect of rural governance and development';
@@ -307,7 +309,7 @@ const About = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {values.map((value, index) => {
-                const Icon = VALUE_ICONS[index % VALUE_ICONS.length];
+                const Icon = getCmsIcon(value.icon) || VALUE_ICONS[index % VALUE_ICONS.length];
                 const color = VALUE_COLORS[index % VALUE_COLORS.length];
                 return (
                   <div
@@ -380,7 +382,7 @@ const About = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {services.map((service, index) => {
-                const Icon = SERVICE_ICONS[index % SERVICE_ICONS.length];
+                const Icon = getCmsIcon(service.icon) || SERVICE_ICONS[index % SERVICE_ICONS.length];
                 return (
                   <div
                     key={index}

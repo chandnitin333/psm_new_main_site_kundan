@@ -122,9 +122,11 @@ const KhulaBhukhandModal = ({ isOpen, onClose, onSave, initialData }: KhulaBhukh
       const ewFoot = parseFloat(name === 'shetrafalPurabPachimMeter' ? value : formData.shetrafalPurabPachimMeter) || 0;
       const nsFoot = parseFloat(name === 'shetrafalUttarDakshinFoot' ? value : formData.shetrafalUttarDakshinFoot) || 0;
 
-      // Convert feet to meter (1 sq ft = 0.092903 sq meter)
-      updated.shetrafalPurabPachimMeter2 = ewFoot ? (ewFoot * 0.092903).toFixed(2) : '';
-      updated.shetrafalUttarDakshinMeter = nsFoot ? (nsFoot * 0.092903).toFixed(2) : '';
+      // Convert LINEAR feet to meter (1 ft = 0.3048 m). NOTE: earlier this wrongly
+      // used the AREA factor 0.092903 on a linear dimension, which then got squared
+      // when the two sides were multiplied — making भांडवली मूल्य ~10.7x too small.
+      updated.shetrafalPurabPachimMeter2 = ewFoot ? (ewFoot * 0.3048).toFixed(2) : '';
+      updated.shetrafalUttarDakshinMeter = nsFoot ? (nsFoot * 0.3048).toFixed(2) : '';
 
       // Auto-calculate Total Sq Feet
       const totalSqFt = ewFoot * nsFoot;
