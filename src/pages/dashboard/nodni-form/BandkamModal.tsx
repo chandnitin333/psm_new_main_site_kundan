@@ -114,9 +114,9 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
       const ewFoot = parseFloat(name === 'shetrafalPurvPachimFoot' ? value : formData.shetrafalPurvPachimFoot) || 0;
       const nsFoot = parseFloat(name === 'shetrafalUttarDakshinFoot' ? value : formData.shetrafalUttarDakshinFoot) || 0;
 
-      // Convert feet to meter (1 sq ft = 0.092903 sq meter)
-      updated.shetrafalPurvPachimMeter = ewFoot ? (ewFoot * 0.092903).toFixed(2) : '';
-      updated.shetrafalUttarDakshinMeter = nsFoot ? (nsFoot * 0.092903).toFixed(2) : '';
+      // Convert LINEAR feet to meter (1 ft = 0.3048 m) — not the area factor 0.092903.
+      updated.shetrafalPurvPachimMeter = ewFoot ? (ewFoot * 0.3048).toFixed(2) : '';
+      updated.shetrafalUttarDakshinMeter = nsFoot ? (nsFoot * 0.3048).toFixed(2) : '';
 
       // Auto-calculate Total Sq Feet
       const totalSqFt = ewFoot * nsFoot;
@@ -150,9 +150,50 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
     }
   };
 
+  // Fetch इमारतीचे वार्षिक मूल्य + आकारणी दर — needs BOTH मालमत्तेचे प्रकार and वर्णन.
+  // Called from either dropdown so the value fetches no matter which is picked last.
+  const fetchAnnualRates = async (prakarId: string, varnanId: string) => {
+    if (!prakarId || !varnanId) return;
+    try {
+      const currentUser = authService.getCurrentUser();
+      if (
+        !currentUser?.district_id ||
+        !currentUser?.taluka_id ||
+        !currentUser?.gram_panchayat_id ||
+        !currentUser?.gat_gram_panchayat_id
+      ) {
+        return;
+      }
+
+      const res = await commonDdlService.getAnnualTaxRates({
+        district_id: currentUser.district_id,
+        taluka_id: currentUser.taluka_id,
+        gram_panchayat_id: currentUser.gram_panchayat_id,
+        gat_gram_panchayat_id: currentUser.gat_gram_panchayat_id,
+        malmatteche_prakar_id: Number(prakarId),
+        malmatta_id: Number(varnanId),
+      }) as {
+        success: boolean;
+        data?: { varshik_mulya_dar: number | null; aakarani_dar: number | null };
+      };
+
+      if (res.success && res.data) {
+        setFormData(prev => ({
+          ...prev,
+          imaraticheVarshikMulya: res.data!.varshik_mulya_dar ? String(res.data!.varshik_mulya_dar) : '',
+          aakraniDar: res.data!.aakarani_dar ? String(res.data!.aakarani_dar) : '',
+        }));
+      }
+    } catch {
+      // keep fields empty on error
+    }
+  };
+
   const handleMalmattechePrakarChange = async (value: string | number | (string | number)[]) => {
     const selectedId = value as string;
-    setFormData(prev => ({ ...prev, malmattechePrakar: selectedId, bharank: '' }));
+    const varnanId = formData.malmattecheVarnan;  // capture current selection
+    // Prakar changed → reset bharank + rate fields; re-fetch below.
+    setFormData(prev => ({ ...prev, malmattechePrakar: selectedId, bharank: '', imaraticheVarshikMulya: '', aakraniDar: '' }));
 
     if (!selectedId) return;
 
@@ -171,6 +212,9 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
     } catch {
       // keep field empty on error
     }
+
+    // If वर्णन is already chosen, fetch वार्षिक मूल्य + आकारणी दर for the new प्रकार too.
+    if (varnanId) await fetchAnnualRates(selectedId, varnanId);
   };
 
   const handleMalmattecheVarnanChange = async (value: string | number | (string | number)[]) => {
@@ -178,40 +222,7 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
     setFormData(prev => ({ ...prev, malmattecheVarnan: selectedId, imaraticheVarshikMulya: '', aakraniDar: '' }));
 
     if (!selectedId || !formData.malmattechePrakar) return;
-
-    try {
-      const currentUser = authService.getCurrentUser();
-      if (
-        !currentUser?.district_id ||
-        !currentUser?.taluka_id ||
-        !currentUser?.gram_panchayat_id ||
-        !currentUser?.gat_gram_panchayat_id
-      ) {
-        return;
-      }
-
-      const res = await commonDdlService.getAnnualTaxRates({
-        district_id: currentUser.district_id,
-        taluka_id: currentUser.taluka_id,
-        gram_panchayat_id: currentUser.gram_panchayat_id,
-        gat_gram_panchayat_id: currentUser.gat_gram_panchayat_id,
-        malmatteche_prakar_id: Number(formData.malmattechePrakar),
-        malmatta_id: Number(selectedId),
-      }) as {
-        success: boolean;
-        data?: { varshik_mulya_dar: number | null; aakarani_dar: number | null };
-      };
-
-      if (res.success && res.data) {
-        setFormData(prev => ({
-          ...prev,
-          imaraticheVarshikMulya: res.data!.varshik_mulya_dar ? String(res.data!.varshik_mulya_dar) : '',
-          aakraniDar: res.data!.aakarani_dar ? String(res.data!.aakarani_dar) : '',
-        }));
-      }
-    } catch {
-      // keep fields empty on error
-    }
+    await fetchAnnualRates(formData.malmattechePrakar, selectedId);
   };
 
   const handleBandkamMajlaChange = (value: string | number | (string | number)[]) => {
@@ -553,7 +564,7 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              कर आकारणी = (भांडवली मूल्य × आकारणी दर) / 1000
+              कर आकारणी = भांडवली × (1 − घसारा%/100) × आकारणी दर / 1000
             </label>
             <input
               type="text"
@@ -567,6 +578,7 @@ const BandkamModal = ({ isOpen, onClose, onSave, initialData }: BandkamModalProp
                       0.092903 *
                       Number(formData.imaraticheVarshikMulya) *
                       Number(formData.bharank) *
+                      (1 - (Number(formData.ghasaraDar) || 0) / 100) *
                       Number(formData.aakraniDar)) / 1000
                     ).toFixed(2)
                   : ''

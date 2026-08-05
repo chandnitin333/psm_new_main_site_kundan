@@ -444,10 +444,10 @@ const NodniForm = () => {
         ? Number(r.ekunShetrafalChorasFoot) * 0.092903 * Number(r.imaraticheVarshikMulya) * Number(r.bharank)
         : 0), 0
     );
-    // Sum Tax Assessment from all bandkam records
+    // Sum Tax Assessment from all bandkam records — घसारा (depreciation) applied: × (1 − घसारा%/100)
     const totalBuildingTaxAssessment = bandkamRecords.reduce(
       (sum, r) => sum + (r.ekunShetrafalChorasFoot && r.imaraticheVarshikMulya && r.bharank && r.aakraniDar
-        ? (Number(r.ekunShetrafalChorasFoot) * 0.092903 * Number(r.imaraticheVarshikMulya) * Number(r.bharank) * Number(r.aakraniDar)) / 1000
+        ? (Number(r.ekunShetrafalChorasFoot) * 0.092903 * Number(r.imaraticheVarshikMulya) * Number(r.bharank) * (1 - (Number(r.ghasaraDar) || 0) / 100) * Number(r.aakraniDar)) / 1000
         : 0), 0
     );
     // Sum Tax Assessment from all manoryach records
@@ -657,7 +657,9 @@ const NodniForm = () => {
     const aakraniDar = Number(record.aakraniDar) || 0;
 
     const ekunChorasFoot = purvPachimFoot * uttarDakshinFoot;
-    const ekunChorasMeter = purvPachimMeter * uttarDakshinMeter;
+    // Area in sq-meter is the authoritative basis: 1 sq.ft = 0.092903 sq.m.
+    // (Keep this consistent with the aggregate calc and the backend rate-cascade.)
+    const ekunChorasMeter = ekunChorasFoot * 0.092903;
     const bhandvaliMulya = ekunChorasMeter * varshikMulya;
     const karAakarani = (bhandvaliMulya * aakraniDar) / 1000;
 
@@ -693,9 +695,11 @@ const NodniForm = () => {
     const bharank = Number(record.bharank) || 0;
 
     const ekunChorasFoot = purvPachimFoot * uttarDakshinFoot;
-    const ekunChorasMeter = purvPachimMeter * uttarDakshinMeter;
-    const bhandvaliMulya = ekunChorasMeter * varshikMulya;
-    const karAakarani = (ekunChorasMeter * varshikMulya * ghasaraDar * bharank * aakraniDar) / 1000;
+    // Authoritative sq-meter area (1 sq.ft = 0.092903 sq.m) — matches the aggregate calc.
+    const ekunChorasMeter = ekunChorasFoot * 0.092903;
+    // भांडवली = क्षेत्रफळ × वार्षिक × भारांक; कर = भांडवली × (1 − घसारा%/100) × आकारणी / 1000
+    const bhandvaliMulya = ekunChorasMeter * varshikMulya * bharank;
+    const karAakarani = (bhandvaliMulya * (1 - ghasaraDar / 100) * aakraniDar) / 1000;
 
     return {
       nodni_id: nodniId,

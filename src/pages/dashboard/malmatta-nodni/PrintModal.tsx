@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import Modal from '../../../components/common/Modal';
 import { FileText, File, Building2, Sparkles, Image as ImageIcon } from 'lucide-react';
 import type { PrintModalProps } from '../../../interfaces/dashboard/malmatta-nodni/PrintModal.types';
+import { can } from '../../../utils/permissions';
 
 const PrintModal = ({ isOpen, onClose, record }: PrintModalProps) => {
   const firstButtonRef = useRef<HTMLButtonElement>(null);
@@ -189,14 +190,15 @@ const PrintModal = ({ isOpen, onClose, record }: PrintModalProps) => {
     `;
   };
 
-  const printFormats = [
+  const allFormats = [
     {
       id: 'namuna8',
       title: 'नमुना 8',
       subtitle: 'Namuna 8',
       icon: FileText,
       color: 'blue',
-      description: 'Standard format'
+      description: 'Standard format',
+      module: 'report_namuna8',
     },
     {
       id: 'namuna9',
@@ -204,7 +206,8 @@ const PrintModal = ({ isOpen, onClose, record }: PrintModalProps) => {
       subtitle: 'Namuna 9',
       icon: File,
       color: 'green',
-      description: 'Alternative format'
+      description: 'Alternative format',
+      module: 'report_namuna9',
     },
     {
       id: 'sarkari8',
@@ -212,7 +215,8 @@ const PrintModal = ({ isOpen, onClose, record }: PrintModalProps) => {
       subtitle: 'Sarkari 8 Namuna',
       icon: Building2,
       color: 'purple',
-      description: 'Government format'
+      description: 'Government format',
+      module: 'report_sarkari8',
     },
     {
       id: 'namuna8new',
@@ -220,7 +224,8 @@ const PrintModal = ({ isOpen, onClose, record }: PrintModalProps) => {
       subtitle: 'Namuna 8 New Version',
       icon: Sparkles,
       color: 'orange',
-      description: 'Latest version'
+      description: 'Latest version',
+      module: 'report_namuna8_new',
     },
     {
       id: 'namuna8images',
@@ -228,9 +233,12 @@ const PrintModal = ({ isOpen, onClose, record }: PrintModalProps) => {
       subtitle: 'Namuna 8 Images',
       icon: ImageIcon,
       color: 'pink',
-      description: 'With images'
+      description: 'With images',
+      module: 'report_namuna8_images',
     },
   ];
+  // Only show the reports this user is permitted to open (each has its own permission).
+  const printFormats = allFormats.filter((f) => can(f.module, 'view'));
 
   const getColorClasses = (color: string) => {
     const colors = {
